@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated outputs and models
+outputs/
+runs/
+checkpoints/
+*.pt
+*.pth
+*.onnx
+*.mlmodel
+
+# Downloaded datasets
+data/external/
+**/data/external/
+**/data/raw/
+**/data/processed/
+
+# Generated sample images
+images/*.jpg
+images/*.png
+
+# macOS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Local experiment artifacts
+*.log
