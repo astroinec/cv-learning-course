@@ -47,8 +47,10 @@ def histogram_equalization(img_gray):
     提示：
       np.histogram(img.flatten(), 256, [0,256])  → (hist, bin_edges)
       hist.cumsum()                               → cdf
-      cdf_normalized = cdf * 255 / cdf[-1]       → 映射到 [0,255]
-      用 img 的值作为索引查表
+      cdf_min = cdf 中第一个非零值（最暗像素对应的累计数）
+      lut = round((cdf - cdf_min) * 255 / (cdf[-1] - cdf_min))   → 最暗映射到 0，最亮映射到 255
+      用 img 的值作为索引查表；全图只有一个灰度时直接返回副本
+    注意：直接用 cdf * 255 / cdf[-1] 时最暗像素不会映射到 0，和 cv2.equalizeHist 不一致，验收会 FAIL。
     """
     # ---- 你的代码 ----
     pass

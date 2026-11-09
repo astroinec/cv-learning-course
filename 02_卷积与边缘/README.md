@@ -4,7 +4,7 @@
 
 ## 学习顺序
 
-1. 阅读 `教程_卷积与边缘.md`（原教程保留）。
+1. 阅读 `教程_卷积与边缘.md`。
 2. 运行 `实验_卷积与边缘.ipynb`，改变噪声、平滑尺度和 Canny 阈值。
 3. 独立完成 `2-1_手写相关运算.py`，不要复制 Notebook 中的 OpenCV 基线。
 4. 运行 `python tests/check_progress.py`。

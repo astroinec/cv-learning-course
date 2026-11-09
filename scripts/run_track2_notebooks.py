@@ -1,4 +1,4 @@
-"""维护者工具：执行第二部分 Notebook 的全部代码单元，检查能否跑通。
+"""维护者工具：执行 Notebook 的全部代码单元，检查能否跑通。默认第 16–24 章，NB_FROM、NB_TO 环境变量可改范围。
 
 用法：
     COURSE_IMPL_DIR=<参考实现目录> python scripts/run_track2_notebooks.py
@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 import nbformat  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-CHAPTERS = [f"{n}_" for n in range(16, 25)]
+CHAPTERS = [f"{n:02d}_" for n in range(int(os.environ.get("NB_FROM", 16)), int(os.environ.get("NB_TO", 24)) + 1)]
 
 
 def run(path: Path) -> bool:

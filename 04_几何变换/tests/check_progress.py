@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 
 CHAPTER = Path(__file__).resolve().parents[1]
+_IMPL = Path(os.environ["COURSE_IMPL_DIR"]) / CHAPTER.name if os.environ.get("COURSE_IMPL_DIR") else CHAPTER
 
 
 def load_assignment():
-    spec = importlib.util.spec_from_file_location("chapter4_assignment", CHAPTER / "4-1_齐次点变换.py")
+    spec = importlib.util.spec_from_file_location("chapter4_assignment", _IMPL / "4-1_齐次点变换.py")
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
