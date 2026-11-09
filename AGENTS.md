@@ -40,17 +40,20 @@ NN_主题/
 
 ## 3. 参考答案
 
-参考实现放在 **`solutions` 分支**的 `solutions/` 目录，主分支没有。
+参考实现放在 **`solutions` 分支**的 `solutions/` 目录（第 1–24 章全部有），主分支没有。
 
 - 学员没完成某章之前，**不要主动展示该章答案**。学员卡住时给提示，顺序是：指出 FAIL 说明里的线索 → 指向教程对应小节 → 给伪代码或关键一步 → 学员明确要求时才给完整代码。
 - 维护者验证测试本身时：
 
   ```bash
   git worktree add ../cv-solutions solutions
-  COURSE_IMPL_DIR=../cv-solutions/solutions python3 16_图像对齐与亚像素/tests/check_progress.py
+  COURSE_IMPL_DIR=../cv-solutions/solutions .venv/bin/python 16_图像对齐与亚像素/tests/check_progress.py
+  # 或者在 solutions 分支一次验证全部 24 章
+  .venv/bin/python solutions/verify_all.py
   ```
 
-  所有第二部分的验收脚本和 Notebook 都支持 `COURSE_IMPL_DIR` 环境变量。
+  所有章节的验收脚本都支持 `COURSE_IMPL_DIR` 环境变量。第 1、5 章依赖 OpenCV，第 9–13 章依赖 PyTorch，所以维护时请用装好 `requirements.txt` 的 `.venv`。
+- 2026-11-09 第一次用参考实现验证第一部分时，发现并修复了两处测试或提示的问题：第 6 章边界用例在浮点下误差是 1.0000001 而不是 1，任何正确实现都会失败；第 1 章直方图均衡化的提示和教程例子用的是 `cdf*255/cdf[-1]`，与测试对照的 OpenCV 公式不一致。以后改测试都要先跑参考实现。
 
 ## 4. 修改内容的规则
 
@@ -64,7 +67,7 @@ NN_主题/
    python scripts/run_track2_notebooks.py                                              # TODO 状态也应全部 OK
    ```
 
-   需要 `nbformat` 和 `matplotlib`。
+   需要 `nbformat` 和 `matplotlib`。执行脚本默认只跑第 16–24 章，加 `NB_FROM=1 NB_TO=14` 可以跑第一部分的 Notebook（第一部分 Notebook 是手写的，不由构建脚本生成）。
 4. **Notebook 不放答案**：只调用学员的作业函数，用 `attempt()` 包装，没实现时打印提示。
 5. **第 24 章的数据生成器**改动后，要重新确认：参考流水线在验收种子 11 和 23 上达标、在 10 个以上其他种子上稳定；去掉对齐、去掉亮度归一化时指标明显变差（说明这些步骤确实被考到）。README 里的参考数字要同步。
 6. **新增章节**：照现有章节结构，同时更新根目录 `README.md` 的课程表、`路线图.html` 的 `CHAPTERS`、`学习进度.md`、`docs/JD对照.md`。

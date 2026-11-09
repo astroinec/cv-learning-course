@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
 import torch
 
 ROOT = Path(__file__).resolve().parents[1]
+_IMPL = Path(os.environ["COURSE_IMPL_DIR"]) / ROOT.name if os.environ.get("COURSE_IMPL_DIR") else ROOT
 
 
 def load():
-    spec = importlib.util.spec_from_file_location("chapter12_hw", ROOT / "作业_Dice与跳跃连接.py")
+    spec = importlib.util.spec_from_file_location("chapter12_hw", _IMPL / "作业_Dice与跳跃连接.py")
     module = importlib.util.module_from_spec(spec)
     assert spec.loader
     spec.loader.exec_module(module)

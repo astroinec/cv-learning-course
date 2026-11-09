@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 
 CHAPTER = Path(__file__).resolve().parents[1]
+_IMPL = Path(os.environ["COURSE_IMPL_DIR"]) / CHAPTER.name if os.environ.get("COURSE_IMPL_DIR") else CHAPTER
 
 
 def load_assignment():
-    spec = importlib.util.spec_from_file_location("chapter6_assignment", CHAPTER / "6-1_前向反向筛选.py")
+    spec = importlib.util.spec_from_file_location("chapter6_assignment", _IMPL / "6-1_前向反向筛选.py")
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -27,7 +29,7 @@ def check() -> bool:
     prev = np.array([[[0, 0]], [[5, 5]], [[10, 10]], [[20, 20]]], dtype=np.float32)
     forward = prev + np.array([[[2, 1]]], dtype=np.float32)
     backward = prev.copy()
-    backward[1, 0] += [0.6, 0.8]   # 误差恰为 1，应保留
+    backward[1, 0] += [0.0, 1.0]   # 误差恰为 1（浮点可精确表示），应保留
     backward[2, 0] += [2.0, 0.0]   # 超阈值
     forward[3, 0, 0] = np.nan      # 非有限值
     status = np.array([[1], [1], [1], [1]], dtype=np.uint8)
