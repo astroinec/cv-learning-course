@@ -34,3 +34,8 @@ images/*.png
 
 # Local experiment artifacts
 *.log
+
+# CMake build directories and personal data
+build/
+**/build/
+**/data/personal/

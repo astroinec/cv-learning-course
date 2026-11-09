@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>视觉算法学习路线图</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --ink: #1f2329; --muted: #646a73; --line: #e3e5e8;
+    --p0: #d83931; --p1: #de7802; --p2: #2f7ae5; --p3: #8f959e; --done: #2ea121;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); }
+  header { padding: 24px 32px 8px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .sub { color: var(--muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 32px; position: sticky; top: 0; background: var(--bg); z-index: 2; border-bottom: 1px solid var(--line); }
+  .bar select, .bar button { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
+  .stats { margin-left: auto; display: flex; gap: 16px; }
+  .stat b { font-size: 18px; }
+  .progress { height: 8px; width: 220px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .progress > div { height: 100%; background: var(--done); width: 0; transition: width .3s; }
+  main { padding: 16px 32px 48px; }
+  .phase { margin: 20px 0 8px; display: flex; align-items: baseline; gap: 12px; }
+  .phase h2 { margin: 0; font-size: 17px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--p3); border-radius: 8px; padding: 12px 14px; cursor: pointer; transition: box-shadow .15s; }
+  .card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+  .card.P0 { border-left-color: var(--p0); } .card.P1 { border-left-color: var(--p1); }
+  .card.P2 { border-left-color: var(--p2); } .card.P3 { border-left-color: var(--p3); }
+  .card.done { opacity: .62; }
+  .card.done .title { text-decoration: line-through; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .num { font-weight: 700; color: var(--muted); width: 26px; }
+  .title { font-weight: 600; flex: 1; }
+  .tag { font-size: 12px; padding: 0 6px; border-radius: 4px; color: #fff; }
+  .tag.P0 { background: var(--p0); } .tag.P1 { background: var(--p1); } .tag.P2 { background: var(--p2); } .tag.P3 { background: var(--p3); }
+  .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .detail { display: none; margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; font-size: 13px; }
+  .card.open .detail { display: block; }
+  .detail ul { margin: 4px 0; padding-left: 18px; }
+  .detail a { color: var(--p2); }
+  input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+  .legend { display: flex; gap: 10px; font-size: 12px; color: var(--muted); }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .legend .l0::before { background: var(--p0); } .legend .l1::before { background: var(--p1); }
+  .legend .l2::before { background: var(--p2); } .legend .l3::before { background: var(--p3); }
+  footer { color: var(--muted); padding: 0 32px 32px; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>视觉算法学习路线图</h1>
+  <div class="sub">面向半导体检测方向视觉算法岗。点卡片展开详情，勾选框记录完成（保存在本浏览器）。文字版见 docs/工业视觉路线_概览.md。</div>
+</header>
+<div class="bar">
+  <label>JD 板块
+    <select id="block">
+      <option value="all">全部</option>
+      <option value="cpp">C++ 工程</option>
+      <option value="trad">传统视觉检测</option>
+      <option value="align">对齐与标定</option>
+      <option value="dl">深度学习检测</option>
+      <option value="gen">图像生成</option>
+      <option value="render">渲染与仿真</option>
+      <option value="domain">半导体领域</option>
+    </select>
+  </label>
+  <label>优先级
+    <select id="prio">
+      <option value="all">全部</option>
+      <option value="P0">只看 P0</option>
+      <option value="P01">P0 + P1</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="hideDone"> 隐藏已完成</label>
+  <div class="legend"><span class="l0">P0 必修</span><span class="l1">P1 重要</span><span class="l2">P2 按分配</span><span class="l3">P3 选修</span></div>
+  <div class="stats">
+    <div class="stat">完成 <b id="doneCount">0</b>/<span id="total">0</span></div>
+    <div class="stat">剩余约 <b id="hoursLeft">0</b> 小时</div>
+    <div class="progress"><div id="pbar"></div></div>
+    <button id="reset">清空进度</button>
+  </div>
+</div>
+<main id="main"></main>
+<footer>章节数据写在本文件的 CHAPTERS 数组里，新增章节时同步修改。</footer>
+<script>
+const CHAPTERS = [
+  { n: "01", t: "像素与色彩", p: "P0", h: 4, phase: 1, blocks: ["trad"], dir: "01_像素与色彩",
+    goals: ["直方图、色彩空间、噪声模型", "中值滤波为什么能去椒盐"], why: "所有检测算法的输入预处理基础" },
+  { n: "02", t: "卷积与边缘", p: "P0", h: 4, phase: 1, blocks: ["trad"], dir: "02_卷积与边缘",
+    goals: ["相关与卷积", "梯度、Canny"], why: "边缘是缺陷和图形的边界" },
+  { n: "03", t: "形态学", p: "P0", h: 3, phase: 1, blocks: ["trad"], dir: "03_形态学",
+    goals: ["腐蚀膨胀开闭", "二值化与轮廓"], why: "缺陷候选的后处理主力" },
+  { n: "04", t: "几何变换", p: "P1", h: 3, phase: 1, blocks: ["align"], dir: "04_几何变换",
+    goals: ["齐次坐标", "单应与 RANSAC"], why: "对齐和标定的前置" },
+  { n: "05", t: "特征点", p: "P1", h: 3, phase: 1, blocks: ["align"], dir: "05_特征点",
+    goals: ["Harris、ORB、匹配"], why: "大位移对齐" },
+  { n: "06", t: "光流", p: "P3", h: 3, phase: 1, blocks: ["align"], dir: "06_光流",
+    goals: ["Lucas-Kanade"], why: "迭代对齐的思想来源" },
+  { n: "07", t: "相机与三维", p: "P1", h: 3, phase: 1, blocks: ["align", "render"], dir: "07_传统CV综合",
+    goals: ["针孔模型", "PnP"], why: "标定和渲染共用的相机模型" },
+  { n: "08", t: "神经网络基础", p: "P3", h: 2, phase: 1, blocks: ["dl"], dir: "08_神经网络基础", goals: ["反向传播"], why: "已有基础，按需回看" },
+  { n: "09", t: "CNN 核心", p: "P3", h: 2, phase: 1, blocks: ["dl"], dir: "09_CNN核心", goals: ["感受野、残差"], why: "已有基础，按需回看" },
+  { n: "10", t: "迁移学习", p: "P3", h: 2, phase: 1, blocks: ["dl"], dir: "10_迁移学习", goals: ["冻结策略、Grad-CAM"], why: "PatchCore 用的就是预训练特征" },
+  { n: "11", t: "目标检测", p: "P3", h: 3, phase: 1, blocks: ["dl"], dir: "11_目标检测", goals: ["IoU、NMS"], why: "有标注时的监督检测" },
+  { n: "12", t: "图像分割", p: "P3", h: 3, phase: 1, blocks: ["dl"], dir: "12_图像分割", goals: ["U-Net、Dice"], why: "像素级缺陷区域" },
+  { n: "13", t: "生成与自监督", p: "P3", h: 2, phase: 1, blocks: ["gen"], dir: "13_生成与自监督", goals: ["自编码器、对比学习"], why: "第 20 章前置" },
+  { n: "14", t: "综合项目与部署", p: "P3", h: 3, phase: 1, blocks: ["dl"], dir: "14_DL综合项目", goals: ["端到端推理与导出"], why: "部署契约" },
+  { n: "15", t: "C++ 视觉工程", p: "P0", h: 15, phase: 2, blocks: ["cpp"], dir: "15_C++视觉工程",
+    goals: ["内存布局与 step", "积分图、NCC、连通域", "CMake、Sanitizer、OpenCV C++"], why: "最大短板，入职第一天就要读写 C++ 工程",
+    links: [["LearnCpp", "https://www.learncpp.com/"], ["OpenCV Mat 教程", "https://docs.opencv.org/4.x/d6/d6d/tutorial_mat_the_basic_image_container.html"]] },
+  { n: "16", t: "图像对齐与亚像素", p: "P0", h: 10, phase: 2, blocks: ["align", "trad"], dir: "16_图像对齐与亚像素",
+    goals: ["ZNCC 模板匹配", "相位相关与亚像素", "周期图案的假峰"], why: "die-to-die 比对的基础，对齐差 0.3 px 就会产生误报",
+    links: [["FPCV 课程", "https://fpcv.cs.columbia.edu/"]] },
+  { n: "17", t: "相机标定", p: "P0", h: 12, phase: 2, blocks: ["align"], dir: "17_相机标定",
+    goals: ["Zhang 方法从零推导", "畸变与非线性优化", "像素尺寸、远心镜头、平台标定"], why: "JD 单独列出的职责",
+    links: [["FPCV 标定讲义", "https://cave.cs.columbia.edu/Statics/monographs/Camera%20Calibration%20FPCV-4-1.pdf"]] },
+  { n: "18", t: "传统缺陷检测", p: "P0", h: 12, phase: 2, blocks: ["trad"], dir: "18_传统缺陷检测",
+    goals: ["金模板与 MAD", "z-score 阈值与连通域", "检出率、误报、过检、漏检"], why: "新人最先接触的检测流水线" },
+  { n: "19", t: "异常检测与深度缺陷检测", p: "P1", h: 15, phase: 2, blocks: ["dl"], dir: "19_异常检测与深度缺陷检测",
+    goals: ["PatchCore 核心零件", "AUROC 与产线工作点", "Anomalib + MVTec AD"], why: "深度学习检测主线",
+    links: [["Anomalib", "https://github.com/open-edge-platform/anomalib"], ["MVTec AD", "https://www.mvtec.com/company/research/datasets/mvtec-ad"]] },
+  { n: "20", t: "合成缺陷与生成模型", p: "P2", h: 12, phase: 2, blocks: ["gen"], dir: "20_合成缺陷与生成模型",
+    goals: ["程序化合成与软掩码", "VAE、GAN、扩散模型", "证明合成数据有用的对照实验"], why: "JD：图像生成、GAN/VAE/SD",
+    links: [["Diffusion 课程", "https://huggingface.co/learn/diffusion-course"]] },
+  { n: "21", t: "3D 数学与渲染管线", p: "P2", h: 15, phase: 2, blocks: ["render"], dir: "21_3D数学与渲染管线",
+    goals: ["MVP 变换与透视矩阵", "软光栅与 z-buffer", "OpenGL 管线与 GLSL"], why: "JD：3D 数学、OpenGL、Shader",
+    links: [["LearnOpenGL", "https://learnopengl.com/"], ["tinyrenderer", "https://github.com/ssloy/tinyrenderer"]] },
+  { n: "22", t: "成像与设备仿真", p: "P1", h: 12, phase: 2, blocks: ["render"], dir: "22_成像与设备仿真",
+    goals: ["瑞利分辨率、照明方式", "PSF 与卷积", "传感器噪声与光子转移曲线"], why: "JD：设备建模仿真、数据生成" },
+  { n: "23", t: "半导体检测领域知识", p: "P0", h: 8, phase: 2, blocks: ["domain"], dir: "23_半导体检测领域知识",
+    goals: ["制造工序与缺陷来源", "检测、复查、量测", "晶圆图与空间模式"], why: "听懂会议，判断算法的业务价值" },
+  { n: "24", t: "综合项目：晶圆检测流水线", p: "P1", h: 15, phase: 3, blocks: ["trad", "align", "domain"], dir: "24_综合项目_晶圆检测流水线",
+    goals: ["对齐、亮度归一化、金模板、阈值串成流水线", "检出率 ≥ 85%、每 die 误报 ≤ 0.3", "消融与失败分析报告"], why: "把前面串起来，也是入职沟通的作品" },
+];
+const PHASES = { 1: "第一部分：通用 CV（按优先级挑重点）", 2: "第二部分：工业视觉专项", 3: "综合项目" };
+const KEY = "cv-course-roadmap-v1";
+let done = JSON.parse(localStorage.getItem(KEY) || "{}");
+
+function visible(c) {
+  const block = document.getElementById("block").value;
+  const prio = document.getElementById("prio").value;
+  const hide = document.getElementById("hideDone").checked;
+  if (block !== "all" && !c.blocks.includes(block)) return false;
+  if (prio === "P0" && c.p !== "P0") return false;
+  if (prio === "P01" && !["P0", "P1"].includes(c.p)) return false;
+  if (hide && done[c.n]) return false;
+  return true;
+}
+
+function render() {
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  for (const ph of [1, 2, 3]) {
+    const list = CHAPTERS.filter(c => c.phase === ph && visible(c));
+    if (!list.length) continue;
+    const head = document.createElement("div");
+    head.className = "phase";
+    const hrs = list.reduce((s, c) => s + c.h, 0);
+    head.innerHTML = `<h2>${PHASES[ph]}</h2><span class="sub">${list.length} 章，约 ${hrs} 小时</span>`;
+    main.appendChild(head);
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    for (const c of list) {
+      const el = document.createElement("div");
+      el.className = `card ${c.p}${done[c.n] ? " done" : ""}`;
+      const links = (c.links || []).map(([name, url]) => `<a href="${url}" target="_blank" rel="noopener">${name}</a>`).join("　");
+      el.innerHTML = `
+        <div class="row">
+          <input type="checkbox" ${done[c.n] ? "checked" : ""} title="标记完成">
+          <span class="num">${c.n}</span><span class="title">${c.t}</span><span class="tag ${c.p}">${c.p}</span>
+        </div>
+        <div class="meta">约 ${c.h} 小时｜目录 ${c.dir}</div>
+        <div class="detail">
+          <div><b>为什么学：</b>${c.why}</div>
+          <ul>${c.goals.map(g => `<li>${g}</li>`).join("")}</ul>
+          ${links ? `<div><b>资源：</b>${links}</div>` : ""}
+          <div class="meta">验收：python3 ${c.dir}/tests/check_progress.py</div>
+        </div>`;
+      el.querySelector("input").addEventListener("click", e => {
+        e.stopPropagation();
+        done[c.n] = e.target.checked;
+        if (!done[c.n]) delete done[c.n];
+        localStorage.setItem(KEY, JSON.stringify(done));
+        render();
+      });
+      el.addEventListener("click", e => { if (e.target.tagName !== "A") el.classList.toggle("open"); });
+      grid.appendChild(el);
+    }
+    main.appendChild(grid);
+  }
+  const prio = document.getElementById("prio").value;
+  const scope = CHAPTERS.filter(c => prio === "all" || (prio === "P0" ? c.p === "P0" : ["P0", "P1"].includes(c.p)));
+  const finished = scope.filter(c => done[c.n]);
+  document.getElementById("doneCount").textContent = finished.length;
+  document.getElementById("total").textContent = scope.length;
+  document.getElementById("hoursLeft").textContent = scope.filter(c => !done[c.n]).reduce((s, c) => s + c.h, 0);
+  document.getElementById("pbar").style.width = (100 * finished.length / Math.max(1, scope.length)) + "%";
+}
+
+for (const id of ["block", "prio", "hideDone"]) document.getElementById(id).addEventListener("change", render);
+document.getElementById("reset").addEventListener("click", () => {
+  if (confirm("清空所有完成标记？")) { done = {}; localStorage.removeItem(KEY); render(); }
+});
+render();
+</script>
+</body>
+</html>

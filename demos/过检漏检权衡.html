@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>过检与漏检的权衡</title>
+<style>
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f6f7f9; color: #1f2329; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #646a73; margin-bottom: 16px; }
+  .panel { background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; }
+  label { display: block; font-size: 13px; color: #646a73; }
+  input[type=range] { width: 100%; }
+  .val { font-weight: 600; color: #1f2329; }
+  .charts { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  canvas { width: 100%; background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+  .kpi { background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; padding: 10px 14px; }
+  .kpi b { display: block; font-size: 22px; }
+  .kpi.bad b { color: #d83931; } .kpi.warn b { color: #de7802; } .kpi.ok b { color: #2ea121; }
+  .note { font-size: 13px; color: #646a73; }
+  ul { margin: 6px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>过检与漏检的权衡（第 18、19 章）</h1>
+  <div class="sub">良品和缺陷的异常分数各服从一个正态分布。拖动阈值，看过检率（良品被判坏）和漏检率（缺陷被放过）怎么此消彼长；再改变两类分布的距离，理解“模型更好”意味着什么。</div>
+
+  <div class="panel controls">
+    <label>阈值 <span class="val" id="thrV"></span><input type="range" id="thr" min="-3" max="8" step="0.01" value="2.5"></label>
+    <label>缺陷分数均值（可分性） <span class="val" id="muV"></span><input type="range" id="mu" min="0" max="7" step="0.1" value="4"></label>
+    <label>缺陷分数标准差 <span class="val" id="sdV"></span><input type="range" id="sd" min="0.3" max="3" step="0.05" value="1.2"></label>
+    <label>缺陷率（每 1000 个 die 里有几个缺陷 die） <span class="val" id="prevV"></span><input type="range" id="prev" min="1" max="200" step="1" value="20"></label>
+  </div>
+
+  <div class="charts">
+    <canvas id="dist" width="680" height="300"></canvas>
+    <canvas id="roc" width="320" height="300"></canvas>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" id="k1">漏检率<b id="esc"></b></div>
+    <div class="kpi" id="k2">过检率<b id="ovk"></b></div>
+    <div class="kpi">AUROC<b id="auc"></b></div>
+    <div class="kpi">报警中真缺陷的比例（精确率）<b id="prec"></b></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <b>试一试</b>
+    <ul>
+      <li>把漏检率压到 1% 以下，过检率是多少？这就是第 19 章 <code>threshold_at_escape</code> 做的事。</li>
+      <li>保持 AUROC 约 0.99，把缺陷率从 200 降到 5，精确率怎么变？为什么“AUROC 高”不等于“报警可信”？</li>
+      <li>把缺陷均值从 4 提到 6（模型更好），在同样的漏检率下过检率降了多少？这才是汇报算法改进时该用的说法。</li>
+    </ul>
+    <div class="note">良品分数固定为标准正态 N(0, 1)。所有数值都是解析计算，没有随机采样。</div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+function erf(x) { const s = Math.sign(x); x = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return s * y; }
+const cdf = (x, m, s) => 0.5 * (1 + erf((x - m) / (s * Math.SQRT2)));
+const pdf = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * Math.sqrt(2 * Math.PI));
+
+function draw() {
+  const thr = +$("thr").value, mu = +$("mu").value, sd = +$("sd").value, prev = +$("prev").value / 1000;
+  $("thrV").textContent = thr.toFixed(2); $("muV").textContent = mu.toFixed(1);
+  $("sdV").textContent = sd.toFixed(2); $("prevV").textContent = $("prev").value;
+  const esc = cdf(thr, mu, sd), ovk = 1 - cdf(thr, 0, 1);
+  const auc = cdf(mu / Math.sqrt(1 + sd * sd), 0, 1);
+  const tp = prev * (1 - esc), fp = (1 - prev) * ovk;
+  $("esc").textContent = (100 * esc).toFixed(2) + "%";
+  $("ovk").textContent = (100 * ovk).toFixed(2) + "%";
+  $("auc").textContent = auc.toFixed(4);
+  $("prec").textContent = tp + fp > 0 ? (100 * tp / (tp + fp)).toFixed(1) + "%" : "无报警";
+  $("k1").className = "kpi " + (esc > 0.05 ? "bad" : esc > 0.01 ? "warn" : "ok");
+  $("k2").className = "kpi " + (ovk > 0.1 ? "bad" : ovk > 0.02 ? "warn" : "ok");
+
+  const c = $("dist"), g = c.getContext("2d"), W = c.width, H = c.height, pad = 30;
+  g.clearRect(0, 0, W, H);
+  const x0 = -4, x1 = 10, X = x => pad + (x - x0) / (x1 - x0) * (W - 2 * pad);
+  const ymax = Math.max(pdf(0, 0, 1), pdf(mu, mu, sd)) * 1.1, Y = y => H - pad - y / ymax * (H - 2 * pad);
+  const curve = (m, s, color, fillFrom, fillTo, fillColor) => {
+    g.beginPath(); g.moveTo(X(fillFrom), Y(0));
+    for (let x = fillFrom; x <= fillTo; x += 0.02) g.lineTo(X(x), Y(pdf(x, m, s)));
+    g.lineTo(X(fillTo), Y(0)); g.closePath(); g.fillStyle = fillColor; g.fill();
+    g.beginPath();
+    for (let x = x0; x <= x1; x += 0.02) { const px = X(x), py = Y(pdf(x, m, s)); x === x0 ? g.moveTo(px, py) : g.lineTo(px, py); }
+    g.strokeStyle = color; g.lineWidth = 2; g.stroke();
+  };
+  curve(0, 1, "#2f7ae5", thr, x1, "rgba(47,122,229,.25)");
+  curve(mu, sd, "#d83931", x0, thr, "rgba(216,57,49,.25)");
+  g.strokeStyle = "#1f2329"; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(X(thr), pad / 2); g.lineTo(X(thr), H - pad); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "#1f2329"; g.font = "12px sans-serif";
+  g.fillText("阈值", X(thr) + 4, pad);
+  g.fillStyle = "#2f7ae5"; g.fillText("良品分数（蓝色阴影 = 过检）", X(-3.8), 18);
+  g.fillStyle = "#d83931"; g.fillText("缺陷分数（红色阴影 = 漏检）", X(3.5), 18);
+  g.strokeStyle = "#c9cdd4"; g.beginPath(); g.moveTo(pad, H - pad); g.lineTo(W - pad, H - pad); g.stroke();
+  g.fillStyle = "#646a73"; g.fillText("异常分数", W - pad - 50, H - 10);
+
+  const r = $("roc"), q = r.getContext("2d"), RW = r.width, RH = r.height, rp = 34;
+  q.clearRect(0, 0, RW, RH);
+  const RX = v => rp + v * (RW - 2 * rp), RY = v => RH - rp - v * (RH - 2 * rp);
+  q.strokeStyle = "#c9cdd4"; q.strokeRect(rp, rp, RW - 2 * rp, RH - 2 * rp);
+  q.setLineDash([3, 3]); q.beginPath(); q.moveTo(RX(0), RY(0)); q.lineTo(RX(1), RY(1)); q.stroke(); q.setLineDash([]);
+  q.beginPath();
+  for (let t = 12; t >= -6; t -= 0.05) { const fpr = 1 - cdf(t, 0, 1), tpr = 1 - cdf(t, mu, sd); t === 12 ? q.moveTo(RX(fpr), RY(tpr)) : q.lineTo(RX(fpr), RY(tpr)); }
+  q.strokeStyle = "#de7802"; q.lineWidth = 2; q.stroke();
+  q.fillStyle = "#1f2329"; q.beginPath(); q.arc(RX(ovk), RY(1 - esc), 5, 0, 2 * Math.PI); q.fill();
+  q.font = "12px sans-serif"; q.fillStyle = "#646a73";
+  q.fillText("ROC（横轴过检率，纵轴检出率）", rp, 20);
+  q.fillText("0", rp - 12, RH - rp + 14); q.fillText("1", RW - rp - 4, RH - rp + 14); q.fillText("1", rp - 12, rp + 4);
+}
+for (const id of ["thr", "mu", "sd", "prev"]) $(id).addEventListener("input", draw);
+draw();
+</script>
+</body>
+</html>

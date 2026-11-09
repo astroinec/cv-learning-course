@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>相机投影与镜头畸变</title>
+<style>
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f6f7f9; color: #1f2329; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #646a73; margin-bottom: 16px; }
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+  .panel { background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; padding: 14px; }
+  label { display: block; font-size: 13px; color: #646a73; margin-bottom: 6px; }
+  input[type=range] { width: 100%; }
+  .val { font-weight: 600; color: #1f2329; float: right; }
+  h3 { font-size: 14px; margin: 10px 0 6px; }
+  canvas { width: 100%; background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; }
+  pre { background: #f6f7f9; padding: 8px; border-radius: 6px; font-size: 12px; overflow-x: auto; margin: 8px 0 0; }
+  ul { padding-left: 18px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>相机投影与镜头畸变（第 7、17 章）</h1>
+  <div class="sub">一块 9x6 的棋盘经过 s·[u,v,1]ᵀ = K·[R|t]·[X,Y,0,1]ᵀ 投到 640x480 的图像上，再加上径向和切向畸变。拖动滑块，把每个参数的作用看清楚。</div>
+  <div class="layout">
+    <div class="panel">
+      <h3>内参 K</h3>
+      <label>fx <span class="val" id="fxV"></span><input type="range" id="fx" min="300" max="1400" value="800"></label>
+      <label>fy <span class="val" id="fyV"></span><input type="range" id="fy" min="300" max="1400" value="800"></label>
+      <label>cx <span class="val" id="cxV"></span><input type="range" id="cx" min="200" max="440" value="320"></label>
+      <label>cy <span class="val" id="cyV"></span><input type="range" id="cy" min="140" max="340" value="240"></label>
+      <h3>外参（棋盘姿态）</h3>
+      <label>绕 x 轴旋转（度） <span class="val" id="rxV"></span><input type="range" id="rx" min="-60" max="60" value="20"></label>
+      <label>绕 y 轴旋转（度） <span class="val" id="ryV"></span><input type="range" id="ry" min="-60" max="60" value="-15"></label>
+      <label>距离 tz（mm） <span class="val" id="tzV"></span><input type="range" id="tz" min="150" max="900" value="420"></label>
+      <h3>畸变</h3>
+      <label>k1 <span class="val" id="k1V"></span><input type="range" id="k1" min="-0.6" max="0.6" step="0.01" value="0"></label>
+      <label>k2 <span class="val" id="k2V"></span><input type="range" id="k2" min="-0.4" max="0.4" step="0.01" value="0"></label>
+      <label>p1（切向） <span class="val" id="p1V"></span><input type="range" id="p1" min="-0.05" max="0.05" step="0.001" value="0"></label>
+      <label><input type="checkbox" id="ghost" checked> 显示无畸变的位置（灰色）</label>
+    </div>
+    <div>
+      <canvas id="cv" width="640" height="480"></canvas>
+      <div class="panel" style="margin-top:12px">
+        <pre id="mat"></pre>
+        <ul>
+          <li>只改 cx、cy：整张图平移，形状不变。主点就是光轴和成像面的交点。</li>
+          <li>同时放大 fx、fy 并把 tz 拉远：图像几乎一样。这就是“焦距和距离耦合”，标定时要多种倾斜姿态才能把它们分开（第 17 章教程第 6 节）。</li>
+          <li>k1 设为 -0.3：桶形畸变，越靠边缘越明显。所以标定时棋盘必须覆盖到画面四角。</li>
+          <li>把棋盘转到正对相机（两个旋转都设 0）：这时 Zhang 方法的两个约束提供的信息最少。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const ids = ["fx", "fy", "cx", "cy", "rx", "ry", "tz", "k1", "k2", "p1"];
+function rot(rx, ry) {
+  const a = rx * Math.PI / 180, b = ry * Math.PI / 180;
+  const Rx = [[1, 0, 0], [0, Math.cos(a), -Math.sin(a)], [0, Math.sin(a), Math.cos(a)]];
+  const Ry = [[Math.cos(b), 0, Math.sin(b)], [0, 1, 0], [-Math.sin(b), 0, Math.cos(b)]];
+  return Ry.map(r => [0, 1, 2].map(j => r[0] * Rx[0][j] + r[1] * Rx[1][j] + r[2] * Rx[2][j]));
+}
+function draw() {
+  const v = {}; for (const k of ids) { v[k] = +$(k).value; $(k + "V").textContent = v[k]; }
+  const R = rot(v.rx, v.ry), sq = 25, cols = 10, rows = 7;
+  const t = [-(cols - 1) * sq / 2, -(rows - 1) * sq / 2, v.tz];
+  const project = (X, Y, distort) => {
+    const Xc = R[0][0] * X + R[0][1] * Y + t[0], Yc = R[1][0] * X + R[1][1] * Y + t[1], Zc = R[2][0] * X + R[2][1] * Y + t[2];
+    if (Zc <= 1) return null;
+    let x = Xc / Zc, y = Yc / Zc;
+    if (distort) {
+      const r2 = x * x + y * y, rad = 1 + v.k1 * r2 + v.k2 * r2 * r2;
+      const xd = x * rad + 2 * v.p1 * x * y, yd = y * rad + v.p1 * (r2 + 2 * y * y);
+      x = xd; y = yd;
+    }
+    return [v.fx * x + v.cx, v.fy * y + v.cy];
+  };
+  const c = $("cv"), g = c.getContext("2d");
+  g.fillStyle = "#fbfbfc"; g.fillRect(0, 0, 640, 480);
+  const drawGrid = (distort, color, width) => {
+    g.strokeStyle = color; g.lineWidth = width;
+    for (let i = 0; i < rows; i++) { g.beginPath(); let started = false;
+      for (let s = 0; s <= (cols - 1) * 4; s++) { const p = project(s * sq / 4, i * sq, distort); if (!p) continue; started ? g.lineTo(...p) : g.moveTo(...p); started = true; } g.stroke(); }
+    for (let j = 0; j < cols; j++) { g.beginPath(); let started = false;
+      for (let s = 0; s <= (rows - 1) * 4; s++) { const p = project(j * sq, s * sq / 4, distort); if (!p) continue; started ? g.lineTo(...p) : g.moveTo(...p); started = true; } g.stroke(); }
+  };
+  if ($("ghost").checked) drawGrid(false, "#c9cdd4", 1);
+  drawGrid(true, "#2f7ae5", 1.5);
+  for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+    const p = project(j * sq, i * sq, true); if (!p) continue;
+    g.fillStyle = i === 0 && j === 0 ? "#d83931" : "#1f2329"; g.beginPath(); g.arc(p[0], p[1], i === 0 && j === 0 ? 4 : 2, 0, 2 * Math.PI); g.fill();
+  }
+  g.strokeStyle = "#de7802"; g.beginPath(); g.moveTo(v.cx - 8, v.cy); g.lineTo(v.cx + 8, v.cy); g.moveTo(v.cx, v.cy - 8); g.lineTo(v.cx, v.cy + 8); g.stroke();
+  g.fillStyle = "#de7802"; g.font = "12px sans-serif"; g.fillText("主点", v.cx + 10, v.cy - 6);
+  g.fillStyle = "#d83931"; g.fillText("红点 = 棋盘原点 (0,0)", 10, 470);
+  const f = x => x.toFixed(3).padStart(7);
+  $("mat").textContent =
+`K = [[${v.fx}, 0, ${v.cx}],          R =  [[${f(R[0][0])} ${f(R[0][1])} ${f(R[0][2])}]
+     [0, ${v.fy}, ${v.cy}],                [${f(R[1][0])} ${f(R[1][1])} ${f(R[1][2])}]
+     [0, 0, 1]]                       [${f(R[2][0])} ${f(R[2][1])} ${f(R[2][2])}]]
+t = [${t.map(x => x.toFixed(1)).join(", ")}] mm      dist = [k1=${v.k1}, k2=${v.k2}, p1=${v.p1}]`;
+}
+for (const k of [...ids, "ghost"]) $(k).addEventListener("input", draw);
+draw();
+</script>
+</body>
+</html>
