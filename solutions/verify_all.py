@@ -1,6 +1,6 @@
-"""对第 15–24 章逐章运行验收：参考实现应全部通过，主目录作业（初始 TODO）应不报错。
+"""对第 1–24 章逐章运行验收：参考实现应全部通过，主目录作业（初始 TODO）应不报错。
 
-用法（在仓库根目录）：python3 solutions/verify_all.py
+用法（在仓库根目录）：.venv/bin/python solutions/verify_all.py（第 1、5 章要 OpenCV，第 9–13 章要 PyTorch）
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ def run(test: Path, impl_dir: Path | None) -> tuple[int, str]:
 
 
 def main() -> int:
-    chapters = sorted(d for d in ROOT.iterdir() if d.is_dir() and d.name[:2].isdigit() and 15 <= int(d.name[:2]) <= 24)
+    chapters = sorted(d for d in ROOT.iterdir() if d.is_dir() and d.name[:2].isdigit() and 1 <= int(d.name[:2]) <= 24)
     ok = True
     for ch in chapters:
         test = ch / "tests" / "check_progress.py"

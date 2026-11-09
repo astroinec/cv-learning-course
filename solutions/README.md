@@ -1,6 +1,6 @@
 # 参考实现（solutions 分支）
 
-这里是第二部分（15–24 章）作业的参考实现，供两类人使用：
+这里是第 1–24 章全部作业的参考实现，供两类人使用：
 
 - **学员**：某章自己做完、验收通过之后，对照看看有没有更简洁或更稳健的写法。卡住时先看验收输出的 FAIL 说明和教程，不要第一时间来这里。
 - **维护者和 AI 助手**：修改测试或 Notebook 后，用这里的实现确认“正确实现能通过”。
@@ -8,8 +8,10 @@
 ## 一键验证
 
 ```bash
-python3 solutions/verify_all.py
+.venv/bin/python solutions/verify_all.py
 ```
+
+第 1、5 章依赖 OpenCV，第 9–13 章依赖 PyTorch，请用装好 `requirements.txt` 的环境运行。
 
 它会对每章分别运行两次验收：一次用 `solutions/` 里的参考实现（应全部 PASS），一次用主目录里的作业文件（初始状态应显示 TODO 而不是报错）。
 
@@ -17,7 +19,7 @@ python3 solutions/verify_all.py
 
 ```bash
 git worktree add ../cv-solutions solutions
-COURSE_IMPL_DIR=../cv-solutions/solutions python3 18_传统缺陷检测/tests/check_progress.py
+COURSE_IMPL_DIR=../cv-solutions/solutions .venv/bin/python 18_传统缺陷检测/tests/check_progress.py
 ```
 
 ## 说明
