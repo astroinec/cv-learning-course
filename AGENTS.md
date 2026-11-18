@@ -38,6 +38,8 @@ NN_主题/
 | `course.json` | 每章的应用场景、优先级、三档用时、前置和学习路线，网页首页和侧栏由它生成 | 新增或升级章节时 |
 | `docs/写作规范.md` | 升级后每章的固定结构、数字复现规则、讲义扩展写法 | 约定变化时 |
 | `docs/升级进度.md` | 哪些章已按新规范升级、剩下什么、按什么顺序做 | 每升级完一章 |
+| `docs/升级任务说明.md` | 升级单章的文件归属、步骤、踩过的坑和回报格式，多个助手并行时必须遵守 | 流程变化时 |
+| `scripts/check_chapter.py` | 单章自检，不写共享目录 | 检查项变化时 |
 | `scripts/build_site.py` | 把各章讲义生成为 `site/` 下的离线网页 | 改了讲义或 `course.json` 后运行，加 `--strict` |
 | `NN_*/figures/` | 讲义配图和 `实测数字.json`，由 `solutions` 分支的 `solutions/figures/chNN.py` 生成 | 改讲义里的数字前先重跑脚本 |
 | `scripts/build_track2_notebooks.py` | 生成第 16–24 章 Notebook | 改 Notebook 内容时改这里再运行 |
