@@ -58,7 +58,89 @@
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 19 章 <span class="tag P1">P1</span> <span class="badge">原版讲义</span></div><h1>异常检测与深度缺陷检测</h1><p class="scene"><b>用在哪：</b>只有良品样本时发现未知缺陷，以及有标注时的检测、分割、分类</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 22 小时</span><span class="chip">前置：<a href="../lessons/10.html">第 10 章 迁移学习与模型分析</a>、<a href="../lessons/18.html">第 18 章 传统缺陷检测</a></span></div><div class="meta-row"><span class="chip mono">验收：python 19_异常检测与深度缺陷检测/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="19"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><h2 id="1-监督还是无监督">1. 监督还是无监督</h2>
+<div class="lesson-head"><div class="crumbs">第 19 章 <span class="tag P1">P1</span> <span class="badge ok">已升级</span></div><h1>异常检测与深度缺陷检测</h1><p class="scene"><b>用在哪：</b>只有良品样本时发现未知缺陷，以及有标注时的检测、分割、分类</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 22 小时</span><span class="chip">前置：<a href="../lessons/10.html">第 10 章 迁移学习与模型分析</a>、<a href="../lessons/18.html">第 18 章 传统缺陷检测</a></span></div><div class="meta-row"><span class="chip mono">验收：python 19_异常检测与深度缺陷检测/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="19"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自合成条纹纹理上的实测，记录在 <a href="../../19_异常检测与深度缺陷检测/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch19.py</code> 生成。特征沿用本章 Notebook 的做法（4×4 像素块加邻域平均，不依赖预训练权重），最后一组对照用 torchvision 的 ResNet-18。脚本在一台 Mac 的 CPU 上几分钟就能跑完，重复运行结果相同。换成真实图像，数值会变，结论的方向要自己再测一遍。讲到 MVTec AD 等公开数据集时，本章不引用任何论文报告的分数。</p>
+</div>
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：只有良品样本时发现未知缺陷，以及有标注时的检测、分割、分类。新产品刚上线、缺陷样本攒不够，或者缺陷种类多到标不过来时，先用良品建一个“正常长什么样”的模型，把不像的地方报出来。它和第 18 章的金模板比对是同一个思路，只是把“和模板逐像素比”换成了“和良品的局部特征比”。</p>
+<p><strong>优先级</strong>：P1，主线能力。前置是第 10 章（预训练特征）和第 18 章（金模板、检出率与误报、工作点）。本章默认你会用第 18 章的方式读检出率和误报。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">3 小时</td>
+<td>读第 1、3、4.1、5 节，看懂图 1、3、5、6，把第 6 节演示的五步试一遍，答完 5 道小测</td>
+<td>能讲清 PatchCore 的五个环节，为什么记忆库方法比金模板更不怕错位却仍然怕半个像素，为什么 AUROC 0.99 不等于能上线</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">15 小时</td>
+<td>读完全章，跑 Notebook，完成作业并验收通过，做第 11 节前三个破坏实验，填实验记录</td>
+<td>五项测试 PASS，实验记录里有漏检不超过 5% 时的过检率、核心集比例的一条曲线和一个失败案例</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">22 小时</td>
+<td>再做其余破坏实验和第 12 节的扩展，在 MVTec AD 或 VisA 的一个类别上用 Anomalib 跑 PatchCore 和 PaDiM</td>
+<td>能在一个公开类别上给出带条件的 image AUROC、AUPRO 和漏检约束下的过检率，并说明阈值在哪个集合上定的</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。深挖档要下载数据集和装 Anomalib，环境问题最容易卡住，卡超过一小时就先回到合成数据把结论做完。</p>
+</div>
+<h2 id="1-为什么需要金模板在不对齐的纹理上失效">1. 为什么需要：金模板在不对齐的纹理上失效</h2>
+<p>第 18 章的金模板假设每张良品在同一位置长得一样。纹理、颗粒、拉丝、编织网这类表面不满足这一点：每张图的纹理相位都不同，逐像素的中位数和 MAD 学到的是一片平均的灰，任何一张新图都和它差很多。</p>
+<p>下面的实验用 64×64 的条纹纹理（周期 8 px，幅度 0.3，噪声标准差 0.06），缺陷是半径 2 到 3 px 的圆斑。20 张良品建模，200 张待检图里一半有缺陷，3 个种子取平均。“对齐”指良品之间条纹相位只差 0 到 0.3 rad（不到 0.4 px），“不对齐”指相位完全随机。三种方法都不统计图像最外 4 个像素。</p>
+<figure><img src="../../19_异常检测与深度缺陷检测/figures/fig01_三类方法与对齐.svg" alt="图 1：左一，对齐时两张良品上下拼接，条纹连得上。左二，不对齐时条纹在拼缝处错开。中间三栏，同一张不对齐的待检图上三种方法的分数图，青色圈是缺陷：金模板整片都是条纹，逐位置高斯和记忆库只在缺陷处亮。最右，缺陷幅度 0.2 时三种方法的 AUPRO，灰色是对齐，蓝色是不对齐" loading="lazy"><figcaption>图 1：左一，对齐时两张良品上下拼接，条纹连得上。左二，不对齐时条纹在拼缝处错开。中间三栏，同一张不对齐的待检图上三种方法的分数图，青色圈是缺陷：金模板整片都是条纹，逐位置高斯和记忆库只在缺陷处亮。最右，缺陷幅度 0.2 时三种方法的 AUPRO，灰色是对齐，蓝色是不对齐</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方法（20 张良品，200 张待检图，3 个种子）</th>
+<th style="text-align: right;">对齐，幅度 0.2</th>
+<th style="text-align: right;">不对齐，幅度 0.2</th>
+<th style="text-align: right;">对齐，幅度 0.12</th>
+<th style="text-align: right;">不对齐，幅度 0.12</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>金模板（逐像素中位数加 MAD）</td>
+<td style="text-align: right;">1.000 / 0.997</td>
+<td style="text-align: right;">0.743 / 0.330</td>
+<td style="text-align: right;">0.948 / 0.950</td>
+<td style="text-align: right;">0.616 / 0.229</td>
+</tr>
+<tr>
+<td>逐位置高斯（PaDiM 的思路）</td>
+<td style="text-align: right;">0.999 / 0.996</td>
+<td style="text-align: right;">0.934 / 0.822</td>
+<td style="text-align: right;">0.950 / 0.972</td>
+<td style="text-align: right;">0.789 / 0.543</td>
+</tr>
+<tr>
+<td>记忆库最近邻（PatchCore 的思路）</td>
+<td style="text-align: right;">0.999 / 0.995</td>
+<td style="text-align: right;">1.000 / 0.993</td>
+<td style="text-align: right;">0.944 / 0.941</td>
+<td style="text-align: right;">0.924 / 0.919</td>
+</tr>
+</tbody>
+</table></div>
+<p>每格两个数是 image AUROC 和 AUPRO（第 5 节解释）。读这张表的三点：</p>
+<ol>
+<li><strong>对齐时三种方法差不多</strong>，金模板甚至略好。对齐好、良品稳定的场景，第 18 章的方法就够，不必上深度特征。</li>
+<li><strong>不对齐时金模板的 AUPRO 从 0.997 掉到 0.330</strong>。逐位置高斯好一些，因为它用的是局部特征而不是单个像素，但它仍然假设“同一位置的特征来自同一个分布”，不对齐时这个假设不成立。</li>
+<li><strong>记忆库方法不关心位置</strong>。它只问“这个局部长得像不像任何一张良品的任何一个位置”，所以条纹相位随机也没关系。这是它适合纹理表面的根本原因。</li>
+</ol>
+<h2 id="2-异常检测方法谱系">2. 异常检测方法谱系</h2>
+<h3 id="21-监督还是无监督">2.1 监督还是无监督</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -91,13 +173,14 @@
 </tbody>
 </table></div>
 <p>工业里常见的组合：<strong>异常检测负责“发现”，监督分类负责“分类”</strong>。传统比对（第 18 章）或异常检测先找出候选，再用分类网络判断是真缺陷还是误报、属于哪一类。</p>
-<h2 id="2-异常检测方法谱系">2. 异常检测方法谱系</h2>
+<h3 id="22-六类方法各自在做什么">2.2 六类方法各自在做什么</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
 <th>类别</th>
 <th>代表方法</th>
 <th>思路</th>
+<th>训练时要不要反向传播</th>
 </tr>
 </thead>
 <tbody>
@@ -105,36 +188,103 @@
 <td>重建类</td>
 <td>自编码器、DRAEM</td>
 <td>只学会重建良品，缺陷处重建误差大</td>
+<td>要</td>
 </tr>
 <tr>
 <td>特征分布类</td>
 <td>PaDiM</td>
 <td>预训练特征在每个位置拟合高斯分布，用马氏距离打分</td>
+<td>不要，只算均值和协方差</td>
 </tr>
 <tr>
 <td>记忆库类</td>
 <td>PatchCore</td>
 <td>存下良品的局部特征，测试时找最近邻，距离就是异常分数</td>
+<td>不要，只提特征和选核心集</td>
 </tr>
 <tr>
 <td>师生类</td>
 <td>STFPM、EfficientAD</td>
 <td>学生网络只学会在良品上模仿老师，缺陷处两者输出不一致</td>
+<td>要（训练学生）</td>
 </tr>
 <tr>
 <td>流模型</td>
 <td>FastFlow、CFLOW</td>
 <td>把特征映射成高斯分布，用似然打分</td>
+<td>要（训练流）</td>
 </tr>
 <tr>
 <td>视觉语言</td>
 <td>WinCLIP 等</td>
 <td>用文本描述“正常”和“异常”，零样本或少样本</td>
+<td>零样本时不要</td>
 </tr>
 </tbody>
 </table></div>
-<p>重建类的问题是网络泛化太好，连缺陷也一起重建出来了。基于预训练特征的方法（PaDiM、PatchCore）不用训练骨干网络，在 MVTec AD 上效果好，是入门首选。</p>
-<h2 id="3-patchcore-详解">3. PatchCore 详解</h2>
+<p>把它们放在一条线上看会更清楚：<strong>都是在估计“良品的局部长什么样”，区别在于用什么来描述这个分布</strong>。</p>
+<ul>
+<li><strong>PaDiM</strong> 用参数化的描述：每个位置一个均值和一个协方差矩阵。优点是推理快、内存固定；代价是假设了位置对应（第 1 节表里不对齐时掉分）和单峰分布（同一位置有两种正常外观时会变宽）。</li>
+<li><strong>PatchCore</strong> 用非参数化的描述：直接存样本，不假设形状，也不按位置分开。代价是内存和推理时间随记忆库变大，所以要核心集。</li>
+<li><strong>师生类和流模型</strong> 用一个训练出来的网络来描述分布，推理时不用查记忆库，速度可以很快，代价是要训练，训练集里的问题（混进坏图、良品不全）会被学进网络里，比记忆库更难排查。</li>
+<li><strong>重建类</strong> 不直接描述特征分布，而是学一个“只能画出良品”的生成器。</li>
+</ul>
+<p>基于预训练特征的方法（PaDiM、PatchCore）不用训练骨干网络，在 MVTec AD 上效果好，是入门首选。本章不引用它们在公开数据集上的具体分数，深挖档请自己跑。</p>
+<h3 id="23-重建类的容量问题">2.3 重建类的容量问题</h3>
+<p>原讲义说“重建类的问题是网络泛化太好，连缺陷也一起重建出来了”。这句话方向对，但要补一个前提：<strong>这取决于瓶颈有多宽</strong>，瓶颈太窄同样不行。</p>
+<p>用主成分分析当一个线性自编码器就能看得很清楚：8×8 像素块共 64 维，只保留前 <span class="arithmatex">\(k\)</span> 个主成分再重建，残差的范数当异常分数。同一组不对齐的条纹（缺陷幅度 0.12，20 张良品，200 张待检图，3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>保留的主成分个数 k</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">16</th>
+<th style="text-align: right;">32</th>
+<th style="text-align: right;">48</th>
+<th style="text-align: right;">60</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>image AUROC</td>
+<td style="text-align: right;">0.582</td>
+<td style="text-align: right;">0.946</td>
+<td style="text-align: right;">0.947</td>
+<td style="text-align: right;">0.938</td>
+<td style="text-align: right;">0.933</td>
+<td style="text-align: right;">0.877</td>
+<td style="text-align: right;">0.788</td>
+<td style="text-align: right;">0.696</td>
+</tr>
+<tr>
+<td>良品图最大残差的中位数</td>
+<td style="text-align: right;">1.817</td>
+<td style="text-align: right;">0.598</td>
+<td style="text-align: right;">0.589</td>
+<td style="text-align: right;">0.576</td>
+<td style="text-align: right;">0.544</td>
+<td style="text-align: right;">0.470</td>
+<td style="text-align: right;">0.375</td>
+<td style="text-align: right;">0.259</td>
+</tr>
+<tr>
+<td>缺陷图最大残差的中位数</td>
+<td style="text-align: right;">1.838</td>
+<td style="text-align: right;">0.716</td>
+<td style="text-align: right;">0.712</td>
+<td style="text-align: right;">0.693</td>
+<td style="text-align: right;">0.642</td>
+<td style="text-align: right;">0.538</td>
+<td style="text-align: right;">0.415</td>
+<td style="text-align: right;">0.285</td>
+</tr>
+</tbody>
+</table></div>
+<p>条纹只有正弦和余弦两个自由度，<span class="arithmatex">\(k = 1\)</span> 连良品都重建不好，良品和缺陷的残差一样大；<span class="arithmatex">\(k = 2\)</span> 刚好够，AUROC 跳到 0.946；再往上加，缺陷图和良品图最大残差的差距从 0.118（k=2）缩小到 0.026（k=60），因为多出来的维度开始把缺陷也画出来了。真实的深度自编码器没有这么干净的“刚好够”的点，这也是它比基于预训练特征的方法难调的原因。</p>
+<h2 id="3-patchcore-的五个环节">3. PatchCore 的五个环节</h2>
 <div class="highlight"><pre><span></span><code>良品图 → 预训练 CNN（ImageNet 权重，冻结）
        → 取中间层特征（例如 ResNet 的 layer2 和 layer3）
        → 每个位置在 3x3 邻域内平均池化（局部聚合，增加感受野和抗错位能力）
@@ -146,17 +296,545 @@
        → 分数图上采样回原图尺寸并高斯平滑 = 异常热图
        → 热图最大值（或带重加权）= 整图异常分数
 </code></pre></div>
-<p><strong>为什么用中间层</strong>：浅层太关注边缘和颜色，深层太偏向 ImageNet 的类别语义，中间层兼顾局部结构和泛化。</p>
-<p><strong>为什么要核心集</strong>：记忆库可能有几十万个向量，最近邻搜索又慢又占内存。k-center greedy 每次挑离已选集合最远的点，保证所有点到核心集的最大距离尽量小（覆盖半径小），压缩到 1% 时性能几乎不掉。原论文还先做随机投影降维，加速距离计算。</p>
-<p><strong>作业里的零件</strong>：</p>
+<p>PatchCore 训练阶段没有反向传播：骨干网络冻结，所谓“训练”只是对良品跑一遍前向、把特征存下来、再选一个核心集。</p>
+<p>本章的实验沿用 Notebook 的简化：把“预训练 CNN 的中间层”换成“4×4 像素块（步长 2）展平成 16 维”，其余环节不变。这样不用下载权重，几秒就能跑完一组，而且每个环节的效果都看得清楚。第 3.6 节再换成真正的 ResNet-18 特征做对照。</p>
+<h3 id="31-特征提取为什么用中间层">3.1 特征提取：为什么用中间层</h3>
+<p><strong>浅层太关注边缘和颜色，深层太偏向 ImageNet 的类别语义，中间层兼顾局部结构和泛化。</strong> 另一个更实际的原因是分辨率：ResNet 每过一个 stage 分辨率减半，layer3 的一个位置对应输入的 16×16 像素，小缺陷在这一层已经被平均掉了。</p>
+<p>在本章的 64×64 条纹上（放大 2 倍到 128×128 送进 ResNet-18，不对齐，缺陷幅度 0.2、半径 2 到 3 px，核心集 10%，2 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>用哪一层</th>
+<th style="text-align: right;">特征图尺寸</th>
+<th style="text-align: right;">维度</th>
+<th style="text-align: right;">image AUROC</th>
+<th style="text-align: right;">AUPRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>layer1</td>
+<td style="text-align: right;">32×32</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">0.903</td>
+<td style="text-align: right;">0.985</td>
+</tr>
+<tr>
+<td>layer2</td>
+<td style="text-align: right;">16×16</td>
+<td style="text-align: right;">128</td>
+<td style="text-align: right;">0.885</td>
+<td style="text-align: right;">0.899</td>
+</tr>
+<tr>
+<td>layer3</td>
+<td style="text-align: right;">8×8</td>
+<td style="text-align: right;">256</td>
+<td style="text-align: right;">0.781</td>
+<td style="text-align: right;">0.646</td>
+</tr>
+<tr>
+<td>layer2 + layer3</td>
+<td style="text-align: right;">16×16</td>
+<td style="text-align: right;">384</td>
+<td style="text-align: right;">0.922</td>
+<td style="text-align: right;">0.918</td>
+</tr>
+</tbody>
+</table></div>
+<p>layer3 单独用时 AUPRO 只有 0.646，它的 8×8 特征图对这么小的缺陷太粗了；把 layer2 和 layer3 拼起来，image AUROC 是四种里最高的。这组数字只说明这一组合成数据，真实图像上哪一层最好要自己测。</p>
+<h3 id="32-局部聚合抗错位也带来边界问题">3.2 局部聚合：抗错位，也带来边界问题</h3>
+<p>局部聚合是把每个位置的特征换成它 3×3 邻域的平均。原讲义说它“增加感受野和抗错位能力”。两点都对，但实测发现了一个原讲义没提的副作用。</p>
+<p>图像边界上的 patch 没有完整的 3×3 邻域，Notebook 用复制边缘的方式补齐。补出来的那几个邻居就是它自己，平均时等于自己的权重变大了，噪声被压得没有内部那么低。按 9 个权重的平方和算，内部 patch 平均后的噪声方差是单个 patch 的 0.111 倍，边上是 0.185 倍，角上是 0.309 倍。</p>
+<p>后果：良品图上分数最高的位置几乎全在最外一圈。</p>
+<figure><img src="../../19_异常检测与深度缺陷检测/figures/fig02_流程与边界.svg" alt="图 2：左一，一张不对齐的待检图，青色圈是缺陷。左二，31×31 的 patch 分数图，缺陷处亮。左三，按 patch 中心双线性插值回 64×64 的热图。左四，100 张良品的平均分数图，最外一圈明显更亮，四个角最亮。最右，三种取整图分数的方式在两种缺陷幅度下的 image AUROC" loading="lazy"><figcaption>图 2：左一，一张不对齐的待检图，青色圈是缺陷。左二，31×31 的 patch 分数图，缺陷处亮。左三，按 patch 中心双线性插值回 64×64 的热图。左四，100 张良品的平均分数图，最外一圈明显更亮，四个角最亮。最右，三种取整图分数的方式在两种缺陷幅度下的 image AUROC</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>不对齐，3 个种子，核心集 10%</th>
+<th style="text-align: right;">聚合，全图取最大</th>
+<th style="text-align: right;">聚合，去掉最外一圈</th>
+<th style="text-align: right;">不聚合，全图取最大</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>缺陷幅度 0.2：image AUROC</td>
+<td style="text-align: right;">0.887</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.998</td>
+</tr>
+<tr>
+<td>缺陷幅度 0.12：image AUROC</td>
+<td style="text-align: right;">0.697</td>
+<td style="text-align: right;">0.924</td>
+<td style="text-align: right;">0.875</td>
+</tr>
+<tr>
+<td>良品图最高分落在最外一圈的比例</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">11%</td>
+</tr>
+</tbody>
+</table></div>
+<p>最外一圈只占 patch 总数的 12.5%，聚合后却包揽了 100% 的良品最高分；不聚合时这个比例是 11%，和面积占比相当。聚合后良品 patch 分数的中位数，内部 0.072，边上 0.088，角上 0.117。</p>
+<p>所以：</p>
 <ul>
-<li><code>pairwise_sq_dists</code>：所有距离计算的基础，用 <code>‖a‖² + ‖b‖² - 2a·b</code> 展开成矩阵乘法，要注意浮点误差会产生负数。</li>
-<li><code>greedy_coreset</code>：维护每个点到已选集合的最小距离，每加一个点只更新一次，复杂度 O(N·m·D)。</li>
-<li><code>knn_scores</code>：k=1 是原始 PatchCore 的做法。</li>
-<li><code>auroc</code>：等价于 Mann-Whitney U 统计量，按秩次计算，平局记 0.5。</li>
-<li><code>threshold_at_escape</code>：把模型分数变成产线决策。</li>
+<li><strong>只看全图最大值时，聚合反而变差</strong>（幅度 0.12 时 0.697 对 0.875）。</li>
+<li><strong>去掉最外一圈之后，聚合的好处才显出来</strong>（0.924 对 0.875）。缺陷幅度小、只靠单个 patch 的信噪比不够时，聚合把邻域的证据合在一起，这正是它该起的作用。</li>
+<li>原 Notebook 的设置（对齐、缺陷幅度 0.2）比较容易，聚合后全图取最大的 image AUROC 仍有 0.990，问题被掩盖了。</li>
 </ul>
-<h2 id="4-指标">4. 指标</h2>
+<p>本章后面的实验，整图分数一律去掉 patch 分数图的最外一圈。真实系统里对应的做法是：边界用更合理的方式处理（只在有效区域内平均，或者对边界位置单独建记忆库），或者在打分时忽略视场最外的一圈。</p>
+<div class="callout callout-warn"><div class="callout-title">注意</div><p>“良品的最高分总在图像边上”是一个很有用的诊断信号。把良品分数图平均一下，如果边上一圈明显亮，先查边界填充，不要急着调核心集和阈值。</p>
+</div>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>对同一组不对齐的条纹，把局部聚合去掉，整图分数按全图最大值算，image AUROC 从 0.697 升到 0.875。最可能的原因是什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>局部聚合本身是错的，不该用</span></button><button type="button" data-k="B"><b>B</b><span>边界上的 patch 聚合时用复制填充，噪声压得不够，良品的最高分全落在最外一圈，盖过了缺陷</span></button><button type="button" data-k="C"><b>C</b><span>不聚合时特征维度更高，区分能力更强</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。聚合后良品图的最高分 100% 落在最外一圈，而这一圈只占 patch 的 12.5%。去掉这一圈之后，聚合的 image AUROC 是 0.924，比不聚合的 0.875 还高，说明聚合本身是有用的。C 不对，两种做法都是 16 维。</p></div></div>
+<h3 id="33-核心集采样">3.3 核心集采样</h3>
+<p>记忆库可能有几十万个向量，最近邻搜索又慢又占内存。核心集采样从中选出一小部分，测试时只和这部分比。</p>
+<p><strong>k-center greedy</strong> 每次挑离已选集合最远的点，目标是让所有点到核心集的最大距离（覆盖半径）尽量小：</p>
+<div class="arithmatex">\[
+\min_{\mathcal{C} \subseteq \mathcal{M},\ |\mathcal{C}| = m}\ \max_{x \in \mathcal{M}}\ \min_{c \in \mathcal{C}} \lVert x - c \rVert
+\]</div>
+<p>精确求解是 NP 难的，贪心解的覆盖半径不超过最优解的 2 倍。实现时维护每个点到已选集合的最小距离，每加一个点只用它更新一次，复杂度 <span class="arithmatex">\(O(N \cdot m \cdot D)\)</span>。原论文还先做随机投影降维，加速距离计算。</p>
+<p>覆盖半径小有什么用？对任何一个良品 patch <span class="arithmatex">\(x\)</span>，设它在全量记忆库里的最近邻距离是 <span class="arithmatex">\(d(x)\)</span>，在核心集里的是 <span class="arithmatex">\(d_{\mathcal{C}}(x)\)</span>，由三角不等式</p>
+<div class="arithmatex">\[
+d(x) \le d_{\mathcal{C}}(x) \le d(x) + r_{\mathcal{C}}
+\]</div>
+<p>其中 <span class="arithmatex">\(r_{\mathcal{C}}\)</span> 是覆盖半径。所以核心集最多把良品的分数抬高 <span class="arithmatex">\(r_{\mathcal{C}}\)</span>。这是一个只对良品成立的上界，它不保证缺陷的分数也被同样抬高。</p>
+<figure><img src="../../19_异常检测与深度缺陷检测/figures/fig03_核心集采样.svg" alt="图 3：左两栏，330 个二维点（一大团 300 个，右上一小团 30 个），随机和贪心各选 10 个点，圆圈半径是覆盖半径。随机选的 10 个都在大团里，覆盖半径 4.42；贪心选到了小团，覆盖半径 1.26。右二，均匀的良品加弱缺陷时，image AUROC（虚线）和 AUPRO（实线）随记忆库保留比例的变化，横轴从左到右压缩得越来越狠。最右，良品里有 10% 是另一种纹理（稀有但正常）时，两种良品被误判为缺陷的比例" loading="lazy"><figcaption>图 3：左两栏，330 个二维点（一大团 300 个，右上一小团 30 个），随机和贪心各选 10 个点，圆圈半径是覆盖半径。随机选的 10 个都在大团里，覆盖半径 4.42；贪心选到了小团，覆盖半径 1.26。右二，均匀的良品加弱缺陷时，image AUROC（虚线）和 AUPRO（实线）随记忆库保留比例的变化，横轴从左到右压缩得越来越狠。最右，良品里有 10% 是另一种纹理（稀有但正常）时，两种良品被误判为缺陷的比例</figcaption></figure>
+<p>二维示意里，随机抽 10 个点一个都没抽到小团的概率实测是 0.387（理论值 0.380），贪心则一定会去覆盖离得远的小团。</p>
+<p><strong>均匀的良品时，贪心并不比随机好。</strong> 这是本章最反直觉的实测结果。不对齐、缺陷幅度 0.12 的主设置，20 张良品（记忆库 19220 个 patch），3 个种子：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>保留比例</th>
+<th style="text-align: right;">100%</th>
+<th style="text-align: right;">10%</th>
+<th style="text-align: right;">3%</th>
+<th style="text-align: right;">1%</th>
+<th style="text-align: right;">0.3%</th>
+<th style="text-align: right;">0.1%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>核心集大小</td>
+<td style="text-align: right;">19220</td>
+<td style="text-align: right;">1922</td>
+<td style="text-align: right;">577</td>
+<td style="text-align: right;">192</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">19</td>
+</tr>
+<tr>
+<td>贪心：image AUROC</td>
+<td style="text-align: right;">0.932</td>
+<td style="text-align: right;">0.924</td>
+<td style="text-align: right;">0.910</td>
+<td style="text-align: right;">0.854</td>
+<td style="text-align: right;">0.810</td>
+<td style="text-align: right;">0.663</td>
+</tr>
+<tr>
+<td>随机：image AUROC</td>
+<td style="text-align: right;">0.932</td>
+<td style="text-align: right;">0.929</td>
+<td style="text-align: right;">0.920</td>
+<td style="text-align: right;">0.889</td>
+<td style="text-align: right;">0.886</td>
+<td style="text-align: right;">0.698</td>
+</tr>
+<tr>
+<td>贪心：覆盖半径</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.088</td>
+<td style="text-align: right;">0.118</td>
+<td style="text-align: right;">0.156</td>
+<td style="text-align: right;">0.209</td>
+<td style="text-align: right;">0.305</td>
+</tr>
+<tr>
+<td>随机：覆盖半径</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.214</td>
+<td style="text-align: right;">0.320</td>
+<td style="text-align: right;">0.410</td>
+<td style="text-align: right;">0.455</td>
+<td style="text-align: right;">0.511</td>
+</tr>
+<tr>
+<td>贪心：良品图整图分数中位数</td>
+<td style="text-align: right;">0.083</td>
+<td style="text-align: right;">0.101</td>
+<td style="text-align: right;">0.122</td>
+<td style="text-align: right;">0.150</td>
+<td style="text-align: right;">0.193</td>
+<td style="text-align: right;">0.262</td>
+</tr>
+<tr>
+<td>随机：良品图整图分数中位数</td>
+<td style="text-align: right;">0.083</td>
+<td style="text-align: right;">0.101</td>
+<td style="text-align: right;">0.114</td>
+<td style="text-align: right;">0.131</td>
+<td style="text-align: right;">0.155</td>
+<td style="text-align: right;">0.232</td>
+</tr>
+</tbody>
+</table></div>
+<p>贪心的覆盖半径只有随机的 0.4 到 0.6 倍，但 image AUROC 每一档都更低，1% 时差了 0.035。原因在最后两行：贪心偏爱选“离别人远”的点，在噪声主导的均匀纹理里，这些点是噪声最大的 patch，它们离典型的良品 patch 反而远，结果典型良品的分数被抬得更高。覆盖半径管的是最坏的那个良品 patch，image AUROC 看的是整体分布，两者不是一回事。</p>
+<p><strong>有稀有的正常模式时，贪心才显出优势。</strong> 20 张良品里 18 张是竖条纹、2 张是横条纹（横条纹占记忆库的 10%）。阈值在竖条纹上按“漏检不超过 5%”选定，再看同一阈值下横条纹的良品有多少被判成缺陷（3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>保留比例</th>
+<th style="text-align: right;">100%</th>
+<th style="text-align: right;">10%</th>
+<th style="text-align: right;">3%</th>
+<th style="text-align: right;">1%</th>
+<th style="text-align: right;">0.3%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>贪心：稀有良品被判成缺陷的比例</td>
+<td style="text-align: right;">28.3%</td>
+<td style="text-align: right;">28.3%</td>
+<td style="text-align: right;">38.3%</td>
+<td style="text-align: right;">43.3%</td>
+<td style="text-align: right;">68.9%</td>
+</tr>
+<tr>
+<td>随机：稀有良品被判成缺陷的比例</td>
+<td style="text-align: right;">28.3%</td>
+<td style="text-align: right;">39.4%</td>
+<td style="text-align: right;">37.8%</td>
+<td style="text-align: right;">81.1%</td>
+<td style="text-align: right;">98.9%</td>
+</tr>
+<tr>
+<td>贪心：核心集里横条纹的占比</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">15.1%</td>
+<td style="text-align: right;">18.0%</td>
+<td style="text-align: right;">22.0%</td>
+<td style="text-align: right;">24.1%</td>
+</tr>
+<tr>
+<td>随机：核心集里横条纹的占比</td>
+<td style="text-align: right;">10%</td>
+<td style="text-align: right;">9.1%</td>
+<td style="text-align: right;">10.5%</td>
+<td style="text-align: right;">10.6%</td>
+<td style="text-align: right;">11.5%</td>
+</tr>
+</tbody>
+</table></div>
+<p>贪心会主动把稀有模式多留一些（压到 0.3% 时占 24.1%），随机只按原比例留。压到 1% 时，随机采样让 81.1% 的横条纹良品报警，贪心是 43.3%。代价也在表里：0.3% 时贪心让常见良品的过检率升到 17.8%，随机只有 2.2%。</p>
+<div class="callout callout-key"><div class="callout-title">要点</div><p>原讲义说“压缩到 1% 时性能几乎不掉”。在本章 Notebook 那种对齐、缺陷明显的设置下确实如此（image AUROC 100% 时 0.999，1% 时 1.000）。但在不对齐、缺陷弱的设置下，贪心核心集压到 1% 时 image AUROC 从 0.932 掉到 0.854。比例该取多少要在自己的数据上扫一遍，不能直接套用。</p>
+</div>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>在一组纹理均匀、没有稀有正常模式的良品上，把记忆库压到 1%，贪心核心集的覆盖半径是随机采样的约 0.4 倍。哪种的 image AUROC 更高？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>贪心，因为覆盖半径小，良品分数抬得少</span></button><button type="button" data-k="B"><b>B</b><span>随机，因为贪心偏爱选噪声最大的离群 patch，典型良品的分数反而被抬得更高</span></button><button type="button" data-k="C"><b>C</b><span>两者一样，核心集比例相同</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测贪心 0.854，随机 0.889。覆盖半径是最坏情况的上界，管的是离群的那几个良品 patch；贪心为了压低它，选进了很多噪声大的点，良品整图分数的中位数从 0.083 升到 0.150，随机只升到 0.131。贪心的优势要在有稀有正常模式时才显出来（压到 1% 时稀有良品的误判 43.3% 对 81.1%）。</p></div></div>
+<p><strong>核心集该按比例定还是按个数定？</strong> 原讲义和论文都用比例。但核心集要覆盖的是“良品的局部外观有多少种”，这和良品张数不成正比。在主设置上固定核心集大小、改变良品张数（3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>核心集大小</th>
+<th style="text-align: right;">96</th>
+<th style="text-align: right;">384</th>
+<th style="text-align: right;">1922</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10 张良品：image AUROC（占比）</td>
+<td style="text-align: right;">0.852（1.0%）</td>
+<td style="text-align: right;">0.916（4.0%）</td>
+<td style="text-align: right;">0.922（20.0%）</td>
+</tr>
+<tr>
+<td>20 张良品</td>
+<td style="text-align: right;">0.826（0.5%）</td>
+<td style="text-align: right;">0.900（2.0%）</td>
+<td style="text-align: right;">0.924（10.0%）</td>
+</tr>
+<tr>
+<td>40 张良品</td>
+<td style="text-align: right;">0.830（0.2%）</td>
+<td style="text-align: right;">0.875（1.0%）</td>
+<td style="text-align: right;">0.935（5.0%）</td>
+</tr>
+</tbody>
+</table></div>
+<p>同样 96 个点，三种良品张数下的 image AUROC 在 0.83 到 0.85 之间；同样 1% 的比例，10 张良品时是 96 个点（0.852），40 张时是 384 个点（0.875）。在这组数据里，绝对个数比比例更能预测效果。</p>
+<h3 id="34-最近邻打分">3.4 最近邻打分</h3>
+<p>每个待检 patch 到记忆库的最近邻距离就是它的异常分数，整图分数取分数图的最大值。<span class="arithmatex">\(k = 1\)</span> 是原始 PatchCore 的做法。原论文在取最大值时还会按这个最近邻在记忆库里是否“孤立”做一次重加权，本章作业和实验都不做这一步。</p>
+<p>距离计算全部建立在平方距离矩阵上：</p>
+<div class="arithmatex">\[
+\lVert a_i - b_j \rVert^2 = \lVert a_i \rVert^2 + \lVert b_j \rVert^2 - 2\,a_i \cdot b_j
+\]</div>
+<p>把它写成矩阵乘法，速度比逐对相减快一到两个数量级。代价是浮点误差：一个点到它自己的平方距离应该是 0，展开式算出来可能是很小的负数。500 个 16 维的随机点，float64 下有 141 个点到自己的平方距离小于 0（最小 -1.4e-14），开平方就是 nan。所以要裁剪到 0。</p>
+<p><strong>k 取多大？</strong> <span class="arithmatex">\(k &gt; 1\)</span> 时分数是 <span class="arithmatex">\(k\)</span> 个最近邻距离的平均，对单个离群的记忆库点不敏感。干净的良品库上，<span class="arithmatex">\(k\)</span> 从 1 加到 9，主设置的 image AUROC 变化不到 0.02（下一节的表）。它真正起作用的场景是良品库里混进了坏图。</p>
+<h3 id="35-良品里混进带缺陷的图">3.5 良品里混进带缺陷的图</h3>
+<p>产线上收集的“良品”不可能百分之百干净。在主设置上，20 张良品里有 <span class="arithmatex">\(c\)</span> 张各带 3 个和待检缺陷同类的缺陷（3 个种子，核心集 10%）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>20 张里带缺陷的张数</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>贪心核心集，k=1</td>
+<td style="text-align: right;">0.924</td>
+<td style="text-align: right;">0.921</td>
+<td style="text-align: right;">0.906</td>
+<td style="text-align: right;">0.892</td>
+</tr>
+<tr>
+<td>贪心核心集，k=3</td>
+<td style="text-align: right;">0.943</td>
+<td style="text-align: right;">0.928</td>
+<td style="text-align: right;">0.918</td>
+<td style="text-align: right;">0.907</td>
+</tr>
+<tr>
+<td>贪心核心集，k=9</td>
+<td style="text-align: right;">0.942</td>
+<td style="text-align: right;">0.929</td>
+<td style="text-align: right;">0.928</td>
+<td style="text-align: right;">0.918</td>
+</tr>
+<tr>
+<td>随机采样，k=1</td>
+<td style="text-align: right;">0.929</td>
+<td style="text-align: right;">0.928</td>
+<td style="text-align: right;">0.928</td>
+<td style="text-align: right;">0.927</td>
+</tr>
+<tr>
+<td>不压缩，k=1</td>
+<td style="text-align: right;">0.932</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">0.923</td>
+</tr>
+</tbody>
+</table></div>
+<figure><img src="../../19_异常检测与深度缺陷检测/figures/fig04_混进缺陷与近邻数.svg" alt="图 4：左，一张带缺陷的“良品”（青色圈是缺陷），橙点是被贪心核心集选中的 patch，缺陷处几乎全被选中。中，混进 2 张时，碰到缺陷的 patch 在整个记忆库、随机采样、贪心核心集 10% 和 1% 里所占的比例。右，image AUROC 随混进张数的变化" loading="lazy"><figcaption>图 4：左，一张带缺陷的“良品”（青色圈是缺陷），橙点是被贪心核心集选中的 patch，缺陷处几乎全被选中。中，混进 2 张时，碰到缺陷的 patch 在整个记忆库、随机采样、贪心核心集 10% 和 1% 里所占的比例。右，image AUROC 随混进张数的变化</figcaption></figure>
+<p>贪心核心集掉得最多，原因和上一节一样：缺陷 patch 正是“离别人远”的点。混进 2 张时，碰到缺陷的 patch 只占记忆库的 0.5%，贪心核心集（10%）把其中 64% 选了进去，于是它们在核心集里占 3.1%；压到 1% 时占到 8.2%。随机采样不偏不倚，只占 0.4%，所以几乎不受影响。</p>
+<p>一旦缺陷 patch 进了记忆库，待检图上同类的缺陷就能在记忆库里找到很近的邻居，分数被压低。<span class="arithmatex">\(k\)</span> 取大一点能缓解：混进 5 张时，<span class="arithmatex">\(k = 9\)</span> 比 <span class="arithmatex">\(k = 1\)</span> 高 0.026。但 <span class="arithmatex">\(k\)</span> 再大也只是缓解，根本办法是把良品库筛干净：先用一个初版模型给良品库自己打分，把分数最高的几张拿出来人工看一遍。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>良品库里混进了几张带缺陷的图。用 k-center greedy 压到 1%，会发生什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>缺陷 patch 只占记忆库的零点几，压缩后基本被丢掉，影响变小</span></button><button type="button" data-k="B"><b>B</b><span>贪心偏爱选离群的点，缺陷 patch 被优先选进核心集，在核心集里的占比反而变大</span></button><button type="button" data-k="C"><b>C</b><span>没有影响，核心集只影响速度</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。混进 2 张时，碰到缺陷的 patch 在整个记忆库里占 0.5%，在贪心核心集（1%）里占 8.2%，放大了十几倍。这和随机采样正好相反（0.4%）。A 是对随机采样的直觉，套到贪心上是错的。</p></div></div>
+<h3 id="36-分数图上采样">3.6 分数图上采样</h3>
+<p>patch 分数图比原图小（本章是 31×31 对 64×64，ResNet 的 layer2 是 1/8），要插值回原图尺寸才能和像素级标注比。两个容易错的细节：</p>
+<ol>
+<li><strong>按 patch 中心对齐</strong>。第 <span class="arithmatex">\(i\)</span> 个 patch 覆盖像素 <span class="arithmatex">\(2i\)</span> 到 <span class="arithmatex">\(2i+3\)</span>，中心在 <span class="arithmatex">\(2i + 1.5\)</span>，不是 <span class="arithmatex">\(2i\)</span>。插值时坐标偏了，热图整体偏 1.5 px，小缺陷的像素级指标会明显变差。</li>
+<li><strong>高斯平滑</strong>。原论文对热图做高斯平滑，具体参数以论文和 Anomalib 的实现为准，而且是在比本章大得多的输入上定的。平滑把小缺陷的峰压平，用热图最大值当整图分数时 image AUROC 也会掉。</li>
+</ol>
+<p>主设置（不对齐，缺陷幅度 0.12，3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>处理方式</th>
+<th style="text-align: right;">用热图最大值的 image AUROC</th>
+<th style="text-align: right;">pixel AUROC</th>
+<th style="text-align: right;">AUPRO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>按 patch 中心对齐，不平滑</td>
+<td style="text-align: right;">0.927</td>
+<td style="text-align: right;">0.977</td>
+<td style="text-align: right;">0.919</td>
+</tr>
+<tr>
+<td>没按中心对齐（偏 1.5 px），不平滑</td>
+<td style="text-align: right;">0.897</td>
+<td style="text-align: right;">0.934</td>
+<td style="text-align: right;">0.811</td>
+</tr>
+<tr>
+<td>对齐，高斯平滑 σ=1</td>
+<td style="text-align: right;">0.920</td>
+<td style="text-align: right;">0.983</td>
+<td style="text-align: right;">0.939</td>
+</tr>
+<tr>
+<td>对齐，高斯平滑 σ=2</td>
+<td style="text-align: right;">0.854</td>
+<td style="text-align: right;">0.983</td>
+<td style="text-align: right;">0.933</td>
+</tr>
+<tr>
+<td>对齐，高斯平滑 σ=4</td>
+<td style="text-align: right;">0.661</td>
+<td style="text-align: right;">0.956</td>
+<td style="text-align: right;">0.810</td>
+</tr>
+</tbody>
+</table></div>
+<p>坐标偏 1.5 px 让 AUPRO 从 0.919 掉到 0.811。σ=1 的轻度平滑对像素级指标有一点好处，σ=4 对 64×64 的图和半径两三个像素的缺陷太大了，image AUROC 掉到 0.661。整图分数直接用 patch 分数图的最大值（0.924）比用平滑后的热图更稳；热图只用来看缺陷在哪。</p>
+<h3 id="37-预训练特征对照">3.7 预训练特征对照</h3>
+<p>本章的 16 维像素块在合成条纹上表现很好，这不代表它比预训练特征好，而是因为合成条纹很简单、缺陷又很小。换成 ResNet-18 的 layer2 加 layer3（放大 2 倍到 128×128 输入，不对齐，缺陷幅度 0.2，2 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>缺陷大小</th>
+<th style="text-align: right;">16 维像素块</th>
+<th style="text-align: right;">ResNet-18 layer2 + layer3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>半径 2 到 3 px</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.922</td>
+</tr>
+<tr>
+<td>半径 5 px</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.999</td>
+</tr>
+</tbody>
+</table></div>
+<p>缺陷只有两三个像素时，layer2 的一个位置对应 128×128 输入的 8×8 像素，缺陷被稀释了；缺陷半径到 5 px，两者就差不多了。真实工业图像的纹理远比正弦条纹复杂，像素块根本不够用，这时预训练特征的价值才体现出来。本章不对它在真实数据上的效果下任何数字结论，深挖档请在 MVTec AD 或 VisA 上自己测。</p>
+<h2 id="4-落地时的真问题">4. 落地时的真问题</h2>
+<h3 id="41-对齐记忆库也怕半个像素">4.1 对齐：记忆库也怕半个像素</h3>
+<p>原讲义说“PatchCore 的局部池化提供了一点平移容忍度，但不够”。实测下来，在这组数据上，这一点容忍度几乎看不出来。</p>
+<p>记忆库只见过对齐的 20 张良品（核心集 10%），阈值取 200 张对齐良品分数的 99% 分位，再让待检良品整体平移（每个平移量 100 张，2 个种子）：</p>
+<figure><img src="../../19_异常检测与深度缺陷检测/figures/fig05_良品张数与错位.svg" alt="图 5：左，良品张数对 image AUROC 的影响，灰色是对齐，蓝色是不对齐，浅色小点是每个种子。右，待检良品整体平移时被误判为缺陷的比例，四条线分别是金模板、只见过对齐良品的记忆库、不聚合的记忆库、良品里带 0 到 1 px 随机错位的记忆库" loading="lazy"><figcaption>图 5：左，良品张数对 image AUROC 的影响，灰色是对齐，蓝色是不对齐，浅色小点是每个种子。右，待检良品整体平移时被误判为缺陷的比例，四条线分别是金模板、只见过对齐良品的记忆库、不聚合的记忆库、良品里带 0 到 1 px 随机错位的记忆库</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>待检良品的整体平移</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">0.25 px</th>
+<th style="text-align: right;">0.5 px</th>
+<th style="text-align: right;">1 px</th>
+<th style="text-align: right;">2 px</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>金模板</td>
+<td style="text-align: right;">0.5%</td>
+<td style="text-align: right;">59.5%</td>
+<td style="text-align: right;">99.5%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>记忆库（聚合），只见过对齐的良品</td>
+<td style="text-align: right;">1.0%</td>
+<td style="text-align: right;">34.5%</td>
+<td style="text-align: right;">89.5%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">1.0%</td>
+</tr>
+<tr>
+<td>记忆库（不聚合），只见过对齐的良品</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: right;">38%</td>
+<td style="text-align: right;">93.5%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">0.5%</td>
+</tr>
+<tr>
+<td>记忆库，良品里带 0 到 1 px 的错位</td>
+<td style="text-align: right;">1.0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.0%</td>
+<td style="text-align: right;">0.5%</td>
+</tr>
+<tr>
+<td>ResNet-18 layer2+3，3×3 池化</td>
+<td style="text-align: right;">0.5%</td>
+<td style="text-align: right;">11%</td>
+<td style="text-align: right;">67%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>ResNet-18 layer2+3，不池化</td>
+<td style="text-align: right;">1.5%</td>
+<td style="text-align: right;">1.5%</td>
+<td style="text-align: right;">17.5%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+</tbody>
+</table></div>
+<p>几点结论：</p>
+<ol>
+<li><strong>记忆库方法也怕错位</strong>。平移 0.5 px，89.5% 的良品报警，比金模板（99.5%）好不了多少。</li>
+<li><strong>3×3 池化在这组数据上没有提供可见的平移容忍度</strong>。像素块聚合与否差别不大；ResNet 特征上，池化后反而更敏感（0.5 px 时 67% 对 17.5%）。原讲义“池化提供平移容忍度”这一说法，在本章的实验条件下没有得到支持。平均池化把相邻位置平均，对整体平移并不是不变的。</li>
+<li><strong>平移 2 px 时像素块记忆库又不报警了</strong>，因为条纹周期 8 px，像素块步长 2 px，平移 2 px 后每个 patch 都和记忆库里相邻位置的 patch 长得一样（只差噪声）。这正是“记忆库不关心位置”的体现，也提醒你：重复图案上的“容忍度”可能只是巧合。</li>
+<li><strong>真正有效的是把错位放进良品库</strong>。良品里带 0 到 1 px 的随机错位，平移 0 到 1 px 的良品几乎都不报警，对齐缺陷图的检出率仍是 98.5%。只在 1.5 px 时过检 34%，因为良品库里没有这么大的错位。</li>
+</ol>
+<p>原讲义“先对齐再检测能明显降低误报”这句话在这里得到了量化。工程上的含义：先对齐（第 16 章），把残差压到零点几个像素；再让良品库覆盖对齐残差的范围（多次采图，或者人为加亚像素平移做增强）。</p>
+<h3 id="42-良品要多少张">4.2 良品要多少张</h3>
+<p>良品张数决定了记忆库见过多少种“正常”。主设置（缺陷幅度 0.12，核心集 10%，3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>良品张数</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">40</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对齐：image AUROC</td>
+<td style="text-align: right;">0.916</td>
+<td style="text-align: right;">0.942</td>
+<td style="text-align: right;">0.922</td>
+<td style="text-align: right;">0.935</td>
+<td style="text-align: right;">0.944</td>
+<td style="text-align: right;">0.946</td>
+</tr>
+<tr>
+<td>不对齐：image AUROC</td>
+<td style="text-align: right;">0.768</td>
+<td style="text-align: right;">0.813</td>
+<td style="text-align: right;">0.865</td>
+<td style="text-align: right;">0.919</td>
+<td style="text-align: right;">0.924</td>
+<td style="text-align: right;">0.944</td>
+</tr>
+<tr>
+<td>不对齐：AUPRO</td>
+<td style="text-align: right;">0.446</td>
+<td style="text-align: right;">0.667</td>
+<td style="text-align: right;">0.833</td>
+<td style="text-align: right;">0.917</td>
+<td style="text-align: right;">0.919</td>
+<td style="text-align: right;">0.935</td>
+</tr>
+</tbody>
+</table></div>
+<p>对齐时 1 张良品就已经到了 0.916，和 40 张的 0.946 相差不多，因为每张良品长得几乎一样，多看几张没有新信息。不对齐时 1 张只有 0.768，要 10 张左右才接近 0.92。原因是一张图里条纹的相位是固定的，只见过一种相位的 patch（加上 2 px 步长带来的 4 种），新图的相位落在没见过的地方就被当成异常。</p>
+<p>种子之间的波动也不小：不对齐、2 张良品时，3 个种子分别是 0.878、0.829、0.732。良品少的时候，换一批良品结果可能差 0.15。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>同一个记忆库方法，良品从 1 张加到 40 张，对齐的数据 image AUROC 从 0.916 到 0.946，不对齐的数据从 0.768 到 0.944。为什么不对齐的数据更依赖良品张数？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>不对齐的数据噪声更大</span></button><button type="button" data-k="B"><b>B</b><span>记忆库要见过足够多种局部外观（这里是条纹的各种相位），不对齐时一张良品只覆盖了一部分</span></button><button type="button" data-k="C"><b>C</b><span>核心集比例不够</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。两组数据的噪声完全相同，核心集都是 10%。对齐时每张良品的条纹相位几乎一样，1 张就覆盖了所有局部外观；不对齐时每张图的相位随机，要很多张才能把各种相位都收进记忆库。真实产线上，“不同批次、不同机台、不同照明”就是这里的“不同相位”。</p></div></div>
+<h3 id="43-其余要注意的事">4.3 其余要注意的事</h3>
+<ol>
+<li><strong>分辨率</strong>：缺陷可能只有几个像素，网络下采样 8 倍后就看不见了（第 3.7 节的表）。保持高分辨率输入、切图推理，或者先用传统方法定位再在原分辨率上分类。</li>
+<li><strong>良品的多样性</strong>：不同批次、不同机台、不同照明下的良品都要收集到记忆库里，否则正常变化会被当成异常（第 3.3 节稀有模式的实验）。</li>
+<li><strong>良品库要筛</strong>：混进的坏图会被贪心核心集放大（第 3.5 节）。</li>
+<li><strong>数据泄漏</strong>：同一片晶圆相邻 die 的图很像，训练和测试按晶圆或批次划分，不要随机划分。</li>
+<li><strong>速度</strong>：PatchCore 推理时间和记忆库大小成正比。部署时用核心集加近似最近邻（FAISS），或者换用 EfficientAD 这类快速模型。</li>
+<li><strong>漂移监控</strong>：上线后持续统计分数分布，分布整体右移通常意味着工艺或设备变化。</li>
+</ol>
+<h2 id="5-指标与怎样评估">5. 指标与怎样评估</h2>
+<h3 id="51-各指标在衡量什么">5.1 各指标在衡量什么</h3>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -177,8 +855,8 @@
 <td>正常像素占绝大多数，数值普遍虚高</td>
 </tr>
 <tr>
-<td>PRO</td>
-<td>按缺陷区域平均的重叠率</td>
+<td>PRO / AUPRO</td>
+<td>按缺陷区域平均的覆盖率</td>
 <td>大小缺陷权重相同，比 pixel AUROC 更公平</td>
 </tr>
 <tr>
@@ -193,32 +871,308 @@
 </tr>
 </tbody>
 </table></div>
-<p><strong>AUROC 高不等于能上线</strong>。99% 的 AUROC 在缺陷率 1% 的产线上，可能意味着大量过检。一定要换算到具体工作点：漏检率不超过多少时，过检率是多少。</p>
+<p><strong>AUROC</strong> 等于“随机取一个异常样本和一个正常样本，异常的分数更高”的概率：</p>
+<div class="arithmatex">\[
+\text{AUROC} = \frac{1}{n_+ n_-} \sum_{i \in +} \sum_{j \in -} \Big( \mathbb{1}[s_i &gt; s_j] + \tfrac{1}{2}\,\mathbb{1}[s_i = s_j] \Big)
+\]</div>
+<p>它等价于 Mann-Whitney U 统计量，可以按秩次计算：把所有分数排序，并列的取平均秩，异常样本的秩和减去 <span class="arithmatex">\(n_+(n_+ + 1)/2\)</span> 再除以 <span class="arithmatex">\(n_+ n_-\)</span>。排序是 <span class="arithmatex">\(O(n \log n)\)</span>，不要写成两重循环。</p>
+<p>AUROC 的最小变化量是 <span class="arithmatex">\(1/(n_+ n_-)\)</span>。Notebook 里 20 张良品加 20 张缺陷图，最小变化是 0.0025，0.995 和 1.000 只差两个样本对，不要据此比较方法。</p>
+<p><strong>PRO</strong>（per-region overlap）对每个阈值：先算正常像素的过检率，再对每个缺陷连通区域算“区域内有多少比例的像素超过阈值”，然后按区域取平均。PRO 曲线是“平均区域覆盖率”对“正常像素过检率”的曲线，<strong>AUPRO</strong> 是它在过检率 0 到 0.3 之间的面积除以 0.3。0.3 是 MVTec AD 评测里常用的上限，过检率超过 30% 的工作点在产线上没有意义。</p>
+<h3 id="52-pixel-auroc-为什么会骗人">5.2 pixel AUROC 为什么会骗人</h3>
+<p>pixel AUROC 把所有缺陷像素放在一起排序，大缺陷像素多，权重就大。下面的实验里，一半缺陷半径 2 px、一半半径 7 px，大缺陷的像素占全部缺陷像素的 92%。对同一批分数图做越来越强的高斯平滑（主设置，缺陷幅度 0.12，3 个种子）：</p>
+<figure><img src="../../19_异常检测与深度缺陷检测/figures/fig06_指标与阈值.svg" alt="图 6：左，平滑越强，小缺陷的区域覆盖率（红色虚线，像素过检率 1% 时）从 0.513 掉到 0，pixel AUROC（橙色）几乎不动，AUPRO（蓝色）明显下降。中，1500 张良品和 1500 张缺陷图的整图分数分布，image AUROC 0.988，两条竖线是漏检不超过 1% 和 5% 时的阈值。右，用 20 到 300 个缺陷样本按“漏检不超过 5%”定阈值，上线后实际漏检率的中位数（圆点）和 5% 到 95% 分位（竖条）" loading="lazy"><figcaption>图 6：左，平滑越强，小缺陷的区域覆盖率（红色虚线，像素过检率 1% 时）从 0.513 掉到 0，pixel AUROC（橙色）几乎不动，AUPRO（蓝色）明显下降。中，1500 张良品和 1500 张缺陷图的整图分数分布，image AUROC 0.988，两条竖线是漏检不超过 1% 和 5% 时的阈值。右，用 20 到 300 个缺陷样本按“漏检不超过 5%”定阈值，上线后实际漏检率的中位数（圆点）和 5% 到 95% 分位（竖条）</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>高斯平滑 σ（px）</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pixel AUROC</td>
+<td style="text-align: right;">0.994</td>
+<td style="text-align: right;">0.996</td>
+<td style="text-align: right;">0.996</td>
+<td style="text-align: right;">0.988</td>
+<td style="text-align: right;">0.977</td>
+</tr>
+<tr>
+<td>AUPRO</td>
+<td style="text-align: right;">0.915</td>
+<td style="text-align: right;">0.935</td>
+<td style="text-align: right;">0.923</td>
+<td style="text-align: right;">0.789</td>
+<td style="text-align: right;">0.638</td>
+</tr>
+<tr>
+<td>小缺陷的区域覆盖率（像素过检率 1%）</td>
+<td style="text-align: right;">0.513</td>
+<td style="text-align: right;">0.488</td>
+<td style="text-align: right;">0.222</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>大缺陷的区域覆盖率</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+</tr>
+</tbody>
+</table></div>
+<p>σ=4 时小缺陷一个像素都没盖住，pixel AUROC 还有 0.988，AUPRO 掉到 0.789。只看 pixel AUROC 会以为“平滑一下没关系”。</p>
+<div class="quiz" data-answer="A"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>对热图做 σ=4 的高斯平滑后，小缺陷的区域覆盖率从 0.513 掉到 0，pixel AUROC 却只从 0.994 降到 0.988。最主要的原因是什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>pixel AUROC 按像素统计，大缺陷占了 92% 的缺陷像素，小缺陷几乎不影响它</span></button><button type="button" data-k="B"><b>B</b><span>平滑对 pixel AUROC 没有影响，因为它与阈值无关</span></button><button type="button" data-k="C"><b>C</b><span>小缺陷本来就检测不出来</span></button></div><div class="quiz-exp" hidden><p><strong>A</strong>。pixel AUROC 里每个像素权重相同，半径 7 px 的大缺陷像素数是半径 2 px 的十几倍。AUPRO 按区域平均，大小缺陷各占一半权重，所以它从 0.915 掉到 0.789。C 不对，不平滑时小缺陷的覆盖率是 0.513。</p></div></div>
+<h3 id="53-从-auroc-到产线工作点">5.3 从 AUROC 到产线工作点</h3>
+<p><strong>AUROC 高不等于能上线</strong>。99% 的 AUROC 在缺陷率 1% 的产线上，可能意味着大量过检。一定要换算到具体工作点：漏检率不超过多少时，过检率是多少。下面是一组实测：不对齐的主设置、缺陷幅度 0.16，1500 张良品和 1500 张缺陷图，image AUROC 0.988：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>漏检上限</th>
+<th style="text-align: right;">0%</th>
+<th style="text-align: right;">1%</th>
+<th style="text-align: right;">5%</th>
+<th style="text-align: right;">10%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>过检率</td>
+<td style="text-align: right;">74.4%</td>
+<td style="text-align: right;">41.0%</td>
+<td style="text-align: right;">4.2%</td>
+<td style="text-align: right;">0.7%</td>
+</tr>
+<tr>
+<td>缺陷率 1% 时，报警里真缺陷的比例</td>
+<td style="text-align: right;">1.3%</td>
+<td style="text-align: right;">2.4%</td>
+<td style="text-align: right;">18.6%</td>
+<td style="text-align: right;">57.7%</td>
+</tr>
+<tr>
+<td>缺陷率 0.1% 时，报警里真缺陷的比例</td>
+<td style="text-align: right;">0.1%</td>
+<td style="text-align: right;">0.2%</td>
+<td style="text-align: right;">2.2%</td>
+<td style="text-align: right;">11.9%</td>
+</tr>
+</tbody>
+</table></div>
+<p>AUROC 0.988 的模型，要求漏检不超过 1% 时，41% 的良品被报警。缺陷率 1% 的产线上，报警里只有 2.4% 是真缺陷，相当于复查员看四十来张报警图才遇到一个真缺陷。AUROC 是整条 ROC 曲线下的面积，而产线只在曲线左下角那一小段工作，两者说的不是一件事。</p>
+<p><code>threshold_at_escape</code> 就是把这件事落到代码里：在满足漏检上限的候选阈值里取最大的那个（阈值越大过检越少）。判为缺陷的规则是 <code>score &gt;= threshold</code>，候选阈值只取缺陷样本的分数。</p>
+<h3 id="54-阈值在哪个集合上定用多少样本定">5.4 阈值在哪个集合上定，用多少样本定</h3>
 <p><strong>阈值必须在验证集上定，不能在测试集上调</strong>。否则汇报的数字是乐观的，上线后会下降。</p>
-<h2 id="5-监督方法简述">5. 监督方法简述</h2>
-<p><strong>检测</strong>（YOLO 系列、Faster R-CNN）：输出缺陷框和类别。小缺陷是难点，要注意输入分辨率、anchor 或 stride 设置，必要时切图（tiling）推理。</p>
-<p><strong>分割</strong>（U-Net、DeepLab）：输出像素级缺陷区域，适合需要精确面积和形状的场景。缺陷像素极少，损失函数常用 Dice 或 Focal，避免全预测成背景。</p>
+<p>即使在验证集上定，样本少时也不准。用上面同一组分数，每次随机抽 <span class="arithmatex">\(n\)</span> 个缺陷当验证集，按“漏检不超过 5%”定阈值，再用剩下的缺陷算实际漏检率（重复 2000 次）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>验证集里的缺陷个数</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">50</th>
+<th style="text-align: right;">100</th>
+<th style="text-align: right;">300</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>实际漏检率的中位数</td>
+<td style="text-align: right;">8.3%</td>
+<td style="text-align: right;">5.2%</td>
+<td style="text-align: right;">5.7%</td>
+<td style="text-align: right;">5.2%</td>
+</tr>
+<tr>
+<td>实际漏检率的 5% 到 95% 分位</td>
+<td style="text-align: right;">1.7% 到 21.4%</td>
+<td style="text-align: right;">1.6% 到 12.1%</td>
+<td style="text-align: right;">2.5% 到 10.4%</td>
+<td style="text-align: right;">3.1% 到 7.8%</td>
+</tr>
+<tr>
+<td>实际漏检率超过 5% 的次数比例</td>
+<td style="text-align: right;">73.9%</td>
+<td style="text-align: right;">53.9%</td>
+<td style="text-align: right;">61.0%</td>
+<td style="text-align: right;">55.5%</td>
+</tr>
+</tbody>
+</table></div>
+<p>只用 20 个缺陷定阈值时，“漏检不超过 5%”的承诺有 73.9% 的概率兑现不了，最坏 5% 的情况漏检到 21.4%。20 个样本里允许漏掉 5% 就是允许漏 1 个，阈值实际上取的是第 2 低的缺陷分数，这个数本身就有很大的随机性。样本多了区间变窄，但超过上限的比例仍在一半左右，因为阈值总是贴着上限取的。要真正保证上限，要在定阈值时留余量（按比上限更严的漏检率定阈值，再在另一批样本上验证），或者报告漏检率的置信区间。</p>
+<h3 id="55-怎么报告">5.5 怎么报告</h3>
+<ul>
+<li>给出 image AUROC 和 AUPRO，说明 AUPRO 的积分上限。不要只给 pixel AUROC。</li>
+<li>给出漏检约束下的过检率，写清约束是多少、阈值在哪个集合上定、那个集合有多少缺陷。</li>
+<li>写清条件：良品张数、核心集比例或大小、<span class="arithmatex">\(k\)</span>、输入分辨率、用了哪些层、整图分数怎么取（是否忽略边界）。</li>
+<li>训练、验证、测试按批次或晶圆划分。</li>
+<li>和第 18 章一样，误报用“每张图”或“每片晶圆”多少个来报。</li>
+</ul>
+<h2 id="6-交互演示核心集与近邻打分">6. 交互演示：核心集与近邻打分</h2>
+<p>把 patch 特征换成平面上的点，其余和作业里的零件一致：从良品特征里选核心集，待检点到核心集里 k 个最近点的平均距离就是异常分数，阈值按“漏检不超过 5%”选。按页面下方“按顺序试”的五步操作，分别对应第 3.3 节的贪心与随机、覆盖半径，第 3.5 节的良品库污染和 k。</p>
+<div class="embed"><iframe src="../../demos/核心集与近邻打分.html" height="1143" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/核心集与近邻打分.html">打开交互演示：核心集与近邻打分</a></p>
+<p>第 18 章的过检与漏检演示同样适用于本章第 5.3 节：把漏检率压到 1% 以下看过检率，再保持 AUROC 约 0.99、把缺陷率降下来看精确率怎么变。</p>
+<div class="embed"><iframe src="../../demos/过检漏检权衡.html" height="880" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/过检漏检权衡.html">打开交互演示：过检与漏检的权衡</a></p>
+<h2 id="7-监督方法简述">7. 监督方法简述</h2>
+<p><strong>检测</strong>（YOLO 系列、Faster R-CNN）：输出缺陷框和类别。小缺陷是难点，要注意输入分辨率、anchor 或 stride 设置，必要时切图（tiling）推理。第 11 章讲 IoU、NMS 和 mAP。</p>
+<p><strong>分割</strong>（U-Net、DeepLab）：输出像素级缺陷区域，适合需要精确面积和形状的场景。缺陷像素极少，损失函数常用 Dice 或 Focal，避免全预测成背景。第 12 章讲 Dice 和跳跃连接。</p>
 <p><strong>分类</strong>：对候选缺陷的小图块分类，是缺陷复查（review）环节的主力。类别不均衡用重采样、类别权重、Focal loss 处理。</p>
-<h2 id="6-落地时的真问题">6. 落地时的真问题</h2>
+<p>和异常检测的分工：异常检测负责召回，宁可多报；监督分类负责把多报的筛掉、给真缺陷分类。第 5.3 节的表说明了为什么需要这第二步：漏检压到 1% 时过检 41%，靠人工复查是复查不过来的。</p>
+<h2 id="8-作业里的零件">8. 作业里的零件</h2>
+<ul>
+<li><code>pairwise_sq_dists</code>：所有距离计算的基础，用 <code>‖a‖² + ‖b‖² - 2a·b</code> 展开成矩阵乘法，要注意浮点误差会产生负数（第 3.4 节）。</li>
+<li><code>greedy_coreset</code>：维护每个点到已选集合的最小距离，每加一个点只更新一次，复杂度 O(N·m·D)（第 3.3 节）。</li>
+<li><code>knn_scores</code>：k=1 是原始 PatchCore 的做法。返回的是欧氏距离，不是平方距离。</li>
+<li><code>auroc</code>：等价于 Mann-Whitney U 统计量，按秩次计算，平局记 0.5（第 5.1 节）。</li>
+<li><code>threshold_at_escape</code>：把模型分数变成产线决策（第 5.3 节）。</li>
+</ul>
+<p>Notebook 先用局部纹理特征把这些零件串成完整流程，再可选地换成预训练 ResNet。跑 Notebook 时留意两点：它的测试集只有 40 张，AUROC 的最小变化是 0.0025；它的数据是对齐的，第 3.2 节的边界问题和第 3.3 节的核心集问题在那里看不太出来。</p>
+<h2 id="9-常见错误">9. 常见错误</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分数里出现 nan</td>
+<td>展开式算出的平方距离是负数，开平方得 nan</td>
+<td>用 <code>pairwise_sq_dists(x, x)</code> 测，对角线应全为 0，不能有负数</td>
+</tr>
+<tr>
+<td>kNN 分数比预期大很多，k=1 和 k=2 的比例不对</td>
+<td>返回了平方距离，或者先平均平方距离再开方</td>
+<td>用测试里的三个点手算一遍</td>
+</tr>
+<tr>
+<td>核心集里有重复下标</td>
+<td>选完一个点后没把它的最小距离更新成 0</td>
+<td>选 m 等于点数时，结果应是所有下标的一个排列</td>
+</tr>
+<tr>
+<td>核心集很慢，内存爆掉</td>
+<td>一次算了 N×N 的距离矩阵</td>
+<td>每加一个点只算一列 N×1 的距离</td>
+</tr>
+<tr>
+<td>分数相同的样本很多时 AUROC 不对</td>
+<td>并列分数没有取平均秩</td>
+<td>全部分数相同时 AUROC 应为 0.5</td>
+</tr>
+<tr>
+<td>AUROC 在大数据上跑几分钟</td>
+<td>两重循环逐对比较</td>
+<td>改成排序加秩次，几十万个样本应该一眨眼就算完</td>
+</tr>
+<tr>
+<td><code>threshold_at_escape</code> 选出的阈值让漏检超标</td>
+<td>判定写成了 <code>score &gt; threshold</code>，或者漏检率按“小于等于”算</td>
+<td>用测试里 max_escape=0 的例子测，阈值应正好等于最小的缺陷分数</td>
+</tr>
+<tr>
+<td>良品的最高分总在图像边上</td>
+<td>局部聚合时边界填充让边上的噪声没压下去</td>
+<td>把良品分数图平均一下看最外一圈；整图分数先忽略最外一圈</td>
+</tr>
+<tr>
+<td>热图整体偏一两个像素，小缺陷的 AUPRO 很低</td>
+<td>上采样没按 patch 中心对齐</td>
+<td>放一个已知位置的缺陷，看热图峰值是否落在缺陷中心</td>
+</tr>
+<tr>
+<td>上线后过检飙升</td>
+<td>良品库只有对齐得很好的图，产线图有零点几像素的错位</td>
+<td>把对齐后的良品再平移 0.25、0.5 px 打分，看分数涨多少</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="10-和第-18-章的关系">10. 和第 18 章的关系</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>第 18 章金模板</th>
+<th>本章记忆库</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>比较对象</td>
+<td>同一位置的良品像素</td>
+<td>任意位置的良品局部特征</td>
+</tr>
+<tr>
+<td>需要对齐</td>
+<td>需要，且要亚像素级</td>
+<td>需要，同样怕半个像素（第 4.1 节），但不需要位置一一对应</td>
+</tr>
+<tr>
+<td>良品张数</td>
+<td>决定 sigma 估得准不准</td>
+<td>决定见过多少种局部外观</td>
+</tr>
+<tr>
+<td>混进坏图</td>
+<td>中位数加 MAD 能扛住少数</td>
+<td>贪心核心集会放大，靠 k 和筛良品库</td>
+</tr>
+<tr>
+<td>工作点</td>
+<td>k 和面积过滤</td>
+<td>漏检约束下的阈值</td>
+</tr>
+</tbody>
+</table></div>
+<p>两章的评估思路完全相同：先定漏检上限，再报过检；写清条件；小样本报区间。</p>
+<h2 id="11-破坏实验">11. 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
 <ol>
-<li><strong>分辨率</strong>：缺陷可能只有几个像素，网络下采样 8 倍后就看不见了。保持高分辨率输入、切图推理，或者先用传统方法定位再在原分辨率上分类。</li>
-<li><strong>对齐</strong>：异常检测对错位敏感，先对齐再检测能明显降低误报。PatchCore 的局部池化提供了一点平移容忍度，但不够。</li>
-<li><strong>良品的多样性</strong>：不同批次、不同机台、不同照明下的良品都要收集到记忆库里，否则正常变化会被当成异常。</li>
-<li><strong>数据泄漏</strong>：同一片晶圆相邻 die 的图很像，训练和测试按晶圆或批次划分，不要随机划分。</li>
-<li><strong>速度</strong>：PatchCore 推理时间和记忆库大小成正比。部署时用核心集加近似最近邻（FAISS），或者换用 EfficientAD 这类快速模型。</li>
-<li><strong>漂移监控</strong>：上线后持续统计分数分布，分布整体右移通常意味着工艺或设备变化。</li>
+<li>在 Notebook 里把核心集比例从 5% 改成 0.5% 和 0.1%，AUROC 怎么变？再把数据改成不对齐（相位完全随机），重复一遍。对照第 3.3 节解释两次结果为什么不同。</li>
+<li>训练集里混入 2 张带缺陷的图，分别用贪心核心集和随机采样，比较 AUROC；再把 <code>knn_scores</code> 的 k 从 1 改成 5。对照图 4 解释。</li>
+<li>去掉局部聚合（直接用 16 维 patch），先按全图最大值算整图分数，再改成忽略最外一圈，各比较一次。预测哪种情况下聚合更好。</li>
+<li>把 <code>pairwise_sq_dists</code> 里的裁剪去掉，用 <code>x</code> 和它自己算距离，再接到 <code>knn_scores</code> 里。出现了什么？换成 float32 会不会更严重？</li>
+<li>让待检良品整体平移 0.25 px 和 0.5 px（用第 16 章的傅里叶平移），统计过检率；再把 20 张良品换成带 0 到 1 px 随机错位的版本重新建库。</li>
+<li>只用 20 个缺陷样本按“漏检不超过 5%”定阈值，换 10 组不同的 20 个样本，记下每次的阈值和在其余缺陷上的实际漏检率。</li>
 </ol>
+<h2 id="12-扩展深挖档">12. 扩展（深挖档）</h2>
+<ul>
+<li>下载 MVTec AD 的一个类别（bottle 或 grid），用 Anomalib 跑 PatchCore 和 PaDiM，报告 image AUROC、pixel AUROC、AUPRO 和漏检不超过 1% 时的过检率。把结果和 Anomalib 文档里给的参考值对比，量级一致即可，不要求精确复现。</li>
+<li>在同一个类别上把 PatchCore 的核心集比例从 10% 扫到 0.1%，同时记录推理时间，画出精度和速度的权衡曲线。比较贪心和随机采样，看第 3.3 节的结论在真实数据上是否成立。</li>
+<li>实现 PatchCore 原论文里整图分数的重加权：根据测试 patch 的最近邻在记忆库里周围是否稀疏，调整这个 patch 的分数。在合成数据的稀有模式实验上看它有没有帮助。</li>
+<li>用 VisA 里的 PCB 类别，按批次而不是随机划分训练集和测试集，比较两种划分下的 AUROC。</li>
+<li>实现一个简化的 PaDiM（每个位置一个均值和协方差），和 PatchCore 在不对齐的数据上对比，复现第 1 节的表。</li>
+</ul>
+<h2 id="13-和后续章节的关系">13. 和后续章节的关系</h2>
+<ul>
+<li>第 10 章的迁移学习讲了预训练特征为什么能用在新任务上，本章直接拿冻结的 ResNet 当特征提取器。</li>
+<li>第 18 章的金模板和本章的记忆库是同一个思路的两种实现，指标和工作点的读法完全相同（第 10 节的表）。</li>
+<li>第 16 章的对齐精度决定了本章第 4.1 节的错位有多大。</li>
+<li>第 20 章的合成缺陷可以用来训练第 7 节的监督分类器。注意第 20 章的要求：评估用的测试集必须是真实数据，所以合成缺陷不能拿来解决第 5.4 节的验证集样本量问题。</li>
+<li>第 24 章的综合项目用金模板串流水线，它的消融、工作点曲线和漏检分析可以原样用在本章的方法上，也可以把本章的方法当成一个替换模块来比较。</li>
+</ul>
 <h2 id="自测问题">自测问题</h2>
 <ol>
-<li>为什么重建类方法有时会“把缺陷也重建出来”？</li>
+<li>为什么重建类方法有时会“把缺陷也重建出来”？瓶颈太窄会怎样？</li>
 <li>PatchCore 训练阶段有没有反向传播？</li>
-<li>核心集从 10% 压到 1%，速度和精度大概怎么变？为什么精度掉得不多？</li>
+<li>核心集从 10% 压到 1%，速度和精度大概怎么变？什么情况下精度掉得多，什么情况下掉得少？贪心一定比随机好吗？</li>
 <li>一个模型 image AUROC 99.5%，你还需要哪些信息才能判断它能不能上线？</li>
 <li>为什么按晶圆划分训练集和测试集比随机划分更可信？</li>
+<li>良品分数图平均后最外一圈特别亮，可能是什么原因，怎么改？</li>
+<li>只有 20 个缺陷样本时，按“漏检不超过 5%”定的阈值上线后会怎样？怎样做才能真正守住上限？</li>
 </ol></article><nav class="prev-next"><a href="18.html">← 第 18 章 传统缺陷检测</a><a href="20.html">第 20 章 合成缺陷与生成模型 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#1-监督还是无监督">1. 监督还是无监督</a></li><li><a href="#2-异常检测方法谱系">2. 异常检测方法谱系</a></li><li><a href="#3-patchcore-详解">3. PatchCore 详解</a></li><li><a href="#4-指标">4. 指标</a></li><li><a href="#5-监督方法简述">5. 监督方法简述</a></li><li><a href="#6-落地时的真问题">6. 落地时的真问题</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#1-为什么需要金模板在不对齐的纹理上失效">1. 为什么需要：金模板在不对齐的纹理上失效</a></li><li><a href="#2-异常检测方法谱系">2. 异常检测方法谱系</a></li><li class="sub"><a href="#21-监督还是无监督">2.1 监督还是无监督</a></li><li class="sub"><a href="#22-六类方法各自在做什么">2.2 六类方法各自在做什么</a></li><li class="sub"><a href="#23-重建类的容量问题">2.3 重建类的容量问题</a></li><li><a href="#3-patchcore-的五个环节">3. PatchCore 的五个环节</a></li><li class="sub"><a href="#31-特征提取为什么用中间层">3.1 特征提取：为什么用中间层</a></li><li class="sub"><a href="#32-局部聚合抗错位也带来边界问题">3.2 局部聚合：抗错位，也带来边界问题</a></li><li class="sub"><a href="#33-核心集采样">3.3 核心集采样</a></li><li class="sub"><a href="#34-最近邻打分">3.4 最近邻打分</a></li><li class="sub"><a href="#35-良品里混进带缺陷的图">3.5 良品里混进带缺陷的图</a></li><li class="sub"><a href="#36-分数图上采样">3.6 分数图上采样</a></li><li class="sub"><a href="#37-预训练特征对照">3.7 预训练特征对照</a></li><li><a href="#4-落地时的真问题">4. 落地时的真问题</a></li><li class="sub"><a href="#41-对齐记忆库也怕半个像素">4.1 对齐：记忆库也怕半个像素</a></li><li class="sub"><a href="#42-良品要多少张">4.2 良品要多少张</a></li><li class="sub"><a href="#43-其余要注意的事">4.3 其余要注意的事</a></li><li><a href="#5-指标与怎样评估">5. 指标与怎样评估</a></li><li class="sub"><a href="#51-各指标在衡量什么">5.1 各指标在衡量什么</a></li><li class="sub"><a href="#52-pixel-auroc-为什么会骗人">5.2 pixel AUROC 为什么会骗人</a></li><li class="sub"><a href="#53-从-auroc-到产线工作点">5.3 从 AUROC 到产线工作点</a></li><li class="sub"><a href="#54-阈值在哪个集合上定用多少样本定">5.4 阈值在哪个集合上定，用多少样本定</a></li><li class="sub"><a href="#55-怎么报告">5.5 怎么报告</a></li><li><a href="#6-交互演示核心集与近邻打分">6. 交互演示：核心集与近邻打分</a></li><li><a href="#7-监督方法简述">7. 监督方法简述</a></li><li><a href="#8-作业里的零件">8. 作业里的零件</a></li><li><a href="#9-常见错误">9. 常见错误</a></li><li><a href="#10-和第-18-章的关系">10. 和第 18 章的关系</a></li><li><a href="#11-破坏实验">11. 破坏实验</a></li><li><a href="#12-扩展深挖档">12. 扩展（深挖档）</a></li><li><a href="#13-和后续章节的关系">13. 和后续章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

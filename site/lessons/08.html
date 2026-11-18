@@ -58,9 +58,45 @@
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 8 章 <span class="tag P3">P3</span> <span class="badge">原版讲义</span></div><h1>神经网络基础</h1><p class="scene"><b>用在哪：</b>读懂和调试任何训练代码的前提</p><div class="meta-row"><span class="chip"><b>速通</b> 2 小时</span><span class="chip"><b>标准</b> 8 小时</span><span class="chip"><b>深挖</b> 10 小时</span><span class="chip">前置：无</span></div><div class="meta-row"><span class="chip mono">验收：python 08_神经网络基础/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="08"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
-<p>配套练习：<code>DL-1_FC+MNIST.py</code> | <code>DL-2_手动验证反向传播.py</code></p>
-</blockquote>
+<div class="lesson-head"><div class="crumbs">第 8 章 <span class="tag P3">P3</span> <span class="badge ok">已升级</span></div><h1>神经网络基础</h1><p class="scene"><b>用在哪：</b>读懂和调试任何训练代码的前提</p><div class="meta-row"><span class="chip"><b>速通</b> 2 小时</span><span class="chip"><b>标准</b> 8 小时</span><span class="chip"><b>深挖</b> 10 小时</span><span class="chip">前置：无</span></div><div class="meta-row"><span class="chip mono">验收：python 08_神经网络基础/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="08"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自代码生成的数据上的实测，记录在 <a href="../../08_神经网络基础/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch08.py</code> 生成。数据有两份：和 Notebook 相同的 XOR 点集，以及一份 12×12 的合成数字（训练 4000 张、验证 2000 张、10 类，生成方式见 8.2 节）。两层网络的前向和交叉熵调用本章作业的参考实现，反向传播和优化器是配图脚本里用 NumPy 手写的；只和 PyTorch 接口有关的实验用 PyTorch 2.15.0 在一台 Mac 的 CPU 上做。换成 MNIST 或你自己的数据，数值会变，结论的方向要自己再测一遍。</p>
+</div>
+<p>自动验收的作业是 <a href="../../08_神经网络基础/作业_手写两层网络.py"><code>作业_手写两层网络.py</code></a>。配套练习 DL-1（全连接网络加 MNIST）和 DL-2（手动验证反向传播）的题目在 <a href="../../视觉算法学习计划.md"><code>视觉算法学习计划.md</code></a> 的“第 1 天：从零理解神经网络”一节，目录里没有现成的文件，需要自己新建 <code>DL-1_FC+MNIST.py</code>、<code>DL-2_手动验证反向传播.py</code> 完成。</p>
+<hr />
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：读懂和调试任何训练代码的前提。后面每一章的深度学习方法，训练时做的都是这一章的四件事：前向、损失、反向、更新。训练不收敛、损失变成 <code>nan</code>、验证指标对不上，排查时回到的也是这一章。</p>
+<p><strong>优先级</strong>：P3，已有基础或用得少，遇到再回看。没有前置章节。如果你已经用 PyTorch 训练过模型，走速通档，只看图表和小测里与直觉不一样的地方。后面第 9 章在本章的基础上讲卷积、BatchNorm 和残差连接，第 10 章的微调直接用本章的学习率和权重衰减。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">2 小时</td>
+<td>只看图 1、图 3、图 5、图 6 和它们下面的表，读 8.8 节的实测表和“按现象查”的表，做 8.9 节演示的前 3 步，答完 5 道小测</td>
+<td>能讲清梯度检查的步长怎么取，学习率过大在分类网络上是什么表现，三种优化器的学习率为什么各差约 10 倍</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">8 小时</td>
+<td>读完全章，跑 Notebook，完成 <code>作业_手写两层网络.py</code> 并验收通过，做 8.11 节前三个破坏实验，填实验记录</td>
+<td>两项验收 PASS，实验记录里有一个失败案例（去掉激活、学习率过大或标签错位），自测问题都能答</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">10 小时</td>
+<td>再做 8.11 节其余的破坏实验和 8.12 节的扩展（DL-1 和 DL-2 至少做一个）</td>
+<td>自己写的反向传播通过梯度检查并能报出相对误差；或者在 MNIST 上训练一个两层网络，报告训练和验证曲线在哪里分开</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。本章是全书最长的一章，速通档不要从头读到尾，按上表只看图表和小测；后面哪一章训练出了问题，再回来查 8.8 节的表。</p>
+</div>
 <hr />
 <h2 id="81-从感知机到多层网络">8.1 从感知机到多层网络</h2>
 <h3 id="一个神经元到底在做什么">一个神经元到底在做什么</h3>
@@ -152,6 +188,82 @@ H  = ReLU(Z₁)
 Z₂ = HW₂ᵀ + b₂
 </code></pre></div>
 <p>最后的 <code>Z₂</code> 叫 <strong>logits</strong>，是尚未转成概率的原始分数。</p>
+<h3 id="实测xor-到底要几个隐藏单元">实测：XOR 到底要几个隐藏单元</h3>
+<p>上面的构造说明 2 个隐藏单元就能表示 XOR。能表示，不等于训练得出来。按本章 Notebook 的设置重做：128 个点（四个角各 32 个，抖动的标准差 0.08），Adam，学习率 0.05，全批量训练 250 步，权重按 <code>nn.Linear</code> 的默认方式初始化。每种隐藏单元数换 200 个随机种子，“学会”指训练准确率到 100%。</p>
+<figure><img src="../../08_神经网络基础/figures/fig01_XOR与隐藏单元数.svg" alt="图 1：左一，去掉激活函数的两层网络在 XOR 点集上的决策区域，边界是一条直线。左二，8 个隐藏单元、学会了的一次训练。左三，2 个隐藏单元、停在 75% 的一次训练。最右，200 个随机种子里学会的比例随隐藏单元数的变化" loading="lazy"><figcaption>图 1：左一，去掉激活函数的两层网络在 XOR 点集上的决策区域，边界是一条直线。左二，8 个隐藏单元、学会了的一次训练。左三，2 个隐藏单元、停在 75% 的一次训练。最右，200 个随机种子里学会的比例随隐藏单元数的变化</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>隐藏单元数（各 200 个种子，Adam，250 步）</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">16</th>
+<th style="text-align: right;">32</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学会的次数</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: right;">99</td>
+<td style="text-align: right;">147</td>
+<td style="text-align: right;">191</td>
+<td style="text-align: right;">200</td>
+<td style="text-align: right;">200</td>
+</tr>
+<tr>
+<td>学会的比例</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">26.5%</td>
+<td style="text-align: right;">49.5%</td>
+<td style="text-align: right;">73.5%</td>
+<td style="text-align: right;">95.5%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>停在 75% 附近的次数</td>
+<td style="text-align: right;">87</td>
+<td style="text-align: right;">92</td>
+<td style="text-align: right;">67</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>停在 50% 附近的次数</td>
+<td style="text-align: right;">113</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>训练结束时对所有点都输出 0 的隐藏单元数（平均）</td>
+<td style="text-align: right;">0.35</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">1.28</td>
+<td style="text-align: right;">2.62</td>
+<td style="text-align: right;">4.96</td>
+<td style="text-align: right;">9.39</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>2 个隐藏单元理论上够，200 次里只学会 53 次</strong>。把步数从 250 加到 1000，学会的是 54 次，所以原因不是训练不够久。</li>
+<li><strong>Notebook 默认的 8 个隐藏单元，200 个种子里有 9 个没学会</strong>，其中 1 个停在 50%。Notebook 换随机种子之后偶尔不收敛属于这种情况，不是代码写错了。到 16 个单元才 200 次全部学会。</li>
+<li><strong>失败的样子是停在 75% 或 50%，损失不再下降</strong>。表的最后一行给出了线索：训练结束时总有一部分隐藏单元对所有点都输出 0。ReLU 单元一旦对所有样本都输出 0，它的梯度也是 0，基本没有机会再活过来。隐藏单元给得比理论最小值多，是在给这种损耗留余量。</li>
+<li><strong>去掉激活函数</strong>（图 1 左一），8 个隐藏单元、200 个种子的训练准确率全部是 50%，损失停在 0.693，也就是 ln 2：两类各猜一半。把两层线性变换合并成一层，和分两层算的输出最大只差 2.2e-16，只剩浮点舍入。8.2 节会在另一份数据上再看一次。</li>
+</ol>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>理论上 2 个 ReLU 隐藏单元就能表示 XOR。按 Notebook 的设置训练，换 200 个随机种子，大约有多少次能学会？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>几乎每次都能</span></button><button type="button" data-k="B"><b>B</b><span>大约四分之一</span></button><button type="button" data-k="C"><b>C</b><span>一次也不能</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。200 次里学会 53 次，26.5%；把训练步数加到 4 倍也只有 54 次。其余的停在 75% 或 50%。Notebook 默认的 8 个单元是 95.5%，16 个单元才到 100%。“网络能表示这个函数”和“梯度下降找得到它”是两件事。</p></div></div>
 <hr />
 <h2 id="82-前向传播数据如何穿过网络">8.2 前向传播：数据如何穿过网络</h2>
 <p>假设一个 batch 有 32 张展平后的 MNIST 图片，每张图片 <code>28×28=784</code> 个数，隐藏层有 128 个神经元，类别数为 10：</p>
@@ -205,6 +317,42 @@ Z₂ = HW₂ᵀ + b₂
 <div class="highlight"><pre><span></span><code>W₂(W₁x+b₁)+b₂ = (W₂W₁)x + (W₂b₁+b₂)
 </code></pre></div>
 <p>所以“层数多”本身不产生能力，<strong>线性层之间的非线性</strong>才让网络能表示弯曲、分段乃至非常复杂的决策边界。</p>
+<div class="callout callout-warn"><div class="callout-title">注意</div><p>本章作业的权重形状和 <code>nn.Linear</code> 相反。作业文件里 <code>w1</code> 的形状是 <code>(D, H)</code>，<code>w2</code> 是 <code>(H, C)</code>，前向直接写 <code>x @ w1</code>，不转置。上表和 PyTorch 的 <code>(H, D)</code>、<code>(C, H)</code> 要配 <code>x @ W.T</code>。两种约定都常见，动手前先看函数文档里写的形状。</p>
+</div>
+<p>这个网络一共 101770 个参数，其中第一层 100480 个，占 98.7%，第二层只有 1290 个。全连接层的参数量几乎全花在“输入维度乘隐藏单元数”上，输入换成大图时这个数会大到无法接受，第 9 章 9.1 节从这里出发讲为什么图像要用卷积。</p>
+<h3 id="实测去掉激活层数和参数都白加">实测：去掉激活，层数和参数都白加</h3>
+<p>本章后面的实验都用同一份<strong>合成数字</strong>：用 OpenCV 的 <code>putText</code> 在 48×48 的画布上画 0 到 9，字号和笔画粗细随机，位置偏移最多 6 px，旋转最多 12 度，缩小到 12×12，再加标准差 0.15 的高斯噪声，展平成 144 维。训练集 4000 张，验证集 2000 张。它比 MNIST 小，但同样是“像素进、10 类出”，在 CPU 上几秒就能训练一次。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模型（合成数字，SGD，学习率 0.3，batch 64，训练 2000 步）</th>
+<th style="text-align: right;">参数量</th>
+<th style="text-align: right;">训练准确率</th>
+<th style="text-align: right;">验证准确率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一层线性（softmax 回归）</td>
+<td style="text-align: right;">1450</td>
+<td style="text-align: right;">60.4%</td>
+<td style="text-align: right;">52.1%</td>
+</tr>
+<tr>
+<td>两层，64 个隐藏单元，去掉激活</td>
+<td style="text-align: right;">9930</td>
+<td style="text-align: right;">60.9%</td>
+<td style="text-align: right;">53.7%</td>
+</tr>
+<tr>
+<td>两层，64 个隐藏单元，ReLU</td>
+<td style="text-align: right;">9930</td>
+<td style="text-align: right;">99.9%</td>
+<td style="text-align: right;">93.3%</td>
+</tr>
+</tbody>
+</table></div>
+<p>去掉激活的两层网络参数量是一层线性的 6.8 倍，验证准确率只从 52.1% 到 53.7%。加上 ReLU，同样的参数量到了 93.3%。</p>
 <hr />
 <h2 id="83-损失函数把错得多远变成一个数">8.3 损失函数：把“错得多远”变成一个数</h2>
 <p>模型需要一个可优化的标尺。损失越小，说明预测越接近目标；训练就是不断调整参数，让平均损失下降。</p>
@@ -228,9 +376,193 @@ CE  = -log(p_y)
 <ul>
 <li><code>logits.shape == (B, C)</code>，类型通常为 <code>float32</code>；</li>
 <li><code>labels.shape == (B,)</code>，内容是 <code>0...C-1</code> 的类别索引；</li>
-<li><code>labels.dtype == torch.long</code>，不是 one-hot，也不是 float。</li>
+<li><code>labels.dtype == torch.long</code>，不是 float。原讲义这里还写了“不是 one-hot”，在现在的 PyTorch 上这句话不完全对，见下面的实测。</li>
 </ul>
 <p>二分类可用一个 logit 配合 <code>BCEWithLogitsLoss</code>。同样不要先 Sigmoid，因为该损失已把 Sigmoid 和二元交叉熵合并，能避免 <code>log(0)</code> 和指数溢出。</p>
+<h3 id="实测crossentropyloss-接受什么样的标签">实测：CrossEntropyLoss 接受什么样的标签</h3>
+<p>在 PyTorch 2.15.0 上，给同一组 <code>(4, 3)</code> 的 float32 logits 配六种标签：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>标签的形式</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>(B,)</code> 的 long</td>
+<td>接受，损失 1.1304</td>
+</tr>
+<tr>
+<td><code>(B,)</code> 的 float</td>
+<td>报错：expected target dtype to be Long or Byte, but got Float</td>
+</tr>
+<tr>
+<td><code>(B,)</code> 的 int32</td>
+<td>报错：expected target dtype to be Long or Byte, but got Int</td>
+</tr>
+<tr>
+<td><code>(B,1)</code> 的 long</td>
+<td>报错：0D or 1D target tensor expected, multi-target not supported</td>
+</tr>
+<tr>
+<td><code>(B,C)</code> 的 one-hot，float</td>
+<td>接受，损失 1.1304</td>
+</tr>
+<tr>
+<td><code>(B,C)</code> 的 one-hot，long</td>
+<td>报错：Expected floating point type for target with class probabilities, got Long</td>
+</tr>
+</tbody>
+</table></div>
+<p>形状是 <code>(B, C)</code> 的浮点标签会被当成“每一类的目标概率”，one-hot 是它的特例，算出来的损失和类别索引相同，不报错。会报错的是另外四种：<code>(B,)</code> 的 float 或 int32，多出一维的 <code>(B,1)</code>，以及整数类型的 one-hot。所以排查标签问题时不能只等报错，先打印 <code>labels.shape</code> 和 <code>labels.dtype</code>。别的版本行为可能不同，以你机器上的输出为准。</p>
+<h3 id="实测多做一次-softmax-会怎样">实测：多做一次 softmax 会怎样</h3>
+<p>先 softmax 再交给 <code>CrossEntropyLoss</code>，不会报错。softmax 的输出在 0 到 1 之间，再做一次 softmax，各类的概率差被压得很小：10 类时，就算第一次 softmax 给正确类别的概率已经是 1，损失也只能降到 1.461，而全部猜一样的损失是 2.303。能下降的空间变小，梯度也跟着变小。</p>
+<figure><img src="../../08_神经网络基础/figures/fig02_交叉熵的数值稳定性.svg" alt="图 2：左，三个 logits 取 s、0、-s，正确类别是最后一个时算出的损失随 s 的变化，两条实线是直接照公式算，叉号是它变成 inf 之前的最后一个点，虚线是减去最大值的写法。中，二分类里交叉熵和平方误差对 logit 的梯度大小，横轴是模型给正确类别的概率。右，同一个网络用正确写法（实线）和多做一次 softmax（虚线）训练的损失，蓝色是 SGD，橙色是 Adam，灰色点线是多做一次 softmax 时的损失下界" loading="lazy"><figcaption>图 2：左，三个 logits 取 s、0、-s，正确类别是最后一个时算出的损失随 s 的变化，两条实线是直接照公式算，叉号是它变成 inf 之前的最后一个点，虚线是减去最大值的写法。中，二分类里交叉熵和平方误差对 logit 的梯度大小，横轴是模型给正确类别的概率。右，同一个网络用正确写法（实线）和多做一次 softmax（虚线）训练的损失，蓝色是 SGD，橙色是 Adam，灰色点线是多做一次 softmax 时的损失下界</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>写法（合成数字，144→128→10，batch 64，训练 600 步）</th>
+<th style="text-align: right;">SGD，学习率 0.1</th>
+<th style="text-align: right;">Adam，学习率 0.001</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正确写法：最后 50 步的平均损失</td>
+<td style="text-align: right;">1.117</td>
+<td style="text-align: right;">0.632</td>
+</tr>
+<tr>
+<td>正确写法：验证准确率</td>
+<td style="text-align: right;">62.4%</td>
+<td style="text-align: right;">75.6%</td>
+</tr>
+<tr>
+<td>先 softmax：最后 50 步的平均损失</td>
+<td style="text-align: right;">2.295</td>
+<td style="text-align: right;">1.843</td>
+</tr>
+<tr>
+<td>先 softmax：验证准确率</td>
+<td style="text-align: right;">15.1%</td>
+<td style="text-align: right;">59.8%</td>
+</tr>
+</tbody>
+</table></div>
+<p>用 SGD 时这个错误很显眼，损失几乎不动。用 Adam 时它还能训到 59.8%，看上去只是“效果差一点”，这才是它危险的地方。一个可以直接用的判据：10 类分类的训练损失长时间降不到 1.46 以下，先查有没有多做一次 softmax。</p>
+<h3 id="实测直接算交叉熵多大的-logits-会出问题">实测：直接算交叉熵，多大的 logits 会出问题</h3>
+<p>作业要求交叉熵用“减去每行最大值”的写法。原因是</p>
+<div class="arithmatex">\[
+\log \sum_j e^{z_j} = m + \log \sum_j e^{z_j - m}, \qquad m = \max_j z_j
+\]</div>
+<p>右边每个指数的自变量都不大于 0，最大的那一项正好是 <span class="arithmatex">\(e^0 = 1\)</span>，既不会上溢，求和也不会是 0。直接照公式先算 <code>exp(z)</code> 则有两个界，图 2 左栏是它断掉的位置：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">float32</th>
+<th style="text-align: right;">float64</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>exp</code> 上溢的界</td>
+<td style="text-align: right;">88.72</td>
+<td style="text-align: right;">709.78</td>
+</tr>
+<tr>
+<td><code>exp</code> 的结果变成 0 的界</td>
+<td style="text-align: right;">-103.28</td>
+<td style="text-align: right;">-744.44</td>
+</tr>
+<tr>
+<td>预测错时，直接算第一次得到 <code>inf</code> 的 s</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">373</td>
+</tr>
+<tr>
+<td>预测对时，直接算第一次得到 <code>nan</code> 的 s</td>
+<td style="text-align: right;">89</td>
+<td style="text-align: right;">710</td>
+</tr>
+<tr>
+<td>s = 50（真值约 100）时直接算的结果</td>
+<td style="text-align: right;">99.983</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+</tbody>
+</table></div>
+<p>表里的 logits 是 <code>[s, 0, -s]</code>。“预测错”指正确类别是 logit 最小的那个，它的概率下溢成 0，取对数得到 <code>inf</code>。“预测对”指正确类别是 logit 最大的那个，<code>exp(s)</code> 上溢，<code>inf / inf</code> 得到 <code>nan</code>，也就是说连预测正确的样本都会让整个 batch 的损失变成 <code>nan</code>。float32 在 s = 50 时还没有断，但结果已经从 100.0 偏到 99.983。</p>
+<p>验收脚本用的例子是 <code>[[1000, 1001], [-1000, -999]]</code>：直接算得到 <code>nan</code>，参考实现得到 0.8133，和理论值一致。</p>
+<p>这么大的 logits 并不罕见。同一个网络刚初始化时，输入在 0 到 1 之间，logits 的最大绝对值是 2.6；把输入乘 255（忘了归一化），是 656，已经远超 float32 的 88.72。</p>
+<p><code>BCEWithLogitsLoss</code> 是同一个道理。float32 下 logit 取 -800、-200、-100、-50，标签为 1：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>logit</th>
+<th style="text-align: right;">-800</th>
+<th style="text-align: right;">-200</th>
+<th style="text-align: right;">-100</th>
+<th style="text-align: right;">-50</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>直接算 <code>-log(sigmoid(x))</code></td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">inf</td>
+<td style="text-align: right;">50.0</td>
+</tr>
+<tr>
+<td><code>BCEWithLogitsLoss</code></td>
+<td style="text-align: right;">800.0</td>
+<td style="text-align: right;">200.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">50.0</td>
+</tr>
+<tr>
+<td><code>BCELoss(sigmoid(x))</code></td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">50.0</td>
+</tr>
+</tbody>
+</table></div>
+<p>注意最后一行：<code>BCELoss</code> 不会给出 <code>inf</code>，它把结果截在 100.0。不报错，但 -800 和 -200 两格的数值是错的，梯度也跟着错。</p>
+<h3 id="实测分类为什么不用-mse">实测：分类为什么不用 MSE</h3>
+<p>上面说交叉熵“强烈惩罚自信但错误的预测”。从梯度看更直接。二分类，输出 <span class="arithmatex">\(p = \sigma(z)\)</span>，真实标签是 1，<span class="arithmatex">\(p\)</span> 就是模型给正确类别的概率：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模型给正确类别的概率 p</th>
+<th style="text-align: right;">0.5</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">0.01</th>
+<th style="text-align: right;">0.001</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>交叉熵对 z 的梯度大小，<span class="arithmatex">\(1 - p\)</span></td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">0.9</td>
+<td style="text-align: right;">0.99</td>
+<td style="text-align: right;">0.999</td>
+</tr>
+<tr>
+<td>平方误差对 z 的梯度大小，<span class="arithmatex">\(2(1-p)\,p\,(1-p)\)</span></td>
+<td style="text-align: right;">0.25</td>
+<td style="text-align: right;">0.162</td>
+<td style="text-align: right;">0.0196</td>
+<td style="text-align: right;">0.002</td>
+</tr>
+</tbody>
+</table></div>
+<p>错得越离谱，交叉熵的梯度越接近 1；平方误差的梯度反而趋于 0（图 2 中栏），p = 0.01 时只有交叉熵的 51 分之一。用平方误差训练分类器，最需要纠正的样本得到的更新最小。</p>
+<div class="quiz" data-answer="C"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>把 logits 先过一遍 softmax 再交给 <code>CrossEntropyLoss</code>，用 Adam（学习率 0.001）在合成数字上训练 600 步。会发生什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>直接报错</span></button><button type="button" data-k="B"><b>B</b><span>损失变成 <code>nan</code></span></button><button type="button" data-k="C"><b>C</b><span>不报错，验证准确率 59.8%，正确写法是 75.6%</span></button></div><div class="quiz-exp" hidden><p><strong>C</strong>。不报错也没有 <code>nan</code>，只是损失的下降空间被压在 2.303 和 1.461 之间，梯度变小。换成 SGD（学习率 0.1）才显眼：验证准确率 15.1%，正确写法是 62.4%。训练损失长时间降不到 1.46 以下是这个错误的特征。</p></div></div>
 <hr />
 <h2 id="84-链式法则与反向传播">8.4 链式法则与反向传播</h2>
 <h3 id="手算一个最小例子">手算一个最小例子</h3>
@@ -262,6 +594,7 @@ dL/db = dL/dz · dz/db = -4×1 = -4
 b_new = b - lr·dL/db = 0   - 0.1×(-4) = 0.4
 </code></pre></div>
 <p>负梯度意味着增加参数可使损失下降，所以更新后 <code>w</code> 和 <code>b</code> 都变大。梯度下降中的减号不是死记规则：梯度指向函数上升最快的方向，朝相反方向走才会下降。</p>
+<p>这个例子里更新一步之后 <code>z = 1.3×2 + 0.4 = 3</code>，损失正好是 0。一步到位不是普遍现象，是学习率 0.1 在这个例子里取得巧，8.5 节用同一个例子讲学习率的边界时会解释。</p>
 <h3 id="多层网络如何反向">多层网络如何反向</h3>
 <p>设：</p>
 <div class="highlight"><pre><span></span><code>a = wx+b
@@ -280,8 +613,288 @@ L = (ŷ-y)²
 <li>同一参数若通过多条路径影响损失，各路径梯度相加。</li>
 </ol>
 <p>PyTorch 的 <code>loss.backward()</code> 正是在做这件事。执行后，叶子参数的梯度累积在 <code>parameter.grad</code> 中。注意是“累积”而不是“覆盖”，所以每轮必须清梯度。</p>
+<p>“累积”可以直接看到：不清梯度连续调用两次 <code>backward()</code>，<code>.grad</code> 正好是调用一次的 2.0 倍。</p>
+<h3 id="两层网络的反向传播矩阵形式">两层网络的反向传播（矩阵形式）</h3>
+<p>作业只要求前向和损失。把反向也写出来，才能自己做梯度检查。沿用作业的形状约定：<span class="arithmatex">\(X\)</span> 是 <span class="arithmatex">\((B, D)\)</span>，<span class="arithmatex">\(W_1\)</span> 是 <span class="arithmatex">\((D, H)\)</span>，<span class="arithmatex">\(W_2\)</span> 是 <span class="arithmatex">\((H, C)\)</span>，隐藏层输出 <span class="arithmatex">\(H\)</span> 是 <span class="arithmatex">\((B, H)\)</span>，<span class="arithmatex">\(P\)</span> 是 softmax 之后的概率，<span class="arithmatex">\(Y\)</span> 是 one-hot 标签，损失是 batch 上的平均交叉熵。</p>
+<div class="arithmatex">\[
+\begin{aligned}
+\delta_2 &amp;= \tfrac{1}{B}\,(P - Y) \\
+\nabla_{W_2} &amp;= H^\top \delta_2, \qquad \nabla_{b_2} = \textstyle\sum_i \delta_{2,i} \\
+\delta_1 &amp;= \left(\delta_2 W_2^\top\right) \odot \mathbb{1}[H &gt; 0] \\
+\nabla_{W_1} &amp;= X^\top \delta_1, \qquad \nabla_{b_1} = \textstyle\sum_i \delta_{1,i}
+\end{aligned}
+\]</div>
+<p>三处最容易写错：<span class="arithmatex">\(\tfrac{1}{B}\)</span> 只除一次，除在 <span class="arithmatex">\(\delta_2\)</span> 上；偏置的梯度是对 batch 求和，不是再取一次平均；ReLU 的掩码是“前向时这个单元的输出是否大于 0”。配图脚本里的手写实现和 PyTorch 的自动求导对过：同一组参数，损失相差 4.4e-16，梯度最大相差 2.8e-17。</p>
+<h3 id="梯度检查步长怎么取">梯度检查：步长怎么取</h3>
+<p>数值梯度有两种写法。前向差分是 <span class="arithmatex">\(\dfrac{L(w + h) - L(w)}{h}\)</span>，中心差分是 <span class="arithmatex">\(\dfrac{L(w + h) - L(w - h)}{2h}\)</span>。</p>
+<p>步长 <span class="arithmatex">\(h\)</span> 太大，差分不等于导数；太小，两个几乎相等的损失相减，有效数字被吃掉。下面在一个 144→16→10 的两层网络上实测，32 个样本，随机抽 160 个参数。相对误差按 <span class="arithmatex">\(\lVert g_n - g_a \rVert / (\lVert g_n \rVert + \lVert g_a \rVert)\)</span> 算，<span class="arithmatex">\(g_n\)</span> 是数值梯度，<span class="arithmatex">\(g_a\)</span> 是手写反向传播给出的解析梯度。</p>
+<figure><img src="../../08_神经网络基础/figures/fig03_梯度检查的步长.svg" alt="图 3：左，数值梯度和解析梯度的相对误差随差分步长的变化，横轴越往右步长越小，四条线分别是 float64 的前向差分、float64 的中心差分、把激活换成 tanh 之后的中心差分、float32 的中心差分。右，步长取 1e-5 时，正确的反向传播和四种常见错误写法各自的相对误差，纵轴是对数" loading="lazy"><figcaption>图 3：左，数值梯度和解析梯度的相对误差随差分步长的变化，横轴越往右步长越小，四条线分别是 float64 的前向差分、float64 的中心差分、把激活换成 tanh 之后的中心差分、float32 的中心差分。右，步长取 1e-5 时，正确的反向传播和四种常见错误写法各自的相对误差，纵轴是对数</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>步长 h（144→16→10，32 个样本，160 个参数）</th>
+<th style="text-align: right;">1e-1</th>
+<th style="text-align: right;">1e-3</th>
+<th style="text-align: right;">1e-5</th>
+<th style="text-align: right;">1e-7</th>
+<th style="text-align: right;">1e-9</th>
+<th style="text-align: right;">1e-11</th>
+<th style="text-align: right;">1e-13</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>float64，前向差分</td>
+<td style="text-align: right;">0.09</td>
+<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">4.1e-06</td>
+<td style="text-align: right;">4e-08</td>
+<td style="text-align: right;">3.1e-06</td>
+<td style="text-align: right;">0.0003</td>
+<td style="text-align: right;">0.029</td>
+</tr>
+<tr>
+<td>float64，中心差分</td>
+<td style="text-align: right;">0.055</td>
+<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">1.9e-10</td>
+<td style="text-align: right;">2.3e-08</td>
+<td style="text-align: right;">2.1e-06</td>
+<td style="text-align: right;">0.00021</td>
+<td style="text-align: right;">0.02</td>
+</tr>
+<tr>
+<td>float64，中心差分，激活换成 tanh</td>
+<td style="text-align: right;">0.0013</td>
+<td style="text-align: right;">1.3e-07</td>
+<td style="text-align: right;">1.9e-10</td>
+<td style="text-align: right;">1.9e-08</td>
+<td style="text-align: right;">1.8e-06</td>
+<td style="text-align: right;">0.00018</td>
+<td style="text-align: right;">0.018</td>
+</tr>
+<tr>
+<td>float32，中心差分</td>
+<td style="text-align: right;">0.055</td>
+<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.0</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>float64 的中心差分在 h = 1e-5 最准，相对误差 1.9e-10</strong>。从这里往右，步长每小 10 倍误差就大 10 倍，这是舍入误差：损失只有十六位左右的有效数字，相减之后再除以一个很小的 <span class="arithmatex">\(h\)</span>。</li>
+<li><strong>往左，光滑的网络是截断误差，ReLU 网络主要是折点</strong>。把激活换成 tanh，步长每大 10 倍误差大 100 倍（1.3e-07 到 1.3e-05 再到 0.0013），和中心差分的截断误差正比于 <span class="arithmatex">\(h^2\)</span> 一致。ReLU 网络在 h = 1e-3 时误差就到了 0.002，比 tanh 网络大四个数量级。原因是扰动跨过了 ReLU 的折点：h = 1e-3 时，被抽中的参数里有 5.0% 在加减 <span class="arithmatex">\(h\)</span> 之间让至少一个 ReLU 换了开关，h = 1e-2 时是 21.2%，h 不超过 1e-4 时是 0%。</li>
+<li><strong>前向差分最好只到 4e-08</strong>（h = 1e-7），误差正比于 <span class="arithmatex">\(h\)</span>。梯度检查用中心差分。</li>
+<li><strong>float32 做不了梯度检查</strong>。最好的一档是 0.002，步长取“教科书上常见的” 1e-5 时误差是 0.12，再小就是 1.0，数值梯度全成了 0。检查时把参数和输入都转成 float64。</li>
+</ol>
+<p>判断标准用图 3 右栏：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>写法（h = 1e-5，float64，全部 2490 个参数）</th>
+<th style="text-align: right;">全部参数</th>
+<th style="text-align: right;">w1</th>
+<th style="text-align: right;">b1</th>
+<th style="text-align: right;">w2</th>
+<th style="text-align: right;">b2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正确的实现</td>
+<td style="text-align: right;">4.4e-10</td>
+<td style="text-align: right;">4.7e-10</td>
+<td style="text-align: right;">2.2e-10</td>
+<td style="text-align: right;">3.6e-10</td>
+<td style="text-align: right;">9e-11</td>
+</tr>
+<tr>
+<td>忘了除以 batch 大小</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">0.94</td>
+</tr>
+<tr>
+<td>ReLU 的掩码写成 <code>h &gt;= 0</code></td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.43</td>
+<td style="text-align: right;">0.43</td>
+<td style="text-align: right;">3.6e-10</td>
+<td style="text-align: right;">9e-11</td>
+</tr>
+<tr>
+<td>偏置的梯度对 batch 又取了一次平均</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">4.7e-10</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">3.6e-10</td>
+<td style="text-align: right;">0.94</td>
+</tr>
+<tr>
+<td>softmax 之后忘了减 one-hot</td>
+<td style="text-align: right;">0.63</td>
+<td style="text-align: right;">0.62</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: right;">0.67</td>
+<td style="text-align: right;">0.69</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>写对了是 1e-10 量级，四种错误都在 0.1 以上，中间隔着八九个数量级，不存在“差不多对”。</li>
+<li>忘了除以 batch 大小 <span class="arithmatex">\(B\)</span> 时，梯度整体大了 <span class="arithmatex">\(B\)</span> 倍，相对误差是 <span class="arithmatex">\((B-1)/(B+1)\)</span>，<span class="arithmatex">\(B = 32\)</span> 时正好是 0.9394。</li>
+<li>掩码写成 <code>h &gt;= 0</code> 等于没有掩码。<code>h</code> 是 ReLU 之后的值，本来就全都不小于 0；这次前向里有 50.6% 的隐藏输出正好等于 0，它们都被错误地放行了。</li>
+<li><strong>按参数组分开看</strong>。偏置多取一次平均时，合在一起的误差只有 0.15，分开看是 <code>w1</code>、<code>w2</code> 完全正确、<code>b1</code>、<code>b2</code> 各错 0.94，一眼就知道错在哪一行。</li>
+</ul>
+<div class="quiz" data-answer="C"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一份写对了的反向传播，参数和输入都是 float32，用中心差分、步长 1e-5 做梯度检查。相对误差最接近哪个？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>1e-10</span></button><button type="button" data-k="B"><b>B</b><span>1e-5</span></button><button type="button" data-k="C"><b>C</b><span>0.1</span></button></div><div class="quiz-exp" hidden><p><strong>C</strong>。实测 0.12，和“忘了什么东西”的错误写法（0.15 到 0.94）在同一个量级，会把正确的实现判成错的。float32 的损失只有七位左右的有效数字，步长 1e-5 时两个损失的差已经淹没在舍入里。同样的代码转成 float64，误差是 1.9e-10。</p></div></div>
 <h3 id="梯度消失与梯度爆炸">梯度消失与梯度爆炸</h3>
 <p>深层网络的梯度包含许多导数的连乘。若多数因子小于 1，越传越小，前层几乎学不到；若多数因子大于 1，梯度会急剧放大，出现震荡、<code>inf</code> 或 <code>nan</code>。ReLU、合理初始化、归一化、残差连接和梯度裁剪，都是在改善梯度传播。下一章的 ResNet，本质上也和“让梯度有一条更顺畅的路”有关。</p>
+<h3 id="实测初始化尺度和各层信号的大小">实测：初始化尺度和各层信号的大小</h3>
+<p>“连乘”可以直接量。搭一个 10 层的全连接网络，每层 128 个单元，输入是 256 个标准正态样本，接 10 类交叉熵，只做一次前向和反向，不训练。He 初始化指权重的标准差取 <span class="arithmatex">\(\sqrt{2/n}\)</span>，Xavier 指 <span class="arithmatex">\(\sqrt{1/n}\)</span>，<span class="arithmatex">\(n\)</span> 是这一层的输入维度。</p>
+<figure><img src="../../08_神经网络基础/figures/fig04_初始化尺度与各层信号.svg" alt="图 4：左，10 层网络里每一层输出的均方根，五条线是五种激活和初始化的组合，纵轴是对数。中，每一层权重梯度的均方根，图例同左。右，本章作业那样的两层网络在合成数字上训练 500 步后的验证准确率，横轴是权重标准差相对 He 初始化的倍数，灰色点线是全零初始化" loading="lazy"><figcaption>图 4：左，10 层网络里每一层输出的均方根，五条线是五种激活和初始化的组合，纵轴是对数。中，每一层权重梯度的均方根，图例同左。右，本章作业那样的两层网络在合成数字上训练 500 步后的验证准确率，横轴是权重标准差相对 He 初始化的倍数，灰色点线是全零初始化</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>10 层，每层 128 个单元</th>
+<th style="text-align: right;">第 1 层输出</th>
+<th style="text-align: right;">第 10 层输出</th>
+<th style="text-align: right;">第 1 层梯度</th>
+<th style="text-align: right;">第 10 层梯度</th>
+<th style="text-align: right;">第 1 层梯度 / 第 10 层梯度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ReLU，He × 0.5</td>
+<td style="text-align: right;">0.504</td>
+<td style="text-align: right;">0.00105</td>
+<td style="text-align: right;">6.97e-06</td>
+<td style="text-align: right;">7.33e-06</td>
+<td style="text-align: right;">0.95</td>
+</tr>
+<tr>
+<td>ReLU，He</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">1.07</td>
+<td style="text-align: right;">0.0039</td>
+<td style="text-align: right;">0.0133</td>
+<td style="text-align: right;">0.29</td>
+</tr>
+<tr>
+<td>ReLU，He × 2</td>
+<td style="text-align: right;">2.01</td>
+<td style="text-align: right;">1100</td>
+<td style="text-align: right;">2.71</td>
+<td style="text-align: right;">16.6</td>
+<td style="text-align: right;">0.16</td>
+</tr>
+<tr>
+<td>tanh，Xavier</td>
+<td style="text-align: right;">0.63</td>
+<td style="text-align: right;">0.23</td>
+<td style="text-align: right;">0.00157</td>
+<td style="text-align: right;">0.00125</td>
+<td style="text-align: right;">1.3</td>
+</tr>
+<tr>
+<td>sigmoid，Xavier</td>
+<td style="text-align: right;">0.541</td>
+<td style="text-align: right;">0.52</td>
+<td style="text-align: right;">2.86e-09</td>
+<td style="text-align: right;">0.00169</td>
+<td style="text-align: right;">1.7e-06</td>
+</tr>
+<tr>
+<td>ReLU，<code>nn.Linear</code> 默认初始化</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.0404</td>
+<td style="text-align: right;">7.95e-07</td>
+<td style="text-align: right;">0.000101</td>
+<td style="text-align: right;">0.0079</td>
+</tr>
+</tbody>
+</table></div>
+<p>表里的“输出”和“梯度”都是均方根。</p>
+<ol>
+<li><strong>ReLU 网络里，标准差差 2 倍，10 层之后差 1000 倍</strong>。标准差减半，每层输出跟着减半，第 10 层只剩 0.00105（<span class="arithmatex">\(0.5^{10}\)</span> 是 0.00098）；标准差加倍，第 10 层是 1100（<span class="arithmatex">\(2^{10}\)</span> 是 1024）。He 初始化正好让每层输出保持在 1 左右。</li>
+<li><strong>这时各层的梯度是一起变小或一起变大的</strong>。He × 0.5 那一行，第 1 层和第 10 层的梯度几乎一样大（比值 0.95），都在 7e-06 左右，比 He 初始化小约三个数量级。所以初始化太小的表现是整个网络都学不动，不只是前面几层。</li>
+<li><strong>“越靠前越小”出现在 sigmoid 上</strong>。sigmoid 网络各层的输出一直在 0.5 附近，看不出问题，第 1 层的梯度却只有第 10 层的 1.7e-06。sigmoid 的导数最大只有 0.25，每往前传一层就至少打一次折扣。原文那段话描述的就是这种情况。</li>
+<li><strong><code>nn.Linear</code> 的默认初始化不是 He 初始化</strong>。实测它的权重标准差是 He 的 0.409 倍（理论上是 <span class="arithmatex">\(1/\sqrt{6}\)</span>，0.408）。两三层的网络看不出差别；堆到 10 层又没有归一化层时，第 10 层输出只剩 0.0404，第 1 层的梯度是第 10 层的 0.0079 倍。</li>
+</ol>
+<p>第 4 条对训练的影响（10 层 ReLU 网络，每层 64 个单元，合成数字，batch 64，训练 500 步，3 个种子取平均）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>初始化</th>
+<th style="text-align: right;">SGD，学习率 0.1</th>
+<th style="text-align: right;">Adam，学习率 0.001</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nn.Linear</code> 默认</td>
+<td style="text-align: right;">11.5%</td>
+<td style="text-align: right;">51.5%</td>
+</tr>
+<tr>
+<td>He</td>
+<td style="text-align: right;">69.1%</td>
+<td style="text-align: right;">80.6%</td>
+</tr>
+</tbody>
+</table></div>
+<p>默认初始化配 SGD，三个种子的验证准确率都是 11.5%，损失停在 2.302，500 步里完全没有学。Adam 按每个参数自己的梯度大小调步长，能把被压小的梯度补回来一部分，但三个种子分别是 61.8%、48.3%、44.3%，仍然比 He 初始化差。这组实验只说明“不带归一化的深层全连接网络”，第 9 章的 BatchNorm 和残差连接正是为了不再这么依赖初始化。</p>
+<p><strong>两层网络</strong>（作业的结构）没有那么敏感，但两头同样会出问题（图 4 右栏，合成数字，144→64→10，SGD，学习率 0.1，batch 64，训练 500 步，3 个种子取平均）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>权重标准差是 He 的多少倍</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">0.0001</th>
+<th style="text-align: right;">0.01</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">100</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>初始损失</td>
+<td style="text-align: right;">2.303</td>
+<td style="text-align: right;">2.303</td>
+<td style="text-align: right;">2.303</td>
+<td style="text-align: right;">2.303</td>
+<td style="text-align: right;">2.446</td>
+<td style="text-align: right;">8.338</td>
+<td style="text-align: right;">89.789</td>
+<td style="text-align: right;">8976.782</td>
+</tr>
+<tr>
+<td>训练 500 步后的验证准确率</td>
+<td style="text-align: right;">11.5%</td>
+<td style="text-align: right;">11.5%</td>
+<td style="text-align: right;">26.2%</td>
+<td style="text-align: right;">43.4%</td>
+<td style="text-align: right;">62.8%</td>
+<td style="text-align: right;">57.4%</td>
+<td style="text-align: right;">31.5%</td>
+<td style="text-align: right;">24.6%</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>全零初始化学不了</strong>。隐藏层输出全是 0，两层权重的梯度都是 0，只有输出层的偏置在动，准确率停在 11.5%。</li>
+<li><strong>所有权重设成同一个常数也不行</strong>。全部设成 0.01，训练后 64 个隐藏单元仍然一模一样（互不相同的只有 1 个），验证准确率 21.6%。每个单元收到的梯度相同，永远分不开，随机初始化的作用就是打破这种对称。</li>
+<li><strong>初始损失是一个免费的检查</strong>。10 类分类刚初始化时应该接近 ln 10，也就是 2.303。初始损失是 89.789，说明权重或输入的尺度大了一个数量级以上。</li>
+</ul>
 <hr />
 <h2 id="85-优化器sgdmomentum-与-adam">8.5 优化器：SGD、Momentum 与 Adam</h2>
 <p>有了梯度，还需要决定怎样走下一步。</p>
@@ -304,6 +917,297 @@ v_t = β₂v_{t-1} + (1-β₂)g_t²
 </code></pre></div>
 <p>一阶矩类似动量，二阶矩衡量近期梯度规模。梯度长期较大的参数会自动缩小有效步长，稀疏或较小的梯度可获得相对更大的步长。Adam 往往更快得到可用结果，默认参数也比较稳；SGD+Momentum 有时在视觉分类任务上能得到更好的最终泛化。</p>
 <p>不要把“换优化器”当成万能修复。若 loss 完全不降，优先检查数据、标签、shape、前向和学习率，而不是依次试遍所有优化器。</p>
+<p>上面三组公式和 <code>torch.optim</code> 里的 <code>SGD</code>、<code>SGD(momentum=0.9)</code>、<code>Adam</code> 是同一套。配图脚本按这三组公式用 NumPy 各写了一遍，和 <code>torch.optim</code> 从同一组参数出发连走 20 步，参数的最大差是 1.1e-16（Adam 是 2.2e-16）。下面的实验用的就是这三份实现。</p>
+<h3 id="实测学习率的边界在哪里">实测：学习率的边界在哪里</h3>
+<p>“太大会发散”有一个可以算出来的边界。先看 8.4 节的手算例子：<code>x=2，y=3</code>，损失是 <span class="arithmatex">\((wx + b - y)^2\)</span>。它对 <span class="arithmatex">\((w, b)\)</span> 的二阶导数矩阵只有一个非零特征值 <span class="arithmatex">\(\lambda = 2(x^2 + 1) = 10\)</span>。沿这个方向，每走一步，离最优点的距离乘以 <span class="arithmatex">\((1 - \eta\lambda)\)</span>，损失乘以它的平方：</p>
+<div class="arithmatex">\[
+L_{t+1} = (1 - \eta\lambda)^2\, L_t
+\]</div>
+<p>要让损失下降，需要 <span class="arithmatex">\(|1 - \eta\lambda| &lt; 1\)</span>，也就是 <span class="arithmatex">\(\eta &lt; 2/\lambda\)</span>。</p>
+<figure><img src="../../08_神经网络基础/figures/fig05_学习率的边界.svg" alt="图 5：左，手算例子在五种学习率下的损失随步数的变化，纵轴是对数，画在最底下的是 0。中，两层网络在合成数字上做全批量梯度下降，五种学习率的训练损失曲线。右，同一个网络 300 步之后的训练损失随学习率的变化，灰色虚线是按初始化处的最大特征值算出的 2/λ" loading="lazy"><figcaption>图 5：左，手算例子在五种学习率下的损失随步数的变化，纵轴是对数，画在最底下的是 0。中，两层网络在合成数字上做全批量梯度下降，五种学习率的训练损失曲线。右，同一个网络 300 步之后的训练损失随学习率的变化，灰色虚线是按初始化处的最大特征值算出的 2/λ</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>学习率（手算例子，初始损失 4）</th>
+<th style="text-align: right;">0.01</th>
+<th style="text-align: right;">0.05</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">0.15</th>
+<th style="text-align: right;">0.19</th>
+<th style="text-align: right;">0.2</th>
+<th style="text-align: right;">0.21</th>
+<th style="text-align: right;">0.25</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每一步损失乘的倍数</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">0.25</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.25</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.21</td>
+<td style="text-align: right;">2.25</td>
+</tr>
+<tr>
+<td>第 10 步之后的损失</td>
+<td style="text-align: right;">0.486</td>
+<td style="text-align: right;">3.81e-06</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">3.81e-06</td>
+<td style="text-align: right;">0.486</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">26.9</td>
+<td style="text-align: right;">13300</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>学习率 0.1 正好等于 <span class="arithmatex">\(1/\lambda\)</span>，一步就到最优点，这就是 8.4 节更新一步后损失为 0 的原因。</li>
+<li>0.05 和 0.15、0.01 和 0.19 两两对称，收敛得一样快，区别只是后者每一步都越过最优点再折回来。</li>
+<li>0.2 正好是 <span class="arithmatex">\(2/\lambda\)</span>，损失永远停在 4，在最优点两侧原地来回。0.21 开始每步放大 1.21 倍。学习率 0.25 时，损失在 874 步之后变成 <code>inf</code>。平方损失一旦越过边界就是指数增长，<code>nan</code> 来得很快。</li>
+</ul>
+<p><strong>分类网络不是这样发散的。</strong> 对合成数字的前 1000 张训练图，144→64→10 的网络做全批量梯度下降 300 步。初始化处损失的最大特征值是 4.36，按上面的规则，边界是 0.46。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>学习率（1000 张图，全批量 300 步）</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">0.46</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">2.5</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">10</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>300 步后的训练损失</td>
+<td style="text-align: right;">1.2396</td>
+<td style="text-align: right;">0.2017</td>
+<td style="text-align: right;">0.0398</td>
+<td style="text-align: right;">0.0134</td>
+<td style="text-align: right;">0.4098</td>
+<td style="text-align: right;">1.8505</td>
+<td style="text-align: right;">2.2984</td>
+<td style="text-align: right;">2.2984</td>
+</tr>
+<tr>
+<td>损失比上一步变大的步数占比</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">1.7%</td>
+<td style="text-align: right;">15.4%</td>
+<td style="text-align: right;">17.1%</td>
+<td style="text-align: right;">43.5%</td>
+<td style="text-align: right;">44.8%</td>
+<td style="text-align: right;">14.0%</td>
+<td style="text-align: right;">22.7%</td>
+</tr>
+<tr>
+<td>结束时对所有样本都输出 0 的隐藏单元占比</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">12.5%</td>
+<td style="text-align: right;">79.7%</td>
+<td style="text-align: right;">95.3%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong><span class="arithmatex">\(2/\lambda\)</span> 在这里不是硬边界</strong>。学习率 2 是它的 4.4 倍，300 步后的损失 0.0134 反而是所有学习率里最低的，代价是 17.1% 的步数损失在回升（图 5 中栏那条抖动的线）。这个网络的损失不是二次函数，曲率会随着参数移动而改变，初始化处量到的特征值只管得了开头几步。曲率具体怎么变，本章没有单独测。</li>
+<li><strong>再大也不是 <code>nan</code>，而是掉进一个平台</strong>。学习率 5 和 10，结束时 100% 的隐藏单元对所有样本都输出 0，损失停在 2.2984。只按训练集的类别比例去猜，损失是 2.298，也就是说网络只剩输出层的偏置在起作用。这份 NumPy 实现在 float64 下把学习率加到一百万也没有出现 <code>nan</code>。用 PyTorch 的 float32 做同样的事（mini-batch，200 步）：学习率 10 时损失 2.423，1000 时 545.493，都不是 <code>nan</code>，到一百万才是。</li>
+<li><strong>所以别等 <code>nan</code></strong>。原因在于交叉熵对 logits 的梯度是“概率减 one-hot”，大小有界，不像平方损失那样越错梯度越大。分类网络学习率过大的常见表现是：损失先跳几下，然后停在 ln(类别数) 附近一动不动，隐藏层输出全是 0。看到这个现象，先把学习率降 10 倍。</li>
+</ol>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一个两层 ReLU 分类网络（10 类，输入已归一化），用 PyTorch 的 SGD，把学习率设成 10，比合适的值大一两个数量级。训练 200 步后最可能看到什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>损失是 <code>nan</code></span></button><button type="button" data-k="B"><b>B</b><span>损失停在 2.3 到 2.4 附近不再下降</span></button><button type="button" data-k="C"><b>C</b><span>损失剧烈震荡，但最后收敛到接近 0</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测第 200 步的损失是 2.423，没有 <code>nan</code>；学习率 1000 时是 545.493，仍然不是 <code>nan</code>。全批量的实验里，学习率 5 和 10 都让 100% 的隐藏单元输出恒为 0，损失停在 2.2984，等于只按类别比例猜。A 是平方损失的表现：8.4 节的手算例子学习率 0.25 时，874 步后变成 <code>inf</code>。</p></div></div>
+<h3 id="实测三种优化器对学习率有多敏感">实测：三种优化器对学习率有多敏感</h3>
+<p>同一个网络（144→64→10，He 初始化，batch 64，训练 400 步），学习率从 0.000001 到 10 每个数量级取 4 个点，每个点 3 个种子，看验证准确率。</p>
+<figure><img src="../../08_神经网络基础/figures/fig06_优化器与批大小.svg" alt="图 6：左，输入在 0 到 1 时，SGD、带动量的 SGD、Adam 三种优化器训练 400 步后的验证准确率随学习率的变化。中，把输入乘 255 之后的同一组实验。右，batch 梯度相对全量梯度的误差随 batch 大小的变化，三条线是训练的三个阶段，浅蓝色粗线是按 batch 大小的平方根下降的参考线，两个坐标轴都是对数" loading="lazy"><figcaption>图 6：左，输入在 0 到 1 时，SGD、带动量的 SGD、Adam 三种优化器训练 400 步后的验证准确率随学习率的变化。中，把输入乘 255 之后的同一组实验。右，batch 梯度相对全量梯度的误差随 batch 大小的变化，三条线是训练的三个阶段，浅蓝色粗线是按 batch 大小的平方根下降的参考线，两个坐标轴都是对数</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>输入在 0 到 1（400 步，3 个种子）</th>
+<th style="text-align: right;">SGD</th>
+<th style="text-align: right;">SGD + 动量 0.9</th>
+<th style="text-align: right;">Adam</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最好的学习率</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">0.178</td>
+<td style="text-align: right;">0.0178</td>
+</tr>
+<tr>
+<td>最好的验证准确率</td>
+<td style="text-align: right;">90.9%</td>
+<td style="text-align: right;">91.5%</td>
+<td style="text-align: right;">87.0%</td>
+</tr>
+<tr>
+<td>离最好不超过 5 个百分点的学习率范围</td>
+<td style="text-align: right;">0.562 到 1.78</td>
+<td style="text-align: right;">0.0562 到 0.316</td>
+<td style="text-align: right;">0.00562 到 0.0316</td>
+</tr>
+<tr>
+<td>这个范围的宽度（最大 / 最小）</td>
+<td style="text-align: right;">3.2 倍</td>
+<td style="text-align: right;">5.6 倍</td>
+<td style="text-align: right;">5.6 倍</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>三条曲线形状相近，左右各错开约 10 倍</strong>。SGD 用 0.1、动量用 0.01、Adam 用 0.001，验证准确率分别是 58.1%、56.9%、58.7%，几乎一样。动量 0.9 在梯度方向稳定时，等效步长是 <span class="arithmatex">\(1/(1 - 0.9)\)</span>，也就是 10.0 倍，所以它的学习率要比 SGD 小一个数量级。只比较“同一个学习率下哪个优化器好”没有意义，要比各自调好之后的结果。</li>
+<li><strong>在这个问题上，Adam 并不比动量更耐调</strong>。能用的学习率范围都是 5.6 倍宽，SGD 是 3.2 倍。Adam 的最高点（87.0%）还比另外两个低几个点。它的默认学习率 0.001 比这里最好的 0.0178 小了十几倍，400 步只到 58.7%。“Adam 用默认参数就行”在这组实验里不成立，学习率仍然要扫。</li>
+<li><strong>Adam 真正不同的地方是更新量和梯度大小无关</strong>。第一步里，梯度绝对值从 1.1e-06 到 0.2 的参数，更新量都在 0.000991 到 0.001 之间，就是学习率本身。梯度正好为 0 的参数（占 3.1%）不动。</li>
+</ol>
+<p><strong>输入不归一化时</strong>（把同样的数据乘 255，图 6 中栏）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>输入乘 255（400 步，3 个种子）</th>
+<th style="text-align: right;">SGD</th>
+<th style="text-align: right;">SGD + 动量 0.9</th>
+<th style="text-align: right;">Adam</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最好的学习率</td>
+<td style="text-align: right;">0.000316</td>
+<td style="text-align: right;">1.78e-05</td>
+<td style="text-align: right;">0.00178</td>
+</tr>
+<tr>
+<td>最好的验证准确率</td>
+<td style="text-align: right;">31.6%</td>
+<td style="text-align: right;">29.2%</td>
+<td style="text-align: right;">43.5%</td>
+</tr>
+</tbody>
+</table></div>
+<p>三种优化器的最高点都明显变低，最好的 Adam 也只有 43.5%。照常用的 SGD 学习率 0.1 去训，验证准确率是 11.5%。</p>
+<p>Adam 能不能把没归一化的输入“兜住”，要看别的条件。8.8 节用 <code>nn.Linear</code> 默认初始化的 PyTorch 网络做了同样的事（输入乘 255，Adam，学习率 0.001，600 步）：验证准确率 76.3%，和归一化时的 75.6% 相当；SGD 则停在 2.303，11.5%。两组实验的差别在初始化和隐藏单元数，哪一个起主要作用本章没有拆开测。可以确定的只有：归一化之后三种优化器都好用，不归一化时结果取决于运气。</p>
+<h3 id="实测批大小与梯度噪声">实测：批大小与梯度噪声</h3>
+<p>原文说“batch 梯度有噪声”。在同一组参数上，随机抽 batch 算梯度，和 4000 张图的全量梯度比（每种 batch 大小抽 200 次）。相对误差是两者之差的长度除以全量梯度的长度。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>batch 大小（4000 张训练图，各抽 200 次）</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">16</th>
+<th style="text-align: right;">64</th>
+<th style="text-align: right;">256</th>
+<th style="text-align: right;">1024</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>刚初始化：相对误差</td>
+<td style="text-align: right;">7.163</td>
+<td style="text-align: right;">3.552</td>
+<td style="text-align: right;">1.801</td>
+<td style="text-align: right;">0.889</td>
+<td style="text-align: right;">0.445</td>
+<td style="text-align: right;">0.223</td>
+</tr>
+<tr>
+<td>刚初始化：和全量梯度夹角的余弦（中位数）</td>
+<td style="text-align: right;">0.157</td>
+<td style="text-align: right;">0.278</td>
+<td style="text-align: right;">0.491</td>
+<td style="text-align: right;">0.742</td>
+<td style="text-align: right;">0.919</td>
+<td style="text-align: right;">0.978</td>
+</tr>
+<tr>
+<td>训练 300 步后：方向和全量梯度相反的比例</td>
+<td style="text-align: right;">36.5%</td>
+<td style="text-align: right;">31.0%</td>
+<td style="text-align: right;">10.5%</td>
+<td style="text-align: right;">1.0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>训练 2000 步后：相对误差</td>
+<td style="text-align: right;">15.065</td>
+<td style="text-align: right;">7.893</td>
+<td style="text-align: right;">3.62</td>
+<td style="text-align: right;">1.911</td>
+<td style="text-align: right;">0.978</td>
+<td style="text-align: right;">0.486</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>batch 变成 4 倍，噪声减半</strong>。相对误差乘以 batch 大小的平方根，刚初始化时六种 batch 都在 7.1 到 7.2 之间（7.16、7.1、7.2、7.11、7.13、7.14），是标准的 <span class="arithmatex">\(1/\sqrt{B}\)</span> 规律。</li>
+<li><strong>常用的 batch 64，噪声和信号一样大</strong>。相对误差 0.889，也就是单个 batch 的梯度里有将近一半是噪声。它仍然能训练，是因为许多步平均下来方向是对的。</li>
+<li><strong>越训练，相对噪声越大</strong>。batch 为 1 时从 7.163 涨到 15.065。训练 300 步后，单个样本的梯度有 36.5% 和全量梯度方向相反。全量梯度随着训练变小，各个样本之间的分歧却没有按同样的比例减小。</li>
+</ol>
+<p>原文“噪声还可能帮助跳出狭窄区域”这半句，本章没有做实验验证。</p>
+<p><strong>换批大小要不要改学习率。</strong> 同样只看 5 遍训练集，SGD，3 个种子取平均：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>batch 大小（5 个 epoch）</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">32</th>
+<th style="text-align: right;">128</th>
+<th style="text-align: right;">512</th>
+<th style="text-align: right;">2000</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>更新步数</td>
+<td style="text-align: right;">2500</td>
+<td style="text-align: right;">625</td>
+<td style="text-align: right;">156</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>学习率固定 0.1 时的验证准确率</td>
+<td style="text-align: right;">88.8%</td>
+<td style="text-align: right;">66.9%</td>
+<td style="text-align: right;">39.7%</td>
+<td style="text-align: right;">21.5%</td>
+<td style="text-align: right;">14.0%</td>
+</tr>
+<tr>
+<td>学习率按 batch/32 缩放</td>
+<td style="text-align: right;">0.025</td>
+<td style="text-align: right;">0.1</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">1.6</td>
+<td style="text-align: right;">6.25</td>
+</tr>
+<tr>
+<td>缩放后的验证准确率</td>
+<td style="text-align: right;">67.2%</td>
+<td style="text-align: right;">66.9%</td>
+<td style="text-align: right;">64.8%</td>
+<td style="text-align: right;">41.4%</td>
+<td style="text-align: right;">10.7%</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>epoch 数相同时，batch 越大更新步数越少。学习率不变，batch 从 32 加到 512，验证准确率从 66.9% 掉到 21.5%。</li>
+<li>学习率跟着 batch 按比例放大，8 到 128 之间基本拉平（67.2%、66.9%、64.8%）。到 512 需要 1.6，已经接近上一小节 SGD 能用的上限，只有 41.4%；到 2000 需要 6.25，超过了上限，10.7%。</li>
+<li>反过来也一样：显存不够、把 batch 减小时，学习率要按比例减小，否则相当于把学习率调大了。</li>
+</ul>
 <hr />
 <h2 id="86-过拟合与正则化">8.6 过拟合与正则化</h2>
 <p>训练集 loss 持续下降，而验证集 loss 先降后升，称为过拟合：模型不仅学会规律，也记住了训练数据的偶然噪声。判断过拟合必须比较训练集和验证集；只看训练准确率高，无法说明泛化好。</p>
@@ -313,6 +1217,7 @@ v_t = β₂v_{t-1} + (1-β₂)g_t²
 L2: L_total = L_data + λΣw²
 </code></pre></div>
 <p>L1 的尖点容易把部分权重推到精确的 0，产生稀疏性；L2 平滑地压小所有权重，避免模型过度依赖少数巨大参数。PyTorch 优化器中的 <code>weight_decay</code> 通常用于权重衰减。Adam 场景更常使用 <code>AdamW</code>，它把权重衰减与梯度更新解耦。</p>
+<p>两处要对上号。第一，<code>torch.optim.SGD</code> 的 <code>weight_decay=wd</code> 是把 <code>wd·w</code> 加到梯度上，对应损失里加 <span class="arithmatex">\(\tfrac{wd}{2}\sum w^2\)</span>，所以上面公式里的 <span class="arithmatex">\(\lambda\)</span> 等于 <code>wd</code> 的一半。第二，“L1 把权重推到精确的 0”有前提，见本节后面的实测。</p>
 <h3 id="dropout">Dropout</h3>
 <p>训练时以概率 <code>p</code> 随机将部分激活置零，其余激活按比例放大。网络每次都面对略有不同的子网络，不能依赖某几个固定神经元，被迫学习更稳健、分散的表示。</p>
 <div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
@@ -321,6 +1226,255 @@ L2: L_total = L_data + λΣw²
 <h3 id="early-stopping">Early Stopping</h3>
 <p>保存验证集指标最好的模型；若若干轮没有改善，就停止训练。它不是简单地“少训练”，而是在模型开始记忆训练噪声前截住。注意早停监控的是验证集，不是测试集。测试集应尽量只用于最后一次客观评估。</p>
 <p>正则化不是越多越好。若训练集都拟合不好，说明更可能是欠拟合、学习率不合适或代码错误，此时再加 Dropout 和大权重衰减只会更差。</p>
+<h3 id="实测小数据上的过拟合">实测：小数据上的过拟合</h3>
+<p>网络换成 144→128→10，SGD，学习率 0.2，batch 64，训练 3000 步，不加任何正则。训练集的大小从 100 张到 4000 张，验证集始终是同一份 2000 张。</p>
+<figure><img src="../../08_神经网络基础/figures/fig07_过拟合与权重衰减.svg" alt="图 7：左，300 张训练图时训练损失和验证损失随步数的变化，灰色点线是验证损失最小的那一步。中，同一次训练的训练准确率和验证准确率。右，300 张训练图时，训练 3000 步后的训练准确率和验证准确率随 weight_decay 的变化" loading="lazy"><figcaption>图 7：左，300 张训练图时训练损失和验证损失随步数的变化，灰色点线是验证损失最小的那一步。中，同一次训练的训练准确率和验证准确率。右，300 张训练图时，训练 3000 步后的训练准确率和验证准确率随 weight_decay 的变化</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练集大小（3000 步，不加正则）</th>
+<th style="text-align: right;">100</th>
+<th style="text-align: right;">300</th>
+<th style="text-align: right;">1000</th>
+<th style="text-align: right;">4000</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最终训练准确率</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>最终验证准确率</td>
+<td style="text-align: right;">35.1%</td>
+<td style="text-align: right;">47.3%</td>
+<td style="text-align: right;">77.8%</td>
+<td style="text-align: right;">92.8%</td>
+</tr>
+<tr>
+<td>最终验证损失</td>
+<td style="text-align: right;">3.108</td>
+<td style="text-align: right;">2.223</td>
+<td style="text-align: right;">0.731</td>
+<td style="text-align: right;">0.213</td>
+</tr>
+<tr>
+<td>验证损失的最小值</td>
+<td style="text-align: right;">2.119</td>
+<td style="text-align: right;">1.672</td>
+<td style="text-align: right;">0.722</td>
+<td style="text-align: right;">0.213</td>
+</tr>
+<tr>
+<td>验证损失最小是在第几步</td>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: right;">1850</td>
+<td style="text-align: right;">2950</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>训练准确率四种情况都是 100%</strong>，只看它分不出好坏，验证准确率从 35.1% 到 92.8%。</li>
+<li><strong>数据越少，验证损失越早开始回升</strong>。100 张时第 100 步就到了最低点，4000 张时 3000 步还在下降。</li>
+<li><strong>验证损失回升，不代表验证准确率下降</strong>。这是图 7 左、中两栏放在一起的原因。300 张训练图、3 个种子取平均：验证损失在第 233 步最小（1.635），之后一路涨到 2.161；验证准确率在第 233 步是 46.0%，训练到 3000 步是 49.8%，也是全程最高。损失上涨来自模型在本来就判错的样本上越来越自信，判对的样本数并没有减少。</li>
+<li>所以<strong>早停监控哪个指标，要和你最终关心的指标一致</strong>。这组实验里按验证损失早停，验证准确率少了三四个点。如果关心的是概率准不准（例如后面要拿分数定阈值），按验证损失停是对的；如果只关心分类对不对，就监控验证准确率。</li>
+</ol>
+<h3 id="实测权重衰减能帮多少">实测：权重衰减能帮多少</h3>
+<p>300 张训练图，其余设置同上，3 个种子取平均：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th><code>weight_decay</code>（300 张训练图，3000 步）</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">0.0001</th>
+<th style="text-align: right;">0.001</th>
+<th style="text-align: right;">0.003</th>
+<th style="text-align: right;">0.01</th>
+<th style="text-align: right;">0.03</th>
+<th style="text-align: right;">0.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>训练准确率</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">87.8%</td>
+<td style="text-align: right;">28.3%</td>
+</tr>
+<tr>
+<td>验证准确率</td>
+<td style="text-align: right;">49.8%</td>
+<td style="text-align: right;">50.0%</td>
+<td style="text-align: right;">50.9%</td>
+<td style="text-align: right;">52.0%</td>
+<td style="text-align: right;">53.1%</td>
+<td style="text-align: right;">46.0%</td>
+<td style="text-align: right;">20.1%</td>
+</tr>
+<tr>
+<td>验证损失</td>
+<td style="text-align: right;">2.161</td>
+<td style="text-align: right;">2.076</td>
+<td style="text-align: right;">1.721</td>
+<td style="text-align: right;">1.538</td>
+<td style="text-align: right;">1.436</td>
+<td style="text-align: right;">1.593</td>
+<td style="text-align: right;">2.156</td>
+</tr>
+<tr>
+<td>权重的范数</td>
+<td style="text-align: right;">24.5</td>
+<td style="text-align: right;">23.5</td>
+<td style="text-align: right;">18.1</td>
+<td style="text-align: right;">14.1</td>
+<td style="text-align: right;">11.0</td>
+<td style="text-align: right;">7.1</td>
+<td style="text-align: right;">1.9</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>最好的一档是 0.01，验证准确率从 49.8% 到 53.1%，验证损失从 2.161 降到 1.436。它对损失的帮助比对准确率的帮助大。</li>
+<li>再大就反过来：0.03 时训练准确率掉到 87.8%，0.1 时只有 28.3%，连训练集都学不会。这就是原文说的“正则化不是越多越好”。</li>
+<li>和上一张表比：最好的权重衰减带来 3 个点左右，训练图从 300 张加到 1000 张，验证准确率从 47.3% 到 77.8%。数据不够时，先想办法加数据。</li>
+</ul>
+<p><strong>L1 会不会把权重推到精确的 0。</strong> 300 张训练图，种子 0，比较四种做法训练后的权重：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>做法</th>
+<th style="text-align: right;">正好等于 0 的权重</th>
+<th style="text-align: right;">绝对值小于 0.001 的权重</th>
+<th style="text-align: right;">验证准确率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>不加正则</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.6%</td>
+<td style="text-align: right;">47.3%</td>
+</tr>
+<tr>
+<td>L2，<code>weight_decay=0.01</code></td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: right;">50.0%</td>
+</tr>
+<tr>
+<td>L1，系数 0.001，把惩罚项的梯度直接加上去</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">84.6%</td>
+<td style="text-align: right;">46.6%</td>
+</tr>
+<tr>
+<td>L1，系数 0.001，每步之后再做一次软阈值</td>
+<td style="text-align: right;">69.9%</td>
+<td style="text-align: right;">85.5%</td>
+<td style="text-align: right;">46.6%</td>
+</tr>
+</tbody>
+</table></div>
+<p>把 <span class="arithmatex">\(\lambda\sum|w|\)</span> 加进损失、照常做梯度下降，84.6% 的权重被压到了 0.001 以下，但没有一个正好等于 0：权重在 0 的两侧来回跳，每次跳过去一点。要得到真正的 0，需要在每步之后把绝对值小于“学习率乘系数”的权重直接置 0，其余的向 0 收缩同样的量（软阈值），这样有 69.9% 的权重是精确的 0。原文“推到精确的 0”说的是后一种做法；只在 PyTorch 的损失上加一项 L1，得到的是“很多很小的数”，要稀疏还得自己设阈值裁掉。</p>
+<p><strong>Dropout 忘了切 eval。</strong> 原文说会“随机波动”。实测（合成数字，144→128→10 中间加 Dropout，训练 1500 步，同一个模型在 2000 张验证图上评估 30 次）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Dropout(0.2)</th>
+<th style="text-align: right;">Dropout(0.5)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>model.eval()</code> 之后的验证准确率</td>
+<td style="text-align: right;">84.6%</td>
+<td style="text-align: right;">84.5%</td>
+</tr>
+<tr>
+<td>忘了切 eval，30 次的平均</td>
+<td style="text-align: right;">79.3%</td>
+<td style="text-align: right;">71.5%</td>
+</tr>
+<tr>
+<td>30 次的最小值到最大值</td>
+<td style="text-align: right;">77.6% 到 80.9%</td>
+<td style="text-align: right;">70.1% 到 72.8%</td>
+</tr>
+<tr>
+<td>30 次的标准差（百分点）</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">0.76</td>
+</tr>
+</tbody>
+</table></div>
+<p>波动确实有，但只有不到 1 个百分点。更大的影响是整体偏低：p = 0.2 时平均低 5.3 个点，p = 0.5 时低 13.0 个点。所以这个错误的表现是“验证指标比预期差一截，而且每次评估的数字略有不同”，只盯着波动会漏掉它。</p>
+<p><strong>Adam 加 L2 和 AdamW 不是一回事。</strong> 300 张训练图，学习率 0.001，训练 3000 步，种子 0：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th><code>weight_decay</code></th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">0.01</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Adam</code>：权重的范数</td>
+<td style="text-align: right;">26.2</td>
+<td style="text-align: right;">11.0</td>
+<td style="text-align: right;">1.7</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr>
+<td><code>Adam</code>：训练准确率</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">27.0%</td>
+<td style="text-align: right;">12.7%</td>
+</tr>
+<tr>
+<td><code>Adam</code>：验证准确率</td>
+<td style="text-align: right;">39.8%</td>
+<td style="text-align: right;">49.4%</td>
+<td style="text-align: right;">18.5%</td>
+<td style="text-align: right;">9.4%</td>
+</tr>
+<tr>
+<td><code>AdamW</code>：权重的范数</td>
+<td style="text-align: right;">26.2</td>
+<td style="text-align: right;">26.0</td>
+<td style="text-align: right;">24.1</td>
+<td style="text-align: right;">18.7</td>
+</tr>
+<tr>
+<td><code>AdamW</code>：训练准确率</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td><code>AdamW</code>：验证准确率</td>
+<td style="text-align: right;">39.8%</td>
+<td style="text-align: right;">39.7%</td>
+<td style="text-align: right;">40.2%</td>
+<td style="text-align: right;">38.9%</td>
+</tr>
+</tbody>
+</table></div>
+<p>同一个 <code>weight_decay</code> 数值，在两个优化器里的强度差了两个数量级以上：<code>Adam</code> 取 0.01 就把权重范数从 26.2 压到 11.0，取 0.1 网络已经学不动；<code>AdamW</code> 取到 1 才压到 18.7。<code>Adam</code> 把衰减项混进梯度，再被它自己的归一化放大；<code>AdamW</code> 的衰减每步只乘“学习率乘 <code>weight_decay</code>”。换优化器时，<code>weight_decay</code> 要重新调，不能照搬。这组实验只有一个种子，也没有扫 <code>AdamW</code> 更大的取值，不能据此说哪个更好。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>300 张训练图，不加正则。验证损失在第 233 步降到最低，之后一路上涨，到 3000 步时比最低点高了三成。验证准确率在这两个时刻哪个更高？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>第 233 步更高，因为之后过拟合了</span></button><button type="button" data-k="B"><b>B</b><span>3000 步更高</span></button><button type="button" data-k="C"><b>C</b><span>一样</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。3 个种子平均，第 233 步是 46.0%，3000 步是 49.8%，验证损失却从 1.635 涨到 2.161。交叉熵衡量的是给正确类别的概率，模型在判错的样本上越来越自信，损失就涨，判对的样本数并没有少。按验证损失早停在这里会少三四个点的准确率。</p></div></div>
 <hr />
 <h2 id="87-pytorch-训练循环与-shape">8.7 PyTorch 训练循环与 shape</h2>
 <p>一个最小但完整的 MNIST 全连接网络：</p>
@@ -376,8 +1530,25 @@ L2: L_total = L_data + λΣw²
 <span class="k">assert</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">images</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
 </code></pre></div>
 <p>shape 是神经网络代码的“类型系统”。每经过一层，都能回答“batch 维在哪、特征维在哪、类别维在哪”，大部分 bug 会在产生错误的位置被发现，而不是等到 loss 异常后猜。</p>
+<h3 id="设备确认-pytorch-用上了显卡">设备：确认 PyTorch 用上了显卡</h3>
+<p>上面的代码用到了 <code>device</code>，却没有定义它。通用的写法：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">())</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_name</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+</code></pre></div>
+<p>在你自己的带独立显卡的机器上，按下面的顺序确认：</p>
+<ol>
+<li><strong><code>torch.cuda.is_available()</code> 应该是 <code>True</code></strong>。是 <code>False</code> 时，常见原因是装成了只支持 CPU 的 PyTorch，或者显卡驱动没装好。在命令行运行 <code>nvidia-smi</code>，能列出显卡和驱动版本说明驱动没问题，这时到 PyTorch 官网的安装页按系统和 CUDA 版本重新生成安装命令。</li>
+<li><strong>模型和数据都要搬过去</strong>。<code>model.to(device)</code> 一次，每个 batch 的 <code>images</code>、<code>labels</code> 各 <code>.to(device)</code> 一次。用 <code>next(model.parameters()).device</code> 和 <code>images.device</code> 确认两边一致，不一致会报设备不匹配的错误。</li>
+<li><strong>确认训练时真的在用</strong>。训练过程中另开一个终端运行 <code>nvidia-smi</code>，能看到 Python 进程和它占用的显存。代码里可以在一个 epoch 开头调用 <code>torch.cuda.reset_peak_memory_stats()</code>，结尾打印 <code>torch.cuda.max_memory_allocated()</code>（单位是字节），得到这一个 epoch 的显存峰值。</li>
+<li><strong>显存不够时</strong>（报 <code>CUDA out of memory</code>）：先把 batch 减小，学习率按 8.5 节的结论同比例减小；验证阶段确认包在 <code>torch.no_grad()</code> 里；记录损失用 <code>loss.item()</code>，不要把带计算图的张量存进列表；还不够再考虑缩小输入或换小一点的模型。</li>
+</ol>
+<p>本章的实验规模很小，CPU 就够。配图脚本是在一台没有 CUDA 的 Mac 上跑的（<code>torch.cuda.is_available()</code> 为 <code>False</code>），上面第 1 到 4 条里和显卡有关的输出本章没有实际运行过，以你机器上的结果为准。</p>
 <hr />
-<h2 id="88-常见坑loss-不降时先查什么">8.8 常见坑：loss 不降时先查什么</h2>
+<h2 id="88-常见坑loss-不降时先查什么常见错误">8.8 常见坑：loss 不降时先查什么（常见错误）</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -439,10 +1610,214 @@ L2: L_total = L_data + λΣw²
 </tr>
 </tbody>
 </table></div>
+<p>对照本章的实测，这张表有两行要补充：“CE 类型报错”一行，<code>(B, C)</code> 的浮点 one-hot 在 PyTorch 2.15.0 上不报错（8.3 节）；“出现 <code>nan</code>”一行，在本章的分类网络上，学习率过大和输入未归一化都没有产生 <code>nan</code>，表现是损失停在 2.3 附近（8.5 节和下面的表）。</p>
 <p>最有效的调试动作是<strong>过拟合一个小 batch</strong>：固定 16 或 32 个样本，关闭强正则化，反复训练直到接近 100% 准确率。若连这点数据都记不住，问题通常在实现、数据或优化设置，而不是模型泛化能力。</p>
 <p>还要区分“loss 下降”和“accuracy 上升”。logits 的相对大小未改变时，预测类别可能不变，但模型给正确类的概率正在提高，因此 loss 会先下降而准确率暂时不动。这不一定是 bug。</p>
+<p>实测一次：固定 32 张合成数字，Adam，学习率 0.001，全批量。训练准确率在第 43 步第一次到 100%，这时损失还有 0.897；之后准确率不再变化，损失继续降，第 500 步是 0.0019。8.6 节的验证曲线是反方向的例子：损失在涨，准确率没有掉。</p>
+<h3 id="实测这些错误实际长什么样">实测：这些错误实际长什么样</h3>
+<p>上表里的错误，每次只引入一个，在同一个 PyTorch 网络上训练（合成数字，144→128→10，<code>nn.Linear</code> 默认初始化，float32，batch 64，训练 600 步，种子 0）。每格是“最后 50 步的平均损失 / 验证准确率”。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>引入的错误</th>
+<th style="text-align: right;">SGD，学习率 0.1</th>
+<th style="text-align: right;">Adam，学习率 0.001</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>没有错误</td>
+<td style="text-align: right;">1.117 / 62.4%</td>
+<td style="text-align: right;">0.632 / 75.6%</td>
+</tr>
+<tr>
+<td>忘了 <code>zero_grad()</code></td>
+<td style="text-align: right;">3.02 / 19.7%</td>
+<td style="text-align: right;">1.227 / 58.4%</td>
+</tr>
+<tr>
+<td>忘了 <code>step()</code></td>
+<td style="text-align: right;">2.31 / 10.2%</td>
+<td style="text-align: right;">2.31 / 10.2%</td>
+</tr>
+<tr>
+<td>先 softmax 再交叉熵</td>
+<td style="text-align: right;">2.295 / 15.1%</td>
+<td style="text-align: right;">1.843 / 59.8%</td>
+</tr>
+<tr>
+<td>标签和图片错位（batch 内打乱标签）</td>
+<td style="text-align: right;">2.303 / 11.9%</td>
+<td style="text-align: right;">2.302 / 11.4%</td>
+</tr>
+<tr>
+<td>输入乘 255，不归一化</td>
+<td style="text-align: right;">2.303 / 11.5%</td>
+<td style="text-align: right;">0.027 / 76.3%</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>没有一格报错，也没有一格是 <code>nan</code></strong>。这些错误全是“能跑，结果不对”。</li>
+<li><strong>三种错误都停在 2.3</strong>：忘了 <code>step()</code>、标签错位、SGD 加未归一化的输入。10 类时 ln 10 是 2.303，默认初始化的初始损失是 2.31。损失停在这个数，说明网络什么都没学到，先查这三样，再查学习率是不是太大（8.5 节）。</li>
+<li><strong>Adam 会把错误藏起来</strong>。忘了 <code>zero_grad()</code> 和多做一次 softmax，用 SGD 时一眼就能看出不对（19.7%、15.1%），用 Adam 时还有 58.4% 和 59.8%，很容易被当成“模型能力不够”。忘了 <code>zero_grad()</code> 时 SGD 的损失是 3.02，比初始值还高：梯度越积越多，相当于学习率不断变大。</li>
+<li>最后一行右边那一格看着反常：输入没归一化，Adam 的验证准确率（76.3%）和正常情况一样，训练损失还更低（0.027）。8.5 节换一种初始化就不是这样。不要把它当成“Adam 不需要归一化”的证据。</li>
+</ol>
+<p>按现象查。前七行是做本章作业时最容易犯的实现错误。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作业前向报矩阵形状对不上</td>
+<td>按 <code>nn.Linear</code> 的习惯写了 <code>x @ w1.T</code>。作业里 <code>w1</code> 是 <code>(D, H)</code></td>
+<td>打印 <code>x.shape</code>、<code>w1.shape</code>，前向直接写 <code>x @ w1</code></td>
+</tr>
+<tr>
+<td>前向验收报隐藏层有负数</td>
+<td>返回的 <code>hidden</code> 是 ReLU 之前的值</td>
+<td>打印 <code>hidden.min()</code>，应不小于 0</td>
+</tr>
+<tr>
+<td>前向验收报 logits 数值不对</td>
+<td>在 logits 上多做了 softmax，或者输出层也加了 ReLU</td>
+<td>logits 应该有正有负，每行的和不必是 1</td>
+</tr>
+<tr>
+<td>交叉熵验收得到 <code>nan</code></td>
+<td>直接 <code>exp</code> 再归一化，大 logits 上溢</td>
+<td>用 <code>[[1000, 1001], [-1000, -999]]</code> 单独调用，应得到 0.8133</td>
+</tr>
+<tr>
+<td>交叉熵验收得到 <code>inf</code></td>
+<td>减的是整个 batch 的最大值而不是每行的最大值；或者取每行最大值时漏了 <code>keepdims=True</code></td>
+<td>打印减完之后每一行的最大值，应全为 0</td>
+</tr>
+<tr>
+<td>交叉熵是正确答案的 2 倍（1.6265）</td>
+<td>对 batch 求和，没有取平均</td>
+<td>把同一个样本重复两遍，损失应不变</td>
+</tr>
+<tr>
+<td>验收通过，换一批数据损失就不对</td>
+<td>取正确类别时写成了 <code>log_probs[:, labels]</code>。验收的例子里两行的对数概率正好相同，这样写也得到 0.8133，测不出来</td>
+<td>用各行不同的 logits，和 <code>torch.nn.functional.cross_entropy</code> 对一下</td>
+</tr>
+<tr>
+<td>梯度检查的相对误差在 0.1 以上</td>
+<td>反向传播写错（8.4 节的表），或者在用 float32</td>
+<td>转成 float64，步长 1e-5，按参数组分开看</td>
+</tr>
+<tr>
+<td>梯度检查的相对误差在 0.001 量级</td>
+<td>步长太大，扰动跨过了 ReLU 的折点</td>
+<td>步长降到 1e-5</td>
+</tr>
+<tr>
+<td>损失从第一步起停在 ln(类别数)</td>
+<td>忘了 <code>step()</code>；标签和图片错位；全零初始化；学习率大到隐藏单元全部输出 0</td>
+<td>先过拟合 32 张图；打印隐藏层输出里非零的比例</td>
+</tr>
+<tr>
+<td>10 类的损失降不到 1.46 以下</td>
+<td>多做了一次 softmax</td>
+<td>确认交给 <code>CrossEntropyLoss</code> 的是没过 softmax 的 logits</td>
+</tr>
+<tr>
+<td>初始损失远大于 ln(类别数)</td>
+<td>输入没归一化，或者初始化的尺度过大</td>
+<td>打印输入的最小值和最大值、logits 的最大绝对值</td>
+</tr>
+<tr>
+<td>SGD 下损失比初始值还高；Adam 下只是比预期差</td>
+<td>忘了 <code>zero_grad()</code></td>
+<td>不调用 <code>backward()</code>，只看 <code>param.grad</code> 是否已经有值</td>
+</tr>
+<tr>
+<td>验证准确率比预期低几个点，每次评估略有不同</td>
+<td>评估前没有 <code>model.eval()</code>，Dropout 还开着</td>
+<td>同一批数据连续评估两次，结果应完全相同</td>
+</tr>
+<tr>
+<td>训练准确率 100%，验证损失一直涨</td>
+<td>过拟合。验证损失涨不代表验证准确率在掉（8.6 节）</td>
+<td>把验证准确率也画出来，再决定按哪个指标早停</td>
+</tr>
+<tr>
+<td>加了 <code>weight_decay</code> 之后连训练集都学不会</td>
+<td>衰减过强。SGD 取 0.1、<code>Adam</code> 取 0.1 都会这样</td>
+<td>先设成 0 确认能过拟合，再从小往大加</td>
+</tr>
+<tr>
+<td>换成大 batch 后同样的 epoch 数效果变差</td>
+<td>更新步数变少，学习率没有跟着放大</td>
+<td>学习率按 batch 的比例调整（8.5 节）</td>
+</tr>
+<tr>
+<td>很深的全连接网络配 SGD 完全不学</td>
+<td><code>nn.Linear</code> 默认初始化加上没有归一化层，信号逐层变小（8.4 节）</td>
+<td>打印每一层输出的均方根</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="89-交互演示两层网络的决策边界">8.9 交互演示：两层网络的决策边界</h2>
+<p>演示页里是一个“2 维输入、一个隐藏层、2 个 logits”的网络，前向和损失与本章作业一致，训练用全批量梯度下降 500 步。可以调隐藏单元数、学习率、初始化倍数，看决策边界和损失曲线；“用当前设置换 50 组初始化各训练一次”会统计学会的比例。页面下方有五步引导：第 1 步对应 8.2 节“去掉激活等价于一层”，第 2 步对应图 1，第 3 步对应图 5 中栏和右栏，第 4 步对应图 4 右栏，第 5 步换一份数据再看隐藏单元数的作用。</p>
+<div class="embed"><iframe src="../../demos/两层网络决策边界.html" height="1205" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/两层网络决策边界.html">打开交互演示：两层网络的决策边界</a></p>
+<p>演示页和配图脚本有三处不同，数值不会一样：演示用的是普通梯度下降而不是 Adam；随机数不同；演示只有训练集，没有验证集。所以第 4 步里把初始化倍数调得很大，XOR 仍然多半能学会，这和图 4 右栏不矛盾，那里看的是验证准确率。</p>
+<hr />
+<h2 id="810-怎样评估一次训练">8.10 怎样评估一次训练</h2>
+<p>前面每个实验都在回答“这样训练好不好”。把用到的做法收在一起：</p>
+<ul>
+<li><strong>训练集和验证集分开报</strong>，损失和准确率都报。只报训练准确率没有信息量（8.6 节四种数据量都是 100%）；只报损失或只报准确率也会误判（8.6 节两者方向相反）。</li>
+<li><strong>写清条件</strong>：数据量、网络结构、优化器、学习率、batch 大小、训练步数或 epoch 数、初始化方式、随机种子的个数。本章每张表的表头都是这么写的。</li>
+<li><strong>换几个随机种子</strong>。8.4 节 10 层网络配 Adam，三个种子是 61.8%、48.3%、44.3%，只跑一次可能得出相反的结论。XOR 上 8 个隐藏单元有 95.5% 的种子能学会，剩下的那些会让你怀疑代码。</li>
+<li><strong>学习率要扫过再比</strong>。比较两个优化器、两种初始化、两种正则时，每一边都要用各自调好的学习率，至少每个数量级取两个点。8.5 节 SGD 用 0.1 和 Adam 用 0.001 的结果几乎一样，各自调好之后是 90.9% 和 87.0%。</li>
+<li><strong>先看初始损失和小 batch 过拟合</strong>，再看最终指标。初始损失应接近 ln(类别数)，32 张图应该几十步内记住。这两项不过关，后面的数字都不可信。</li>
+<li><strong>验证集用来选超参数，测试集只在最后用一次</strong>。本章的合成数据没有单独留测试集，表里的“验证准确率”是用来比较设置的，不能当成最终的泛化指标。数据划分的细节在第 14 章 14.3 节。</li>
+</ul>
+<hr />
+<h2 id="811-破坏实验">8.11 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>Notebook 里把 <code>hidden_dim</code> 从 8 改成 2，把 <code>seed</code> 从 0 换到 9 各跑一次，数一数几次学会。先预测次数，再和图 1 对照。没学会的那几次，最终准确率是多少？</li>
+<li>Notebook 里把 <code>learning_rate</code> 从 0.05 改成 5，再改成 0.0005，各预测一下损失曲线的样子和最终准确率。Notebook 用的是 Adam，学习率过大时它的表现和图 5 里的普通梯度下降一样吗？</li>
+<li>作业通过后，用你的 <code>cross_entropy_from_logits</code> 和一份“直接 <code>exp</code> 再归一化”的写法，对 <code>[[s, 0, -s]]</code>（标签取 2）分别算 s = 10、50、100、1000，输入先转成 float32。先预测哪几格是 <code>inf</code>，再和 8.3 节的表对照。</li>
+<li>照 8.4 节的矩阵公式写出两层网络的反向传播，用中心差分做梯度检查。把步长从 1e-1 扫到 1e-13 画出图 3 左栏那样的曲线；再把参数换成 float32 重画一次；最后故意引入图 3 右栏里的一种错误，看相对误差变成多少。</li>
+<li>用 PyTorch 把 8.7 节的训练循环在 XOR 或自己生成的数据上跑通，然后每次只做一处破坏：删掉 <code>zero_grad()</code>、在损失前加一次 softmax、把标签在 batch 内打乱。优化器用 SGD 和 Adam 各跑一遍，和 8.8 节的实测表对照，哪种错误在 Adam 下最难发现？</li>
+<li>用 <code>nn.Sequential</code> 搭一个 10 层、不带归一化的全连接 ReLU 网络，打印每一层输出的均方根。再用 <code>nn.init.kaiming_normal_</code> 重新初始化所有权重，对比两次的结果和训练 500 步后的损失。</li>
+</ol>
+<hr />
+<h2 id="812-扩展深挖档">8.12 扩展（深挖档）</h2>
+<ul>
+<li><strong>DL-1：全连接网络加 MNIST</strong>（题目在 <code>视觉算法学习计划.md</code>）。需要自己下载 MNIST，本章没有在 MNIST 上跑过，不给准确率的参考数字。做完之后在自己的结果上重复 8.6 节的两件事：只用 300 张、1000 张训练图各训练一次，看训练和验证曲线在哪里分开；看验证损失最低的那一步，验证准确率是不是最高。</li>
+<li><strong>DL-2：手动验证反向传播</strong>。在题目要求的单层网络之外，把 8.4 节的两层网络也验证一遍，报告和 <code>autograd</code> 的最大差，以及梯度检查的相对误差和所用的步长。</li>
+<li><strong>自己实现 Adam</strong>。按 8.5 节的公式写，和 <code>torch.optim.Adam</code> 从同一组参数出发走 20 步，逐个参数比较。先预测第一步每个参数的更新量是多少，再打印出来看。</li>
+<li><strong>学习率扫描</strong>。在你自己的任务上，学习率每个数量级取 2 到 4 个点，各训练几百步，画出图 6 左栏那样的曲线。记下“离最好不超过 5 个百分点”的范围有多宽，以后调参就从这个范围里取。</li>
+<li><strong>损失的曲率</strong>。8.5 节用幂迭代估计了初始化处的最大特征值。在训练过程中每隔几十步估计一次，看它在学习率 0.1 和学习率 2 两种情况下各自怎么变化。这是本章没有测的部分。</li>
+<li><strong>换成真实的显卡</strong>。把 8.7 节的 MLP 分别在 CPU 和显卡上训练同样的步数，记录耗时和显存峰值。网络这么小，显卡不一定更快，自己量一下。</li>
+</ul>
+<hr />
+<h2 id="813-和后续章节的关系">8.13 和后续章节的关系</h2>
+<ul>
+<li><strong>第 2 章</strong>的手写相关运算和本章的全连接层是同一类计算：加权求和。第 9 章把两者合起来就是卷积层。</li>
+<li><strong>第 9 章</strong>直接接着本章：9.1 节从全连接层的参数量太大（本章 8.2 节）出发讲卷积；9.5 节的 BatchNorm 和 9.7 节的残差连接解决的是 8.4 节量到的问题，深层网络的信号和梯度逐层变小。</li>
+<li><strong>第 10 章</strong>的微调（10.3 节）用的是本章的学习率和权重衰减，只是不同的层用不同的学习率。8.5 节“学习率要扫过再比”在那里同样适用。</li>
+<li><strong>第 12 章</strong> 12.5 节讲分割为什么不只用交叉熵，出发点是本章 8.3 节的交叉熵；12.8 节“先做小样本过拟合”就是 8.8 节的调试动作。</li>
+<li><strong>第 14 章</strong> 14.3 节讲训练、验证、测试三份数据的分工，是 8.10 节最后一条的展开。</li>
+<li><strong>第 19 章</strong>的 PatchCore 训练阶段没有反向传播，可以对照本章理解“训练”在那里指的是什么。</li>
+</ul>
 <hr />
 <h2 id="与练习-dl-1-dl-2-的连接">与练习 DL-1 / DL-2 的连接</h2>
+<p>本章有两类练习：自动验收的作业是 <code>作业_手写两层网络.py</code>；DL-1 和 DL-2 是 <code>视觉算法学习计划.md</code> 里的练习，目录里没有现成的文件，需要自己新建。</p>
+<h3 id="作业手写两层网络自动验收">作业：手写两层网络（自动验收）</h3>
+<p>实现两个函数：<code>two_layer_forward</code> 做一次仿射变换、ReLU、再一次仿射变换，返回隐藏层输出和 logits；<code>cross_entropy_from_logits</code> 用减去每行最大值的写法算平均交叉熵。形状约定见 8.2 节的提示框，为什么要减最大值见 8.3 节，容易写错的地方见 8.8 节“按现象查”那张表的前七行。完成后运行 <code>python tests/check_progress.py</code>。</p>
 <h3 id="dl-1fc-mnist">DL-1：FC + MNIST</h3>
 <p>这份练习把本章串成一条完整链路：图片从 <code>(B,1,28,28)</code> 展平为 <code>(B,784)</code>，经过线性层和 ReLU 得到隐藏表示，再输出 <code>(B,10)</code> logits；交叉熵衡量分类错误；优化器根据反向传播得到的梯度更新参数。</p>
 <p>做练习时不要只追求最终准确率。至少记录训练 loss、验证 loss 和验证 accuracy，并回答：加入隐藏层后为什么比单层线性分类器强？把 ReLU 去掉会发生什么？训练和验证曲线何时开始分叉？</p>
@@ -451,6 +1826,7 @@ L2: L_total = L_data + λΣw²
 <div class="highlight"><pre><span></span><code>dL/dw ≈ [L(w+ε)-L(w-ε)] / (2ε)
 </code></pre></div>
 <p>当 <code>ε</code> 适中时，手算、自动微分和有限差分应接近。若不一致，逐节点检查局部导数、转置方向、batch 求和还是求平均。理解这一点后，PyTorch 就不再是黑盒：它只是替你高效执行同一套链式法则。</p>
+<p>“适中”和“接近”的具体数值在 8.4 节：float64 下步长取 1e-5 左右，相对误差应在 1e-10 量级。</p>
 <hr />
 <h2 id="动手前的检查清单">动手前的检查清单</h2>
 <p>在做 DL-1 和 DL-2 之前，确认你能回答：</p>
@@ -470,10 +1846,22 @@ L2: L_total = L_data + λΣw²
 <li>[ ] loss 不降时，能否先让模型过拟合一个小 batch？</li>
 <li>[ ] 手算梯度、autograd 梯度和有限差分梯度是否一致？</li>
 </ul>
-<p>确认完了，打开 <code>08_神经网络基础/</code>，先完成 DL-1 的训练闭环，再用 DL-2 把反向传播彻底拆开。</p></article><nav class="prev-next"><a href="07.html">← 第 7 章 相机与三维视觉</a><a href="09.html">第 9 章 CNN 核心 →</a></nav>
+<p>确认完了，打开 <code>08_神经网络基础/</code>，先完成自动验收的 <code>作业_手写两层网络.py</code>，再完成 DL-1 的训练闭环，最后用 DL-2 把反向传播彻底拆开。</p>
+<hr />
+<h2 id="自测问题">自测问题</h2>
+<p>速通档答小测，标准档把下面的问题答一遍。</p>
+<ol>
+<li>2 个隐藏单元能表示 XOR，为什么实际训练时多数随机种子学不会？多给隐藏单元起了什么作用？</li>
+<li>交叉熵为什么要写成“先减去每行最大值”？直接算时，预测错的样本和预测对的样本分别会得到什么？</li>
+<li>做梯度检查，步长取 1e-2 和取 1e-12 各有什么问题？为什么要用 float64？相对误差多大算通过？</li>
+<li>10 类分类的损失停在 2.3 附近不动，列出至少四种可能的原因，以及各自怎么区分。</li>
+<li>SGD 用学习率 0.1 的结果和 Adam 用 0.001 的结果差不多，能说明两个优化器一样好吗？应该怎么比？</li>
+<li>验证损失开始上涨，是不是就该停止训练？按验证损失早停和按验证准确率早停，分别适合什么情况？</li>
+<li>同一个 <code>weight_decay=0.01</code>，从 <code>Adam</code> 换到 <code>AdamW</code>，正则的强度会怎么变？L1 正则什么时候才会得到精确的 0？</li>
+</ol></article><nav class="prev-next"><a href="07.html">← 第 7 章 相机与三维视觉</a><a href="09.html">第 9 章 CNN 核心 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#81-从感知机到多层网络">8.1 从感知机到多层网络</a></li><li class="sub"><a href="#一个神经元到底在做什么">一个神经元到底在做什么</a></li><li class="sub"><a href="#为什么单层感知机解决不了-xor">为什么单层感知机解决不了 XOR</a></li><li><a href="#82-前向传播数据如何穿过网络">8.2 前向传播：数据如何穿过网络</a></li><li><a href="#83-损失函数把错得多远变成一个数">8.3 损失函数：把“错得多远”变成一个数</a></li><li class="sub"><a href="#mse适合回归">MSE：适合回归</a></li><li class="sub"><a href="#交叉熵适合分类">交叉熵：适合分类</a></li><li><a href="#84-链式法则与反向传播">8.4 链式法则与反向传播</a></li><li class="sub"><a href="#手算一个最小例子">手算一个最小例子</a></li><li class="sub"><a href="#多层网络如何反向">多层网络如何反向</a></li><li class="sub"><a href="#梯度消失与梯度爆炸">梯度消失与梯度爆炸</a></li><li><a href="#85-优化器sgdmomentum-与-adam">8.5 优化器：SGD、Momentum 与 Adam</a></li><li class="sub"><a href="#sgd沿当前坡度走">SGD：沿当前坡度走</a></li><li class="sub"><a href="#momentum给更新加惯性">Momentum：给更新加惯性</a></li><li class="sub"><a href="#adam每个参数都有自己的步幅">Adam：每个参数都有自己的步幅</a></li><li><a href="#86-过拟合与正则化">8.6 过拟合与正则化</a></li><li class="sub"><a href="#l1-与-l2">L1 与 L2</a></li><li class="sub"><a href="#dropout">Dropout</a></li><li class="sub"><a href="#early-stopping">Early Stopping</a></li><li><a href="#87-pytorch-训练循环与-shape">8.7 PyTorch 训练循环与 shape</a></li><li><a href="#88-常见坑loss-不降时先查什么">8.8 常见坑：loss 不降时先查什么</a></li><li><a href="#与练习-dl-1-dl-2-的连接">与练习 DL-1 / DL-2 的连接</a></li><li class="sub"><a href="#dl-1fc-mnist">DL-1：FC + MNIST</a></li><li class="sub"><a href="#dl-2手动验证反向传播">DL-2：手动验证反向传播</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#81-从感知机到多层网络">8.1 从感知机到多层网络</a></li><li class="sub"><a href="#一个神经元到底在做什么">一个神经元到底在做什么</a></li><li class="sub"><a href="#为什么单层感知机解决不了-xor">为什么单层感知机解决不了 XOR</a></li><li class="sub"><a href="#实测xor-到底要几个隐藏单元">实测：XOR 到底要几个隐藏单元</a></li><li><a href="#82-前向传播数据如何穿过网络">8.2 前向传播：数据如何穿过网络</a></li><li class="sub"><a href="#实测去掉激活层数和参数都白加">实测：去掉激活，层数和参数都白加</a></li><li><a href="#83-损失函数把错得多远变成一个数">8.3 损失函数：把“错得多远”变成一个数</a></li><li class="sub"><a href="#mse适合回归">MSE：适合回归</a></li><li class="sub"><a href="#交叉熵适合分类">交叉熵：适合分类</a></li><li class="sub"><a href="#实测crossentropyloss-接受什么样的标签">实测：CrossEntropyLoss 接受什么样的标签</a></li><li class="sub"><a href="#实测多做一次-softmax-会怎样">实测：多做一次 softmax 会怎样</a></li><li class="sub"><a href="#实测直接算交叉熵多大的-logits-会出问题">实测：直接算交叉熵，多大的 logits 会出问题</a></li><li class="sub"><a href="#实测分类为什么不用-mse">实测：分类为什么不用 MSE</a></li><li><a href="#84-链式法则与反向传播">8.4 链式法则与反向传播</a></li><li class="sub"><a href="#手算一个最小例子">手算一个最小例子</a></li><li class="sub"><a href="#多层网络如何反向">多层网络如何反向</a></li><li class="sub"><a href="#两层网络的反向传播矩阵形式">两层网络的反向传播（矩阵形式）</a></li><li class="sub"><a href="#梯度检查步长怎么取">梯度检查：步长怎么取</a></li><li class="sub"><a href="#梯度消失与梯度爆炸">梯度消失与梯度爆炸</a></li><li class="sub"><a href="#实测初始化尺度和各层信号的大小">实测：初始化尺度和各层信号的大小</a></li><li><a href="#85-优化器sgdmomentum-与-adam">8.5 优化器：SGD、Momentum 与 Adam</a></li><li class="sub"><a href="#sgd沿当前坡度走">SGD：沿当前坡度走</a></li><li class="sub"><a href="#momentum给更新加惯性">Momentum：给更新加惯性</a></li><li class="sub"><a href="#adam每个参数都有自己的步幅">Adam：每个参数都有自己的步幅</a></li><li class="sub"><a href="#实测学习率的边界在哪里">实测：学习率的边界在哪里</a></li><li class="sub"><a href="#实测三种优化器对学习率有多敏感">实测：三种优化器对学习率有多敏感</a></li><li class="sub"><a href="#实测批大小与梯度噪声">实测：批大小与梯度噪声</a></li><li><a href="#86-过拟合与正则化">8.6 过拟合与正则化</a></li><li class="sub"><a href="#l1-与-l2">L1 与 L2</a></li><li class="sub"><a href="#dropout">Dropout</a></li><li class="sub"><a href="#early-stopping">Early Stopping</a></li><li class="sub"><a href="#实测小数据上的过拟合">实测：小数据上的过拟合</a></li><li class="sub"><a href="#实测权重衰减能帮多少">实测：权重衰减能帮多少</a></li><li><a href="#87-pytorch-训练循环与-shape">8.7 PyTorch 训练循环与 shape</a></li><li class="sub"><a href="#设备确认-pytorch-用上了显卡">设备：确认 PyTorch 用上了显卡</a></li><li><a href="#88-常见坑loss-不降时先查什么常见错误">8.8 常见坑：loss 不降时先查什么（常见错误）</a></li><li class="sub"><a href="#实测这些错误实际长什么样">实测：这些错误实际长什么样</a></li><li><a href="#89-交互演示两层网络的决策边界">8.9 交互演示：两层网络的决策边界</a></li><li><a href="#810-怎样评估一次训练">8.10 怎样评估一次训练</a></li><li><a href="#811-破坏实验">8.11 破坏实验</a></li><li><a href="#812-扩展深挖档">8.12 扩展（深挖档）</a></li><li><a href="#813-和后续章节的关系">8.13 和后续章节的关系</a></li><li><a href="#与练习-dl-1-dl-2-的连接">与练习 DL-1 / DL-2 的连接</a></li><li class="sub"><a href="#作业手写两层网络自动验收">作业：手写两层网络（自动验收）</a></li><li class="sub"><a href="#dl-1fc-mnist">DL-1：FC + MNIST</a></li><li class="sub"><a href="#dl-2手动验证反向传播">DL-2：手动验证反向传播</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

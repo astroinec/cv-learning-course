@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harris 响应：两个特征值与 k</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .kpi small { display: block; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); } .kpi.flat b { color: var(--muted); }
+  .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; min-height: 40px; }
+  figcaption i { font-style: normal; display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin: 0 3px 0 6px; border-radius: 2px; }
+  canvas { width: 100%; display: block; touch-action: none; }
+  #c1 { cursor: crosshair; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .row button, .try button { font: inherit; font-size: 12px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { margin-left: 6px; padding: 1px 8px; }
+  @media (max-width: 720px) { .three { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Harris 响应：两个特征值与 k（第 5 章）</h1>
+  <div class="sub">一张 48×48 的图里放一个楔形（张角 180° 时就是一条直边）。算法和作业一致：Sobel 求梯度，窗口内汇总成结构张量，R = det − k·trace²。在左图上点击或拖动可以移动窗口。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>张角（度，180 是直边）<b id="phiV"></b><input type="range" id="phi" min="20" max="180" step="5" value="90"></label>
+    <label>朝向（度）<b id="rotV"></b><input type="range" id="rot" min="0" max="355" step="5" value="45"></label>
+    <label>对比度<b id="conV"></b><input type="range" id="con" min="0.1" max="1" step="0.05" value="1"></label>
+    <label>噪声标准差（灰度）<b id="noiseV"></b><input type="range" id="noise" min="0" max="20" step="1" value="0"></label>
+    <label>k<b id="kV"></b><input type="range" id="k" min="0.01" max="0.24" step="0.01" value="0.04"></label>
+    <label>窗口边长 w（px）<b id="wV"></b><input type="range" id="w" min="3" max="15" step="2" value="5"></label>
+    <label>窗口形状<div class="seg" id="win"><button data-v="box" class="on">方框</button><button data-v="gauss">高斯</button></div></label>
+    <label>左图叠加<div class="seg" id="tint"><button data-v="off" class="on">不叠加</button><button data-v="on">R 的正负</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>大的特征值 λ1</span><b id="kL1"></b><small>窗口内变化最大的方向</small></div>
+    <div class="kpi"><span>小的特征值 λ2</span><b id="kL2"></b><small>和它垂直的方向</small></div>
+    <div class="kpi"><span>比值 λ1 / λ2</span><b id="kRatio"></b><small id="kRmax"></small></div>
+    <div class="kpi" id="kRBox"><span>窗口处的响应 R</span><b id="kR"></b><small id="kClass"></small></div>
+    <div class="kpi"><span>全图最大响应的位置</span><b id="kDist"></b><small id="kPeak"></small></div>
+  </div>
+
+  <div class="three">
+    <figure class="panel"><figcaption>图像与窗口<i style="background:var(--blue)"></i>窗口<i style="background:var(--green)"></i>真实顶点<i style="background:var(--red)"></i>响应最大处</figcaption><canvas id="c1"></canvas>
+      <div class="row"><button id="toVertex">窗口移到顶点</button><button id="toPeak">窗口移到响应最大处</button></div></figure>
+    <figure class="panel"><figcaption>窗口内每个像素的梯度 (Ix, Iy)，椭圆的两个半轴是 √λ1 和 √λ2</figcaption><canvas id="c2"></canvas></figure>
+    <figure class="panel"><figcaption>特征值平面：两条蓝线之间 R &gt; 0，线的斜率由 k 决定，黑点是当前窗口</figcaption><canvas id="c3"></canvas></figure>
+  </div>
+
+  <div class="panel try" style="margin-top:12px">
+    <b>按顺序试</b>
+    <ol>
+      <li>直角，窗口放在顶点上：两个特征值都大，R 为正。把窗口沿一条边拖出去，再拖到平坦处，看中图的点云和 λ2 怎么变。<button data-preset='{"phi":90,"rot":45,"con":1,"noise":0,"k":0.04,"w":5,"win":"box","tint":"off","px":24,"py":24}'>载入</button></li>
+      <li>直边加噪声，窗口在边上，比值约 41：k=0.04 时上限是 23，R 为负。把 k 一格一格往下调，上限超过当前比值的那一刻 R 变正，直边被当成了角点。左图上沿着边的红色（R &gt; 0）也跟着变多。<button data-preset='{"phi":180,"rot":0,"con":1,"noise":10,"k":0.04,"w":5,"win":"box","tint":"on","px":23,"py":26}'>载入</button></li>
+      <li>钝角：把张角从 90° 慢慢拖到 160°，看右图里的黑点怎样滑向边界线，在哪个角度穿出去。再把 k 调到 0.1，重做一遍。<button data-preset='{"phi":90,"rot":45,"con":1,"noise":0,"k":0.04,"w":5,"win":"box","tint":"off","px":24,"py":24}'>载入</button></li>
+      <li>对比度从 1 拖到 0.5：两个特征值、R 各变成原来的几分之一？比值变不变？<button data-preset='{"phi":90,"rot":45,"con":1,"noise":0,"k":0.04,"w":5,"win":"box","tint":"off","px":25,"py":25}'>载入</button></li>
+      <li>窗口边长从 5 拖到 13：红叉（响应最大处）离绿色的真实顶点越来越远。再把窗口形状换成高斯，看它回来多少。<button data-preset='{"phi":90,"rot":45,"con":1,"noise":0,"k":0.04,"w":5,"win":"box","tint":"on","px":25,"py":25}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// CORE-BEGIN
+// 从这里到下面的结束标记之间是纯计算，不碰页面，可以用 node 单独执行来核对
+const N = 48, C = (N - 1) / 2, BG = 60, FG_SPAN = 140, SS = 4;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// 可分离滤波，边界取最近的像素
+function sepFilter(src, kernel) {
+  const r = (kernel.length - 1) / 2, tmp = new Float64Array(N * N), out = new Float64Array(N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { let s = 0; for (let i = -r; i <= r; i++) s += kernel[i + r] * src[y * N + clamp(x + i, 0, N - 1)]; tmp[y * N + x] = s; }
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { let s = 0; for (let i = -r; i <= r; i++) s += kernel[i + r] * tmp[clamp(y + i, 0, N - 1) * N + x]; out[y * N + x] = s; }
+  return out;
+}
+function gaussKernel(sigma) { const r = Math.max(1, Math.ceil(3 * sigma)), k = []; let s = 0; for (let i = -r; i <= r; i++) { const v = Math.exp(-i * i / (2 * sigma * sigma)); k.push(v); s += v; } return k.map(v => v / s); }
+function boxKernel(w) { return Array(w).fill(1 / w); }
+function windowKernel(st) { return st.win === "gauss" ? gaussKernel(st.w / Math.sqrt(12)) : boxKernel(st.w); }
+
+// 楔形：顶点在图像中心，4x4 超采样后再做标准差 0.8 px 的模糊，最后加噪声
+function makeImage(st) {
+  const img = new Float64Array(N * N), fg = BG + FG_SPAN * st.con, half = st.phi / 2;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let acc = 0;
+    for (let j = 0; j < SS; j++) for (let i = 0; i < SS; i++) {
+      const sx = x - 0.5 + (i + 0.5) / SS - C, sy = y - 0.5 + (j + 0.5) / SS - C;
+      let d = Math.atan2(sy, sx) * 180 / Math.PI - st.rot; d = ((d + 180) % 360 + 360) % 360 - 180;
+      acc += Math.abs(d) <= half ? fg : BG;
+    }
+    img[y * N + x] = acc / (SS * SS);
+  }
+  const out = sepFilter(img, gaussKernel(0.8));
+  if (st.noise > 0) { const r = rng(2024); for (let i = 0; i < N * N; i++) out[i] += st.noise * gauss(r); }
+  return out;
+}
+function sobel(img) {
+  const ix = new Float64Array(N * N), iy = new Float64Array(N * N), at = (y, x) => img[clamp(y, 0, N - 1) * N + clamp(x, 0, N - 1)];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    ix[y * N + x] = (at(y - 1, x + 1) + 2 * at(y, x + 1) + at(y + 1, x + 1)) - (at(y - 1, x - 1) + 2 * at(y, x - 1) + at(y + 1, x - 1));
+    iy[y * N + x] = (at(y + 1, x - 1) + 2 * at(y + 1, x) + at(y + 1, x + 1)) - (at(y - 1, x - 1) + 2 * at(y - 1, x) + at(y - 1, x + 1));
+  }
+  return [ix, iy];
+}
+const rMax = k => ((1 - 2 * k) + Math.sqrt(1 - 4 * k)) / (2 * k);
+
+function compute(st) {
+  const img = makeImage(st), [ix, iy] = sobel(img), ker = windowKernel(st);
+  const mul = (a, b) => a.map((v, i) => v * b[i]);
+  const sxx = sepFilter(mul(ix, ix), ker), syy = sepFilter(mul(iy, iy), ker), sxy = sepFilter(mul(ix, iy), ker);
+  const R = new Float64Array(N * N), l1 = new Float64Array(N * N), l2 = new Float64Array(N * N);
+  for (let i = 0; i < N * N; i++) {
+    const tr = sxx[i] + syy[i], det = sxx[i] * syy[i] - sxy[i] * sxy[i], disc = Math.sqrt(Math.max(tr * tr / 4 - det, 0));
+    R[i] = det - st.k * tr * tr; l1[i] = tr / 2 + disc; l2[i] = Math.max(tr / 2 - disc, 0);
+  }
+  // 全图最大响应：离边界留出一圈，避开楔形的边伸到图像边界的地方
+  const m = Math.ceil(ker.length / 2) + 3;
+  let best = -1;
+  for (let y = m; y < N - m; y++) for (let x = m; x < N - m; x++) { const i = y * N + x; if (Math.hypot(x - C, y - C) <= 16 && (best < 0 || R[i] > R[best])) best = i; }
+  const peak = { x: best % N, y: Math.floor(best / N), R: R[best] };
+  peak.dist = peak.R > 0 ? Math.hypot(peak.x - C, peak.y - C) : NaN;
+  const i = st.py * N + st.px, tr = sxx[i] + syy[i];
+  const ang = 0.5 * Math.atan2(2 * sxy[i], sxx[i] - syy[i]);
+  return { img, ix, iy, R, l1, l2, peak, ker, at: { l1: l1[i], l2: l2[i], R: R[i], ratio: l1[i] / Math.max(l2[i], 1e-9), tr, ang }, rmax: rMax(st.k) };
+}
+// 参考量级：对比度 1 的直边上的 λ1，用来固定右图的坐标范围和“平坦”的判据
+const REF = (() => { const r = compute({ phi: 180, rot: 0, con: 1, noise: 0, k: 0.04, w: 5, win: "box", px: 24, py: 12 }); let m = 0; for (const v of r.l1) m = Math.max(m, v); return m; })();
+function classify(res) { if (res.at.l1 < 0.004 * REF) return "flat"; return res.at.R > 0 ? "corner" : "edge"; }
+// 左图叠加时，|R| 低于全图最大值这个比例的像素不染色。第 2 步的参数下（噪声 10，k 从 0.04 到 0.01）平坦区噪声的响应都低于它，
+// 所以那一步里红色只出现在边附近；噪声再大，平坦区也会被染红，那是噪声自己形成的正响应
+const TINT_MIN = 0.05;
+// CORE-END
+
+if (typeof document !== "undefined") {
+const state = { phi: 90, rot: 45, con: 1, noise: 0, k: 0.04, w: 5, win: "box", tint: "off", px: 25, py: 25 };
+const $ = id => document.getElementById(id);
+let last = null;
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = w; canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function fmt(v) { const a = Math.abs(v); if (a === 0) return "0"; if (a >= 1e5 || a < 0.01) { const e = Math.floor(Math.log10(a)); return (v / Math.pow(10, e)).toFixed(2) + "e" + e; } return a >= 100 ? v.toFixed(0) : v.toFixed(2); }
+function cross(ctx, x, y, r, color, diag) { ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.beginPath(); if (diag) { ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x - r, y + r); ctx.lineTo(x + r, y - r); } else { ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); } ctx.stroke(); }
+
+function render() {
+  const res = last = compute(state), kind = classify(res);
+  $("phiV").textContent = state.phi + "°"; $("rotV").textContent = state.rot + "°"; $("conV").textContent = state.con.toFixed(2); $("noiseV").textContent = state.noise;
+  $("kV").textContent = state.k.toFixed(2); $("wV").textContent = state.w + "×" + state.w;
+  $("kL1").textContent = fmt(res.at.l1); $("kL2").textContent = fmt(res.at.l2);
+  $("kRatio").textContent = kind === "flat" ? "—" : (res.at.ratio > 9999 ? "> 9999" : res.at.ratio.toFixed(1));
+  $("kRmax").textContent = "k=" + state.k.toFixed(2) + " 时的上限 " + res.rmax.toFixed(1);
+  $("kR").textContent = fmt(res.at.R);
+  $("kClass").textContent = kind === "flat" ? "两个特征值都小：平坦" : kind === "corner" ? "R > 0：角点" : "R < 0：边缘";
+  $("kRBox").className = "kpi " + (kind === "flat" ? "flat" : kind === "corner" ? "ok" : "bad");
+  const edgeOnly = state.phi >= 180;
+  $("kDist").textContent = isNaN(res.peak.dist) ? "没有正响应" : edgeOnly ? "直边没有顶点" : "离顶点 " + res.peak.dist.toFixed(1) + " px";
+  $("kPeak").textContent = isNaN(res.peak.dist) ? "中心附近 R 都不大于 0" : "最大响应 " + fmt(res.peak.R);
+
+  // 左：图像、窗口、顶点、峰值
+  let [ctx, w] = setup($("c1"));
+  const s = w / N;
+  let rpos = 0; for (const v of res.R) rpos = Math.max(rpos, Math.abs(v));
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const g = Math.round(clamp(res.img[y * N + x], 0, 255)); ctx.fillStyle = `rgb(${g},${g},${g})`; ctx.fillRect(x * s, y * s, s + 0.6, s + 0.6);
+    if (state.tint === "on" && rpos > 0) { const v = res.R[y * N + x] / rpos; if (Math.abs(v) > TINT_MIN) { ctx.fillStyle = v > 0 ? `rgba(214,54,47,${0.2 + 0.6 * Math.min(1, Math.sqrt(v))})` : `rgba(47,111,237,${0.15 + 0.55 * Math.min(1, Math.sqrt(-v))})`; ctx.fillRect(x * s, y * s, s + 0.6, s + 0.6); } }
+  }
+  const hw = state.w / 2;
+  ctx.strokeStyle = "#2f6fed"; ctx.lineWidth = 2; ctx.strokeRect((state.px + 0.5 - hw) * s, (state.py + 0.5 - hw) * s, state.w * s, state.w * s);
+  if (state.phi < 180) cross(ctx, (C + 0.5) * s, (C + 0.5) * s, 7, "#1a9c4b", false);
+  if (!isNaN(res.peak.dist)) cross(ctx, (res.peak.x + 0.5) * s, (res.peak.y + 0.5) * s, 6, "#d6362f", true);
+
+  // 中：梯度散点和椭圆
+  [ctx, w] = setup($("c2"));
+  const gmax = 4.6 * FG_SPAN, cx = w / 2, sc = (w / 2 - 14) / gmax, r = Math.floor(state.w / 2);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(8, cx); ctx.lineTo(w - 8, cx); ctx.moveTo(cx, 8); ctx.lineTo(cx, w - 8); ctx.stroke();
+  ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "right"; ctx.fillText("Ix", w - 10, cx - 5); ctx.textAlign = "left"; ctx.fillText("Iy", cx + 5, w - 10);
+  ctx.fillStyle = "rgba(47,111,237,.55)";
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const x = clamp(state.px + dx, 0, N - 1), y = clamp(state.py + dy, 0, N - 1); ctx.beginPath(); ctx.arc(cx + res.ix[y * N + x] * sc, cx + res.iy[y * N + x] * sc, 2.6, 0, 7); ctx.fill(); }
+  ctx.save(); ctx.translate(cx, cx); ctx.rotate(res.at.ang); ctx.strokeStyle = "#e8710a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, Math.max(Math.sqrt(res.at.l1) * sc, 0.5), Math.max(Math.sqrt(res.at.l2) * sc, 0.5), 0, 0, 7); ctx.stroke(); ctx.restore();
+
+  // 右：特征值平面
+  [ctx, w] = setup($("c3"));
+  const L = 36, B = 26, T = 10, Rr = 10, lim = 1.15 * REF, px = v => L + v / lim * (w - L - Rr), py = v => w - B - v / lim * (w - B - T);
+  ctx.fillStyle = "rgba(47,111,237,.09)"; ctx.beginPath(); ctx.moveTo(px(0), py(0)); ctx.lineTo(px(lim), py(lim / res.rmax)); ctx.lineTo(px(lim), py(lim)); ctx.lineTo(px(lim / res.rmax), py(lim)); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.strokeRect(px(0), py(lim), px(lim) - px(0), py(0) - py(lim));
+  ctx.strokeStyle = "#2f6fed"; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(px(0), py(0)); ctx.lineTo(px(lim), py(lim / res.rmax)); ctx.moveTo(px(0), py(0)); ctx.lineTo(px(lim / res.rmax), py(lim)); ctx.stroke();
+  ctx.fillStyle = "#646a73"; ctx.font = "11.5px sans-serif"; ctx.textAlign = "center"; ctx.fillText("大的特征值 λ1", (px(0) + px(lim)) / 2, w - 7);
+  ctx.save(); ctx.translate(12, (py(0) + py(lim)) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("小的特征值 λ2", 0, 0); ctx.restore();
+  ctx.fillStyle = "#2f6fed"; ctx.fillText("R > 0 角点", px(lim * 0.68), py(lim * 0.72));
+  ctx.fillStyle = "#646a73"; ctx.textAlign = "left"; ctx.fillText("平坦", px(lim * 0.02), py(lim * 0.035));
+  ctx.textAlign = "right"; ctx.fillText("R < 0 边缘（贴着横轴）", px(lim * 0.99), py(lim * 0.035) - (res.rmax < 6 ? 0 : 14));
+  ctx.fillStyle = "#1f2329"; ctx.beginPath(); ctx.arc(px(Math.min(res.at.l1, lim)), py(Math.min(res.at.l2, lim)), 6, 0, 7); ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+function syncControls() {
+  for (const id of ["win", "tint"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state[id]));
+  for (const id of ["phi", "rot", "con", "noise", "k", "w"]) $(id).value = state[id];
+}
+for (const id of ["win", "tint"]) $(id).addEventListener("click", e => { if (e.target.dataset.v) { state[id] = e.target.dataset.v; syncControls(); render(); } });
+for (const id of ["phi", "rot", "con", "noise", "k", "w"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+function pick(e) { const c = $("c1"), b = c.getBoundingClientRect(), s = b.width / N, m = Math.floor(state.w / 2) + 1; state.px = clamp(Math.floor((e.clientX - b.left) / s), m, N - 1 - m); state.py = clamp(Math.floor((e.clientY - b.top) / s), m, N - 1 - m); render(); }
+let dragging = false;
+$("c1").addEventListener("pointerdown", e => { dragging = true; $("c1").setPointerCapture(e.pointerId); pick(e); });
+$("c1").addEventListener("pointermove", e => { if (dragging) pick(e); });
+$("c1").addEventListener("pointerup", () => { dragging = false; });
+$("toVertex").addEventListener("click", () => { state.px = Math.round(C + 0.5); state.py = Math.round(C + 0.5); render(); });
+$("toPeak").addEventListener("click", () => { if (last && !isNaN(last.peak.dist)) { state.px = last.peak.x; state.py = last.peak.y; render(); } });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+}
+</script>
+</body>
+</html>

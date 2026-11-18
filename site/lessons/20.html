@@ -58,19 +58,88 @@
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 20 章 <span class="tag P2">P2</span> <span class="badge">原版讲义</span></div><h1>合成缺陷与生成模型</h1><p class="scene"><b>用在哪：</b>缺陷样本太少时造数据，用于训练和测试</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 12 小时</span><span class="chip"><b>深挖</b> 18 小时</span><span class="chip">前置：<a href="../lessons/13.html">第 13 章 生成与自监督</a></span></div><div class="meta-row"><span class="chip mono">验收：python 20_合成缺陷与生成模型/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="20"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><h2 id="1-为什么需要合成数据">1. 为什么需要合成数据</h2>
+<div class="lesson-head"><div class="crumbs">第 20 章 <span class="tag P2">P2</span> <span class="badge ok">已升级</span></div><h1>合成缺陷与生成模型</h1><p class="scene"><b>用在哪：</b>缺陷样本太少时造数据，用于训练和测试</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 12 小时</span><span class="chip"><b>深挖</b> 18 小时</span><span class="chip">前置：<a href="../lessons/13.html">第 13 章 生成与自监督</a></span></div><div class="meta-row"><span class="chip mono">验收：python 20_合成缺陷与生成模型/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="20"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自代码生成的数据上的实测，记录在 <a href="../../20_合成缺陷与生成模型/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch20.py</code> 生成。“真实”缺陷也是代码生成的，只是和合成缺陷用了两套不同的生成方式；分类器是一个 8161 个参数的小卷积网络，在一台 Mac 的 CPU 上训练，重复运行结果相同。换成真实图像和更大的网络，数值会变，结论的方向要自己再测一遍。本章没有下载任何生成模型的权重，GAN、Stable Diffusion、ControlNet、LoRA 的部分只讲原理，没有实测数字。</p>
+</div>
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：缺陷样本太少时造数据，用于训练和测试。新产品刚上线没有历史缺陷、某类缺陷一年只见几次、想知道算法能检出多弱的缺陷，都要自己造带准确标签的缺陷图。这一章回答的核心问题是：合成缺陷到底有没有用，什么时候会帮倒忙，怎样用实验证明。</p>
+<p><strong>优先级</strong>：P2，按方向，分到做数据合成或图像生成的方向时再学。前置是第 13 章（自编码器、VAE、GAN、扩散模型的入门）。本章默认你会读第 18、19 章的检出率、误报和 AUROC。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">3 小时</td>
+<td>读第 1、3.2、3.4、4.3、5.3、8 节，看懂图 2、3、4、5、7，把第 6 节演示的五步试一遍，答完 5 道小测</td>
+<td>能讲清缺陷该在成像链的哪一步插入，粘贴痕迹怎样骗过分类器，合成数据有没有用该怎样设计对照实验</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">12 小时</td>
+<td>读完全章，跑 Notebook，完成作业并验收通过，做第 11 节前三个破坏实验，填实验记录</td>
+<td>四项测试 PASS，实验记录里有“只用合成缺陷训练分类器或调阈值、在‘真实’缺陷上测试”的一组数字和一个合成数据反而有害的案例</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">18 小时</td>
+<td>再做其余破坏实验和第 12 节的扩展，用第 24 章的数据生成器当“真实”数据复现第 8 节的对照表</td>
+<td>能报告自己的合成数据在哪几类缺陷上有用、哪几类没用，混合比例是多少，结论在什么条件下成立</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。深挖档里跑 Stable Diffusion 要下载几个 GB 的权重，环境问题最容易卡住，卡超过一小时就先回到程序化合成把对照实验做完。</p>
+</div>
+<h2 id="1-为什么需要合成数据">1. 为什么需要合成数据</h2>
 <ul>
 <li><strong>样本少</strong>：缺陷率低，某些类型一年只见几次。</li>
 <li><strong>类型不全</strong>：新工艺、新产品刚导入时没有历史缺陷。</li>
 <li><strong>标注贵</strong>：像素级标注需要专家，复查电镜（SEM）图也有成本。</li>
 <li><strong>测边界</strong>：想知道算法能检出多小、多弱的缺陷，需要可控地生成不同尺寸和对比度的样本。</li>
 </ul>
+<p>样本少到什么程度会出问题，可以量出来。下面的实验用 32×32 的线阵列版图（线周期 8 px，每张图的平移随机），经过光学模糊（高斯 sigma 1 px）、增益波动、散粒噪声和读出噪声得到“相机图”。“真实”缺陷有颗粒、划痕、图形缺失或桥接三类，在成像之前插入，幅度 0.12 到 0.45，亮暗各半。分类器只用 <span class="arithmatex">\(K\)</span> 张真实缺陷图加 400 张良品图训练，在固定的 1000 张良品和 1500 张真实缺陷图上测试，每个 <span class="arithmatex">\(K\)</span> 做 3 个种子。</p>
+<figure><img src="../../20_合成缺陷与生成模型/figures/fig01_真实样本数量.svg" alt="图 1：左四栏，良品和三类“真实”缺陷的例子，青色线是缺陷掩膜。右，只用真实缺陷图训练时，AUROC（蓝）和误报 5% 时的检出率（橙）随真实缺陷图张数的变化，浅色小点是各个种子" loading="lazy"><figcaption>图 1：左四栏，良品和三类“真实”缺陷的例子，青色线是缺陷掩膜。右，只用真实缺陷图训练时，AUROC（蓝）和误报 5% 时的检出率（橙）随真实缺陷图张数的变化，浅色小点是各个种子</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练用的真实缺陷图张数（400 步训练，3 个种子，1500 张真实缺陷图测试）</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">64</th>
+<th style="text-align: right;">256</th>
+<th style="text-align: right;">1024</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AUROC</td>
+<td style="text-align: right;">0.581</td>
+<td style="text-align: right;">0.818</td>
+<td style="text-align: right;">0.919</td>
+<td style="text-align: right;">0.942</td>
+</tr>
+<tr>
+<td>误报 5% 时的检出率</td>
+<td style="text-align: right;">14.0%</td>
+<td style="text-align: right;">50.7%</td>
+<td style="text-align: right;">76.2%</td>
+<td style="text-align: right;">82.2%</td>
+</tr>
+</tbody>
+</table></div>
+<p>只有 8 张时 AUROC 是 0.581，检出率 14.0%，比瞎猜（AUROC 0.5、检出率 5%）好不了多少。要到几百张才像样，而产线上某一类缺陷常常连几十张都凑不齐。本章后面所有的实验，都是在问：这个缺口能不能用造出来的数据补上。</p>
+<p>1024 张时的 82.2% 是这个小分类器在这组数据上的上限，不是 100%：分组看，颗粒检出 95.1%，划痕 81.9%，图形缺失或桥接 68.7%；幅度 0.3 以上的检出 92.0%，低于 0.2 的只有 64.3%。后面看到“合成数据达到 0.92”这样的数字时，要和这个上限比，不要和 1 比。</p>
 <p>合成数据有两种用途，要分清楚：</p>
 <ol>
 <li><strong>训练</strong>：扩充训练集。要求合成样本和真实缺陷分布接近，否则模型学到的是合成的特征。</li>
 <li><strong>测试和标定灵敏度</strong>：已知真值地评估算法。要求标签精确、参数可控，像不像真实缺陷反而是次要的。</li>
 </ol>
 <p>第 24 章的数据生成器就属于第二种。</p>
+<p>第二条里“像不像是次要的”要加一个条件，第 3.2 节末尾有实测：对本章的分类器，缺陷画得锐一点还是糊一点，测出的检出率差别不大；但第 22 章第 9.1 节用阈值法检测时，不做光学模糊的测试数据把暗区的检出率报高了很多（数字见那一节的表）。形状像不像可以放宽，成像链对不对不能放宽，放宽多少取决于被测的方法对什么敏感。</p>
 <h2 id="2-方法分类">2. 方法分类</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -121,29 +190,463 @@
 </tbody>
 </table></div>
 <p>经验上，<strong>程序化和物理仿真是基础</strong>，生成模型用来补充真实感，而不是反过来。</p>
+<p>本章的实测覆盖程序化合成（第 3 节）和剪贴融合（第 4 节）两行；第 4.3 节会看到，剪贴的痕迹恰好就是自监督伪异常利用的信号。物理仿真的成像部分在第 22 章。生成模型在第 5 节，其中扩散模型只实测前向过程。</p>
 <h2 id="3-程序化合成要点">3. 程序化合成要点</h2>
+<p>原讲义给了四条要点，先列出来，后面几个小节逐条量：</p>
 <ul>
-<li><strong>软掩码</strong>：边缘用渐变过渡，而不是硬边，否则检测器会学到“硬边就是缺陷”这种捷径。作业里的 <code>scratch_mask</code> 用到线段距离做线性过渡。</li>
-<li><strong>在正确的阶段插入缺陷</strong>：缺陷应该在光学模糊和噪声之前加入，这样它和背景一样被模糊、一样带噪声。在最终图像上直接画，会出现比背景更锐利、没有噪声的“贴纸”，这是很常见的错误。第 24 章生成器就是先加缺陷再模糊和加噪的。</li>
-<li><strong>参数随机化</strong>：位置、大小、方向、对比度、极性都要随机，覆盖真实的分布范围。</li>
+<li><strong>软掩码</strong>：边缘用渐变过渡，而不是硬边，否则检测器会学到“硬边就是缺陷”这种捷径。作业里的 <code>scratch_mask</code> 用到线段距离做线性过渡。实测见第 3.3 节，这一条只在成像之后画缺陷时成立。</li>
+<li><strong>在正确的阶段插入缺陷</strong>：缺陷应该在光学模糊和噪声之前加入，这样它和背景一样被模糊、一样带噪声。在最终图像上直接画，会出现比背景更锐利、没有噪声的“贴纸”，这是很常见的错误。第 24 章生成器就是先加缺陷再模糊和加噪的。实测见第 3.2 节。</li>
+<li><strong>参数随机化</strong>：位置、大小、方向、对比度、极性都要随机，覆盖真实的分布范围。实测见第 3.4 节，各个维度的重要程度差得很远。</li>
 <li><strong>标签同步</strong>：每次几何变换（平移、裁剪、缩放）都要同步更新掩码和坐标。</li>
 </ul>
-<h2 id="4-三类生成模型">4. 三类生成模型</h2>
-<h3 id="vae">VAE</h3>
+<h3 id="31-作业里的软掩膜和混合">3.1 作业里的软掩膜和混合</h3>
+<p><code>scratch_mask</code> 对每个像素算它到线段的最短距离 <span class="arithmatex">\(d\)</span>，再按下面的式子变成 0 到 1 之间的值：</p>
+<div class="arithmatex">\[
+m = \operatorname{clip}\!\left(\frac{w/2 + s/2 - d}{s},\ 0,\ 1\right)
+\]</div>
+<p><span class="arithmatex">\(w\)</span> 是划痕宽度，<span class="arithmatex">\(s\)</span> 是过渡带宽度（<code>softness</code>）。分子里的 <span class="arithmatex">\(s/2\)</span> 让 <span class="arithmatex">\(m = 0.5\)</span> 的位置正好落在 <span class="arithmatex">\(d = w/2\)</span> 上，所以改变 <span class="arithmatex">\(s\)</span> 不会改变划痕的名义宽度。一条宽 3 px 的水平划痕，离中心线 0、1、2、3 px 处的取值：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>过渡带</th>
+<th style="text-align: right;">0 px</th>
+<th style="text-align: right;">1 px</th>
+<th style="text-align: right;">2 px</th>
+<th style="text-align: right;">3 px</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 px</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>2 px</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">0.25</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table></div>
+<p>距离要按线段算，不是按无限长的直线算：投影参数截到 0 和 1 之间，端点之外按到端点的距离衰减，划痕的两头才是圆的。两端点重合时线段退化成一个点，掩膜是一个圆点，本章实验里的“圆点”缺陷就是这样画的。</p>
+<p><code>blend</code> 是 <span class="arithmatex">\(\text{out} = \text{bg} \cdot (1 - m) + \text{fg} \cdot m\)</span>。前景可以是一个固定灰度，也可以是一张图。本章的实验用两种写法：</p>
+<ul>
+<li><strong>加法</strong>：<code>blend(bg, bg + a, m)</code>，等于在背景上加 <span class="arithmatex">\(a \cdot m\)</span>，背景的图形和噪声还在。</li>
+<li><strong>替换</strong>：<code>blend(bg, v, m)</code>，掩膜里的像素被换成固定灰度 <span class="arithmatex">\(v\)</span>，背景的图形和噪声被盖掉。本章 Notebook 用的是这一种。</li>
+</ul>
+<h3 id="32-在成像链的哪一步插入">3.2 在成像链的哪一步插入</h3>
+<p>同一条划痕，可以在成像之前画到版图上，再一起经过模糊和噪声；也可以在成像之后的良品图上直接画。后一种做法在只有真实良品图、没有仿真器的时候很常见。</p>
+<figure><img src="../../20_合成缺陷与生成模型/figures/fig02_插入阶段.svg" alt="图 2：左四栏，同一条标称幅度 0.3 的划痕的四种做法：成像前插入、成像后直接加、成像后替换成固定灰度、成像后把掩膜先模糊再加。中，同一条划痕横截面上的灰度变化（无噪声），红色是成像后直接画，蓝色是成像前插入。右，六种做法各自训练出的分类器在真实缺陷上的 AUROC（蓝）和对弱的真实缺陷的检出率（橙）" loading="lazy"><figcaption>图 2：左四栏，同一条标称幅度 0.3 的划痕的四种做法：成像前插入、成像后直接加、成像后替换成固定灰度、成像后把掩膜先模糊再加。中，同一条划痕横截面上的灰度变化（无噪声），红色是成像后直接画，蓝色是成像前插入。右，六种做法各自训练出的分类器在真实缺陷上的 AUROC（蓝）和对弱的真实缺陷的检出率（橙）</figcaption></figure>
+<p>中间一栏说明了两种做法差在哪。成像前插入的划痕被光学模糊摊开，峰值只剩标称幅度的一部分（过渡带 1 px、无噪声时量的）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>缺陷</th>
+<th style="text-align: right;">划痕宽 1 px</th>
+<th style="text-align: right;">划痕宽 1.5 px</th>
+<th style="text-align: right;">划痕宽 2.5 px</th>
+<th style="text-align: right;">圆点直径 2 px</th>
+<th style="text-align: right;">圆点直径 3 px</th>
+<th style="text-align: right;">圆点直径 4.5 px</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>成像前插入时峰值剩下的比例</td>
+<td style="text-align: right;">39.8%</td>
+<td style="text-align: right;">52.0%</td>
+<td style="text-align: right;">76.2%</td>
+<td style="text-align: right;">37.2%</td>
+<td style="text-align: right;">68.3%</td>
+<td style="text-align: right;">89.8%</td>
+</tr>
+</tbody>
+</table></div>
+<p>成像后直接画的划痕峰值是 100%，边缘也没有被模糊。同样写着“幅度 0.3”，两种做法造出来的是两种东西。</p>
+<p>只用 400 张合成缺陷图训练分类器，在真实缺陷上测试（合成的形状是直线划痕和圆点各半，幅度 0.12 到 0.45，其余条件同图 1，3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>合成缺陷的做法</th>
+<th style="text-align: right;">真实缺陷上的 AUROC</th>
+<th style="text-align: right;">检出率</th>
+<th style="text-align: right;">弱缺陷（幅度低于 0.2）的检出率</th>
+<th style="text-align: right;">强缺陷（0.3 以上）的检出率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>成像前插入，软掩膜</td>
+<td style="text-align: right;">0.917</td>
+<td style="text-align: right;">76.0%</td>
+<td style="text-align: right;">58.7%</td>
+<td style="text-align: right;">86.8%</td>
+</tr>
+<tr>
+<td>成像前插入，硬掩膜（过渡带 0.05 px）</td>
+<td style="text-align: right;">0.936</td>
+<td style="text-align: right;">81.7%</td>
+<td style="text-align: right;">62.5%</td>
+<td style="text-align: right;">92.5%</td>
+</tr>
+<tr>
+<td>成像后，直接加</td>
+<td style="text-align: right;">0.900</td>
+<td style="text-align: right;">71.5%</td>
+<td style="text-align: right;">38.1%</td>
+<td style="text-align: right;">89.8%</td>
+</tr>
+<tr>
+<td>成像后，硬掩膜，直接加</td>
+<td style="text-align: right;">0.859</td>
+<td style="text-align: right;">62.0%</td>
+<td style="text-align: right;">24.7%</td>
+<td style="text-align: right;">85.3%</td>
+</tr>
+<tr>
+<td>成像后，替换成固定灰度</td>
+<td style="text-align: right;">0.886</td>
+<td style="text-align: right;">68.2%</td>
+<td style="text-align: right;">32.9%</td>
+<td style="text-align: right;">88.5%</td>
+</tr>
+<tr>
+<td>成像后，掩膜先按光学模糊的 sigma 模糊再加</td>
+<td style="text-align: right;">0.913</td>
+<td style="text-align: right;">74.2%</td>
+<td style="text-align: right;">53.8%</td>
+<td style="text-align: right;">87.0%</td>
+</tr>
+</tbody>
+</table></div>
+<p>读这张表的四点：</p>
+<ol>
+<li><strong>在成像前插入，只用合成数据就接近 1024 张真实缺陷图的水平</strong>（AUROC 0.917 对 0.942，检出率 76.0% 对 82.2%），尽管合成的形状和真实的并不一样。</li>
+<li><strong>在成像后直接画，AUROC 只低了不到 0.02，但弱缺陷的检出率从 58.7% 掉到 38.1%</strong>，强缺陷没有掉（89.8%）。3 个种子里弱缺陷的检出率分别是 24.5%、32.3%、57.4%，每个种子都低于成像前插入的对应值（43.5%、64.1%、68.5%）。种子之间的波动不小，AUROC 上 0.917 和 0.900 的差别在波动范围之内，不能据此下结论；能下结论的是弱缺陷这一组。</li>
+<li><strong>问题主要出在锐度，不在噪声</strong>。“直接加”保留了背景噪声，“替换成固定灰度”把噪声也盖掉了，两者差不多（38.1% 对 32.9%）。把掩膜先做一次和光学模糊相同的高斯模糊再加，噪声统计仍然不对，弱缺陷的检出率却回到了 53.8%。原讲义把贴纸感归结为“更锐利、没有噪声”，在这组实验里起作用的是前一半。</li>
+<li><strong>只看合成数据上的验证结果会被骗</strong>。成像后直接加训练出的分类器，对同样做法的合成缺陷检出 97.5%，对成像前插入的同形状合成缺陷检出 84.2%，对真实缺陷只有 71.5%。在合成的验证集上越好看，越要怀疑。</li>
+</ol>
+<p>第 3 点给了一个实用的补救办法：手上没有仿真器、只能在真实良品图上画缺陷时，先把掩膜按系统的点扩散函数模糊一遍再混合。点扩散函数是什么、用高斯近似它差在哪，见第 22 章第 4 节。</p>
+<p>反过来，把合成缺陷当测试集会怎样？分类器固定为 1024 张真实缺陷图训练出的那 3 个，阈值不变，分别在三种合成探针上测检出率：成像前插入 86.2%，成像后直接加 87.6%，成像后替换成固定灰度 85.8%，真实缺陷上是 82.2%。三种插入方式之间差一两个点，都比真实高四五个点（合成的形状里没有最难的图形类缺陷）。对这个分类器，用哪种方式画测试缺陷影响不大。第 22 章的阈值法对峰值敏感，结论就完全不同。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>只用“成像后直接加”的合成划痕和圆点训练分类器，在真实缺陷上的 AUROC 是 0.900，成像前插入的是 0.917。哪一类真实缺陷的检出率差得最多？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>强缺陷，因为贴上去的缺陷不够亮</span></button><button type="button" data-k="B"><b>B</b><span>弱缺陷，从 58.7% 掉到 38.1%</span></button><button type="button" data-k="C"><b>C</b><span>各类差不多，都掉两三个点</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。成像后画的缺陷峰值是标称幅度的 100%，边缘是锐的；真实缺陷经过光学模糊，宽 1.5 px 的划痕峰值只剩 52.0%。分类器在训练里见到的“幅度 0.12 的缺陷”比真实的同幅度缺陷显眼得多，所以对弱的真实缺陷准备不足。强缺陷的检出率是 89.8% 对 86.8%，没有掉。总的 AUROC 只差不到 0.02，还在种子的波动范围里，单看它发现不了问题。</p></div></div>
+<h3 id="33-软掩膜到底管什么用">3.3 软掩膜到底管什么用</h3>
+<p>上一节的表里有两组软硬掩膜的对比，结论相反：</p>
+<ul>
+<li><strong>成像前插入</strong>：硬掩膜的 AUROC 是 0.936，软掩膜是 0.917；弱缺陷的检出率 62.5% 对 58.7%。硬掩膜没有更差。原因很直接，硬边画上去之后还要经过光学模糊，出来的边缘和软掩膜的几乎一样。</li>
+<li><strong>成像后画</strong>：硬掩膜的 AUROC 从 0.900 掉到 0.859，弱缺陷的检出率从 38.1% 掉到 24.7%，3 个种子里都不高于软掩膜。这时软掩膜确实有用。</li>
+</ul>
+<p>所以原讲义“用软掩膜，否则检测器会学到硬边就是缺陷”这句话，在成像之后画缺陷时成立，在成像之前插入时没有测到差别。而且在成像之后画，光靠软掩膜也不够：过渡带 0.8 到 1.5 px 的软掩膜仍然比成像前插入差 20 个百分点（38.1% 对 58.7%），因为它的过渡带宽度和光学模糊不是一回事。</p>
+<p>软掩膜还有一个和捷径无关的用处：亚像素位置。硬掩膜只能落在整数像素上，划痕的端点、宽度一变就整行整列地跳；软掩膜让边缘的灰度随位置连续变化，生成的标签可以带亚像素坐标。</p>
+<h3 id="34-多样性形状对比度位置">3.4 多样性：形状、对比度、位置</h3>
+<p>“参数都要随机”这句话没有告诉你哪个参数最要紧。下面每次只收窄一个维度，其余保持随机，都在成像前插入，只用 400 张合成缺陷图训练，在真实缺陷上分组看检出率（3 个种子）。</p>
+<figure><img src="../../20_合成缺陷与生成模型/figures/fig03_多样性.svg" alt="图 3：每一行是一种训练用的合成缺陷，行名后面是真实缺陷上的 AUROC；每一列是真实缺陷的一个分组，格子里是误报 5% 时的检出率（百分数），颜色越红越低。白色竖线把列分成全部、极性、位置、幅度、类型五组" loading="lazy"><figcaption>图 3：每一行是一种训练用的合成缺陷，行名后面是真实缺陷上的 AUROC；每一列是真实缺陷的一个分组，格子里是误报 5% 时的检出率（百分数），颜色越红越低。白色竖线把列分成全部、极性、位置、幅度、类型五组</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练用的合成缺陷</th>
+<th style="text-align: right;">AUROC</th>
+<th style="text-align: right;">全部</th>
+<th style="text-align: right;">亮</th>
+<th style="text-align: right;">暗</th>
+<th style="text-align: right;">中心</th>
+<th style="text-align: right;">非中心</th>
+<th style="text-align: right;">弱</th>
+<th style="text-align: right;">强</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全部随机</td>
+<td style="text-align: right;">0.917</td>
+<td style="text-align: right;">76.0%</td>
+<td style="text-align: right;">68.2%</td>
+<td style="text-align: right;">84.3%</td>
+<td style="text-align: right;">73.2%</td>
+<td style="text-align: right;">76.7%</td>
+<td style="text-align: right;">58.7%</td>
+<td style="text-align: right;">86.8%</td>
+</tr>
+<tr>
+<td>只有划痕，没有圆点</td>
+<td style="text-align: right;">0.936</td>
+<td style="text-align: right;">80.9%</td>
+<td style="text-align: right;">77.5%</td>
+<td style="text-align: right;">84.5%</td>
+<td style="text-align: right;">80.2%</td>
+<td style="text-align: right;">81.1%</td>
+<td style="text-align: right;">62.3%</td>
+<td style="text-align: right;">91.3%</td>
+</tr>
+<tr>
+<td>只有亮缺陷</td>
+<td style="text-align: right;">0.826</td>
+<td style="text-align: right;">57.0%</td>
+<td style="text-align: right;">79.8%</td>
+<td style="text-align: right;">32.8%</td>
+<td style="text-align: right;">58.3%</td>
+<td style="text-align: right;">56.7%</td>
+<td style="text-align: right;">44.1%</td>
+<td style="text-align: right;">65.6%</td>
+</tr>
+<tr>
+<td>只有强缺陷（幅度 0.3 到 0.45）</td>
+<td style="text-align: right;">0.936</td>
+<td style="text-align: right;">80.8%</td>
+<td style="text-align: right;">79.0%</td>
+<td style="text-align: right;">82.7%</td>
+<td style="text-align: right;">81.4%</td>
+<td style="text-align: right;">80.7%</td>
+<td style="text-align: right;">59.7%</td>
+<td style="text-align: right;">92.0%</td>
+</tr>
+<tr>
+<td>只有弱缺陷（幅度 0.12 到 0.2）</td>
+<td style="text-align: right;">0.763</td>
+<td style="text-align: right;">40.2%</td>
+<td style="text-align: right;">17.8%</td>
+<td style="text-align: right;">64.1%</td>
+<td style="text-align: right;">35.1%</td>
+<td style="text-align: right;">41.5%</td>
+<td style="text-align: right;">26.3%</td>
+<td style="text-align: right;">50.0%</td>
+</tr>
+<tr>
+<td>只在图像中心 6×6 px 内</td>
+<td style="text-align: right;">0.886</td>
+<td style="text-align: right;">69.7%</td>
+<td style="text-align: right;">68.9%</td>
+<td style="text-align: right;">70.6%</td>
+<td style="text-align: right;">84.1%</td>
+<td style="text-align: right;">66.2%</td>
+<td style="text-align: right;">48.4%</td>
+<td style="text-align: right;">82.7%</td>
+</tr>
+</tbody>
+</table></div>
+<p>“中心”指缺陷中心离图像中心不超过 4 px，1500 个测试缺陷里有 294 个；暗缺陷 726 个，弱缺陷 359 个。按这些个数算，分组检出率的抽样标准误差在 1.5 到 2.6 个百分点之间，下面只讨论差了 10 个点以上的地方。</p>
+<ol>
+<li><strong>极性必须覆盖</strong>。只合成亮缺陷，暗缺陷的检出率从 84.3% 掉到 32.8%。分类器学到的是“比周围亮”，不是“和周围不一样”。</li>
+<li><strong>位置要覆盖</strong>。只在中心合成，中心的检出率 84.1%，非中心的 66.2%，比全部随机时低 10.5 个百分点。卷积加全局最大池化的网络在结构上对平移不敏感，仍然出现了位置依赖；缺陷落在版图的什么结构上、离图像边界多远，都是它见过和没见过的区别。</li>
+<li><strong>少一种形状，在这组实验里没有看到下降</strong>。只合成划痕，颗粒的检出率是 94.1%，全部随机时是 89.9%。真实的图形类缺陷两种训练集里都没有，检出率 67.2% 对 63.2%，也没有差别。</li>
+<li><strong>只合成强缺陷，弱缺陷没有少检；只合成弱缺陷反而最差</strong>。前者弱缺陷检出 59.7%，和全部随机的 58.7% 一样；后者 AUROC 只有 0.763，连强缺陷也只检出 50.0%。幅度 0.12 到 0.2 的缺陷经过模糊之后和噪声差不多大（灰度 0.5 处噪声的标准差是 0.030），当训练样本用相当于给了一批标签很吵的正样本。</li>
+</ol>
+<p>第 3、4 两条和“参数都要覆盖真实分布”的直觉不一致。它们只说明：在这组数据、这个小网络上，分类器从强的、形状单一的样本里学到的东西，能推广到弱的和别的形状；极性和位置推广不过去。换一种数据不一定如此，要用同样的办法分组量一遍，不要凭直觉决定哪个参数可以不随机。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>两个合成训练集，一个只有强缺陷（幅度 0.3 到 0.45），一个只有弱缺陷（幅度 0.12 到 0.2）。哪一个训练出的分类器，对弱的真实缺陷检出率更高？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>只有弱缺陷的，因为训练和测试的幅度一致</span></button><button type="button" data-k="B"><b>B</b><span>只有强缺陷的，59.7% 对 26.3%</span></button><button type="button" data-k="C"><b>C</b><span>差不多</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。只用弱缺陷训练的分类器 AUROC 只有 0.763，是六种训练集里最低的，对弱的真实缺陷只检出 26.3%。弱缺陷经过光学模糊后和噪声的大小相当，很多样本看上去和良品没有区别，分类器等于在带噪的标签上训练。只用强缺陷训练的分类器学到了干净的“缺陷长什么样”，再推广到弱的。A 是把“训练分布要和测试一致”套用到了它不成立的地方。</p></div></div>
+<h2 id="4-剪贴融合三种贴法和它们留下的痕迹">4. 剪贴融合：三种贴法和它们留下的痕迹</h2>
+<p>程序化合成的缺陷是画出来的，形状取决于你想得到多少种。剪贴融合换了一个思路：手上有几张真实的缺陷图，把缺陷连同周围一小块抠下来，贴到很多张良品图上。贴的方法有三种，区别在图块的边界怎么处理。</p>
+<h3 id="41-三种贴法各自在做什么">4.1 三种贴法各自在做什么</h3>
+<p>记良品图（目标）为 <span class="arithmatex">\(t\)</span>，从缺陷图上剪下的图块（源）为 <span class="arithmatex">\(g\)</span>，贴上去的区域为 <span class="arithmatex">\(\Omega\)</span>。</p>
+<p><strong>直接粘贴</strong>：区域里的像素全部换成源图块，<span class="arithmatex">\(f = g\)</span>。边界上左边是 <span class="arithmatex">\(t\)</span>、右边是 <span class="arithmatex">\(g\)</span>，两者的亮度和图形对不上就是一道台阶。</p>
+<p><strong>羽化融合</strong>：用一张从边缘向里渐变的掩膜 <span class="arithmatex">\(\alpha\)</span> 做加权，<span class="arithmatex">\(f = (1 - \alpha)\,t + \alpha\,g\)</span>，就是作业里的 <code>blend</code>。本章的实验里 <span class="arithmatex">\(\alpha\)</span> 从图块边缘向里 4 px 线性升到 1。台阶被摊成了一条过渡带，过渡带里是两张图的加权平均。</p>
+<p><strong>泊松融合</strong>：不直接拷贝像素值，而是拷贝梯度。要求结果在边界上等于目标图，在内部梯度尽量接近源图块：</p>
+<div class="arithmatex">\[
+\min_f \iint_\Omega \lVert \nabla f - \nabla g \rVert^2 \quad \text{满足}\quad f\big|_{\partial\Omega} = t\big|_{\partial\Omega}
+\]</div>
+<p>它的解满足泊松方程 <span class="arithmatex">\(\Delta f = \Delta g\)</span>。换一个写法更好理解：令 <span class="arithmatex">\(f = g + u\)</span>，则 <span class="arithmatex">\(u\)</span> 满足 <span class="arithmatex">\(\Delta u = 0\)</span>，在边界上 <span class="arithmatex">\(u = t - g\)</span>。也就是说，泊松融合等于“源图块加上一个调和函数”，这个调和函数把边界上的差值平滑地插值到内部。调和函数没有局部的极值和细节，所以它能改的只有缓慢变化的成分：整体亮度差、照明梯度能被它抹平，细的纹理它动不了。</p>
+<p>OpenCV 里对应的函数是 <code>cv2.seamlessClone</code>。本章的实验为了看清每一步，对矩形图块自己解了这个方程（离散正弦变换，不用迭代），并核对了三件事：源和目标只差一个常数时结果和目标的最大差是 5e-16，图块内部的拉普拉斯和源图块的最大差是 2.7e-15，最外一圈和目标图完全相同。它和 <code>cv2.seamlessClone</code> 的输出没有逐像素比过。</p>
+<h3 id="42-边界上的痕迹有多明显">4.2 边界上的痕迹有多明显</h3>
+<p>这里有一个比“贴法”更要紧的变量：<strong>源图和目标图的图形对不对得上</strong>。本章的版图是周期线阵列，每张图的平移随机。分两种情况量：</p>
+<ul>
+<li><strong>相位随机</strong>：目标良品的平移和粘贴位置都随机。贴上去的线和周围的线一般接不上。</li>
+<li><strong>相位对齐</strong>：目标良品和源图的版图平移相同，贴回原来的位置。两张图只有增益和噪声不同。真实工作里对应的做法是先把两张图对齐（第 16 章），或者只往版图相同的位置贴。</li>
+</ul>
+<figure><img src="../../20_合成缺陷与生成模型/figures/fig04_三种贴法.svg" alt="图 4：左一，一张“真实”缺陷图，青色框是要剪下的 12×12 图块。左二到左四，把它用三种贴法贴到一张相位不同的良品上，青色角标是图块的四个角。右二，把一块没有缺陷的图块贴上去之后，跨图块边界的灰度差能不能把它和没动过的良品分开：柱高是下表“对外”“对内”两处的 AUROC 各取 max(A, 1-A) 之后的较大者，0.5 是分不开，红色是相位随机，灰色是相位对齐。最右，五种剪贴数据各自训练出的分类器：真实缺陷上的 AUROC（蓝）和“无缺陷粘贴”被报警的比例（红）" loading="lazy"><figcaption>图 4：左一，一张“真实”缺陷图，青色框是要剪下的 12×12 图块。左二到左四，把它用三种贴法贴到一张相位不同的良品上，青色角标是图块的四个角。右二，把一块没有缺陷的图块贴上去之后，跨图块边界的灰度差能不能把它和没动过的良品分开：柱高是下表“对外”“对内”两处的 AUROC 各取 max(A, 1-A) 之后的较大者，0.5 是分不开，红色是相位随机，灰色是相位对齐。最右，五种剪贴数据各自训练出的分类器：真实缺陷上的 AUROC（蓝）和“无缺陷粘贴”被报警的比例（红）</figcaption></figure>
+<p>先不训练任何网络，只量边界。把一块<strong>没有缺陷</strong>的 12×12 图块贴到良品上，在图块的四条边上算相邻像素的平均绝对差，分两处算：图块最外一圈和它外面的邻居，最外一圈和它里面的邻居。再和没动过的良品在同样位置上的值比，用它当分数算 AUROC（各 600 张）。大于 0.5 说明粘贴处的跨边界差更大，小于 0.5 说明更小。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>贴法</th>
+<th style="text-align: right;">相位随机：对外</th>
+<th style="text-align: right;">相位随机：对内</th>
+<th style="text-align: right;">相位对齐：对外</th>
+<th style="text-align: right;">相位对齐：对内</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>直接粘贴</td>
+<td style="text-align: right;">0.975</td>
+<td style="text-align: right;">0.454</td>
+<td style="text-align: right;">0.642</td>
+<td style="text-align: right;">0.476</td>
+</tr>
+<tr>
+<td>羽化融合</td>
+<td style="text-align: right;">0.563</td>
+<td style="text-align: right;">0.348</td>
+<td style="text-align: right;">0.500</td>
+<td style="text-align: right;">0.321</td>
+</tr>
+<tr>
+<td>泊松融合</td>
+<td style="text-align: right;">0.488</td>
+<td style="text-align: right;">0.768</td>
+<td style="text-align: right;">0.517</td>
+<td style="text-align: right;">0.418</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>直接粘贴的台阶最明显</strong>。相位随机时，一个最简单的边界统计量就能以 0.975 的 AUROC 认出粘贴，跨边界的平均绝对差是 0.150，没动过的良品是 0.058。相位对齐后降到 0.642，剩下的是两张图增益不同造成的亮度台阶。</li>
+<li><strong>羽化把台阶抹掉了，却留下了另一种痕迹</strong>。它的“对内”一栏是 0.348 和 0.321，明显低于 0.5：过渡带里是两张图的加权平均，噪声被平均掉了一部分，相邻像素的差比正常的还小。比正常更平滑同样是痕迹，而且相位对齐也去不掉。</li>
+<li><strong>泊松融合在边界上最干净，痕迹挪到了里面一圈</strong>。最外一圈就是目标图自己，对外是 0.488。相位随机时对内是 0.768，因为调和函数接不上对不齐的线条，差值被压在紧贴边界的一两个像素里。相位对齐时对外 0.517、对内 0.418，是三种贴法里痕迹最轻的。</li>
+</ol>
+<p>再看贴进去的背景本身错了多少。在没有噪声的图上贴一块没有缺陷的图块，理想的结果应该和目标图完全一样，实际的均方根误差（图块内，300 对）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>贴法</th>
+<th style="text-align: right;">相位随机</th>
+<th style="text-align: right;">相位对齐（只有增益差）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>直接粘贴</td>
+<td style="text-align: right;">0.175</td>
+<td style="text-align: right;">0.035</td>
+</tr>
+<tr>
+<td>羽化融合</td>
+<td style="text-align: right;">0.116</td>
+<td style="text-align: right;">0.023</td>
+</tr>
+<tr>
+<td>泊松融合</td>
+<td style="text-align: right;">0.112</td>
+<td style="text-align: right;">0.006</td>
+</tr>
+</tbody>
+</table></div>
+<p>相位对齐时，泊松融合把误差从 0.035 压到 0.006，增益造成的亮度差正是调和函数能抹平的东西。相位随机时三种贴法的误差都在 0.11 以上，泊松融合也无能为力：贴进去的是另一个相位的线条，这不是边界怎么处理的问题。</p>
+<h3 id="43-分类器学到的是缺陷还是粘贴痕迹">4.3 分类器学到的是缺陷还是粘贴痕迹</h3>
+<p>现在训练分类器。手上只有 8 张真实缺陷图（就是图 1 里 <span class="arithmatex">\(K = 8\)</span> 的那一组），把缺陷所在的图块贴到新的良品图上，造 400 张缺陷图当正样本，400 张没动过的良品当负样本，在真实缺陷上测试。另外准备一组探针：用同一种贴法贴一块<strong>没有缺陷</strong>的图块，看分类器报不报警。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练数据（8 张真实缺陷图剪贴成 400 张，3 个种子）</th>
+<th style="text-align: right;">真实缺陷上的 AUROC</th>
+<th style="text-align: right;">检出率</th>
+<th style="text-align: right;">无缺陷粘贴被报警的比例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只用这 8 张真实缺陷图，不剪贴</td>
+<td style="text-align: right;">0.581</td>
+<td style="text-align: right;">14.0%</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>直接粘贴，相位随机</td>
+<td style="text-align: right;">0.915</td>
+<td style="text-align: right;">75.7%</td>
+<td style="text-align: right;">98.2%</td>
+</tr>
+<tr>
+<td>羽化融合，相位随机</td>
+<td style="text-align: right;">0.938</td>
+<td style="text-align: right;">80.7%</td>
+<td style="text-align: right;">97.7%</td>
+</tr>
+<tr>
+<td>泊松融合，相位随机</td>
+<td style="text-align: right;">0.937</td>
+<td style="text-align: right;">80.6%</td>
+<td style="text-align: right;">96.7%</td>
+</tr>
+<tr>
+<td>泊松融合，相位对齐</td>
+<td style="text-align: right;">0.630</td>
+<td style="text-align: right;">17.5%</td>
+<td style="text-align: right;">6.1%</td>
+</tr>
+<tr>
+<td>直接粘贴，相位随机，良品也贴一块</td>
+<td style="text-align: right;">0.638</td>
+<td style="text-align: right;">23.6%</td>
+<td style="text-align: right;">31.2%</td>
+</tr>
+</tbody>
+</table></div>
+<p>这张表是本章最反直觉的结果，分三层读。</p>
+<p><strong>第一层：相位随机的三行，分类器学到的是粘贴，不是缺陷。</strong> 贴上去的图块里明明没有缺陷，97% 左右仍然被判成缺陷。换成泊松融合也一样（96.7%），因为第 4.2 节已经看到，相位对不上时痕迹不在边界上，而在图块里那一片接不上的线条里。</p>
+<p><strong>第二层：这个“粘贴探测器”在真实缺陷上的 AUROC 反而很高。</strong> 0.915 到 0.938，和 1024 张真实缺陷图训练的 0.942 差不多。原因是真实缺陷和粘贴有一个共同点：都把局部的图形打断了。分类器学到的是“这一小块和周围接不上”，这正好也能发现真实缺陷。第 2 节表里的自监督伪异常（CutPaste）走的就是这条路，它故意不要真实缺陷，只靠粘贴制造“异常”。</p>
+<p><strong>第三层：把痕迹这条捷径堵上，才看得出分类器从那 8 个缺陷里学到了多少。</strong> 两种堵法：</p>
+<ul>
+<li>贴得足够干净（泊松融合、相位对齐），无缺陷粘贴的报警比例回到 6.1%，和 5% 的误报设定相当。这时 AUROC 只有 0.630。</li>
+<li>让负样本也带上同样的痕迹（良品也贴一块没有缺陷的图块），AUROC 是 0.638。</li>
+</ul>
+<p>两种堵法给出的数字几乎一样，都只比“8 张真实缺陷图不剪贴”的 0.581 高一点。把 8 个缺陷贴 400 遍，分类器见到的还是那 8 个缺陷。<strong>剪贴能增加的是背景和位置的多样性，增加不了缺陷本身的多样性。</strong></p>
+<p>那么相位随机的剪贴数据算不算“有用”？要看你要的是什么：</p>
+<ul>
+<li>要一个“发现任何局部异常”的检测器，它有用，但那是第 19 章的任务，应该按异常检测的方式评估，并且知道它对一切图形不连续都会报警，分不出缺陷类型。</li>
+<li>要一个“认识这类缺陷”的分类器，它是帮倒忙的：真实缺陷上的 AUROC 很好看，掩盖了分类器并不认识缺陷这件事。良品上只要出现一块接不上的图形，它同样报警（探针上是 98.2%）；你后来在负样本里也做同样的粘贴时，AUROC 就掉到 0.638。</li>
+</ul>
+<div class="callout callout-key"><div class="callout-title">要点</div><p>只看“真实缺陷上的 AUROC”分不清上面两种情况。评估合成数据时要加探针：把合成流程原样走一遍，只是不放缺陷，看分类器报不报警。报警比例远高于误报设定，说明它学到的是合成痕迹。</p>
+</div>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>用 8 张真实缺陷图做直接粘贴（相位随机），训练出的分类器在真实缺陷上 AUROC 0.915。把一块没有缺陷的图块用同样的方法贴到良品上，98.2% 被判成缺陷。训练时让良品也贴一块之后，AUROC 掉到 0.638。最合理的解释是什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>让良品也贴一块是错误的做法，把分类器训坏了</span></button><button type="button" data-k="B"><b>B</b><span>0.915 主要来自粘贴痕迹：分类器学到的是“这一块和周围接不上”，它碰巧也能发现真实缺陷；去掉这条线索后，8 个缺陷本身只够支撑 0.64 左右</span></button><button type="button" data-k="C"><b>C</b><span>测试集太小，0.915 和 0.638 的差别是随机波动</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。贴得很干净的泊松融合加相位对齐给出 0.630，和 0.638 几乎一样，两种堵住捷径的办法互相印证。A 不对，良品也贴一块正是检验分类器有没有依赖痕迹的标准做法。C 不对，3 个种子的 AUROC 分别是 0.907、0.921、0.917 和 0.641、0.569、0.702，两组完全不重叠。</p></div></div>
+<h2 id="5-三类生成模型">5. 三类生成模型</h2>
+<p>程序化合成和剪贴都要人来决定缺陷长什么样。生成模型让网络从数据里学缺陷的外观。这一节讲三类模型的原理，实测只做两件不需要大模型的事：VAE 的重参数化，和扩散模型的前向过程。</p>
+<h3 id="51-vae">5.1 VAE</h3>
 <p>编码器输出均值 μ 和对数方差 logσ²，采样 z = μ + σ·ε（重参数化，让采样可导），解码器重建。损失 = 重建误差 + KL(q(z|x) ‖ N(0, I))。</p>
 <ul>
 <li>优点：训练稳定，潜空间连续，可以插值。</li>
 <li>缺点：生成结果偏模糊。</li>
 <li>缺陷场景：学良品分布，用于异常检测（重建误差）；或者在潜空间里做数据增强。</li>
 </ul>
-<h3 id="gan">GAN</h3>
+<p><strong>为什么输出对数方差</strong>。方差必须是正数，让网络直接输出它要加约束；输出 <span class="arithmatex">\(\log\sigma^2\)</span> 则可以取任意实数。采样写成</p>
+<div class="arithmatex">\[
+z = \mu + \exp\!\left(\tfrac{1}{2}\log\sigma^2\right)\varepsilon,\qquad \varepsilon \sim \mathcal{N}(0, I)
+\]</div>
+<p>指数里的二分之一最容易漏。用作业的 <code>reparameterize</code> 取 <span class="arithmatex">\(\mu = 2\)</span>、<span class="arithmatex">\(\log\sigma^2 = \log 9\)</span>、20 万个样本，<span class="arithmatex">\(z\)</span> 的标准差是 2.995；把 <span class="arithmatex">\(\exp(0.5\log\sigma^2)\)</span> 写成 <span class="arithmatex">\(\exp(\log\sigma^2)\)</span>，标准差变成 8.986，把方差当成了标准差。</p>
+<p><strong>KL 项有闭式</strong>。对角高斯和标准正态之间，每一维是</p>
+<div class="arithmatex">\[
+\mathrm{KL} = \tfrac{1}{2}\left(\mu^2 + \sigma^2 - 1 - \log\sigma^2\right)
+\]</div>
+<p>同一组参数下闭式值是 4.901，用重参数化采出的样本直接估计 <span class="arithmatex">\(\mathbb{E}[\log q(z) - \log p(z)]\)</span> 得到 4.909。所以训练时 KL 项不用采样。</p>
+<p><strong>重参数化解决了什么问题</strong>。损失里有一项是对 <span class="arithmatex">\(z \sim q\)</span> 求期望，要对 <span class="arithmatex">\(\mu\)</span>、<span class="arithmatex">\(\sigma\)</span> 求导，而“从分布里抽一个数”这个操作本身没有导数。重参数化把随机性挪到和参数无关的 <span class="arithmatex">\(\varepsilon\)</span> 上，<span class="arithmatex">\(z\)</span> 变成 <span class="arithmatex">\(\mu\)</span>、<span class="arithmatex">\(\sigma\)</span> 的普通函数，<span class="arithmatex">\(\partial z/\partial\mu = 1\)</span>，<span class="arithmatex">\(\partial z/\partial\log\sigma^2 = \tfrac{1}{2}\sigma\varepsilon\)</span>，反向传播照常进行。</p>
+<p>它不是唯一能求这个梯度的办法。打分函数估计（REINFORCE）不需要 <span class="arithmatex">\(z\)</span> 对参数可导，但方差大。拿 <span class="arithmatex">\(\mathbb{E}[z^2]\)</span> 对 <span class="arithmatex">\(\mu\)</span> 的导数做例子（真值是 <span class="arithmatex">\(2\mu = 4\)</span>，同上 20 万个样本）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>估计方法</th>
+<th style="text-align: right;">均值</th>
+<th style="text-align: right;">单个样本的标准差</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>重参数化：<span class="arithmatex">\(2z\)</span></td>
+<td style="text-align: right;">4.020</td>
+<td style="text-align: right;">5.991</td>
+</tr>
+<tr>
+<td>打分函数：<span class="arithmatex">\(z^2 (z - \mu)/\sigma^2\)</span></td>
+<td style="text-align: right;">4.013</td>
+<td style="text-align: right;">13.878</td>
+</tr>
+</tbody>
+</table></div>
+<p>两种都是无偏的，打分函数估计的方差是重参数化的 5.4 倍，也就是要多抽 5.4 倍的样本才能一样准。这只是一维的一个例子，它说明的是重参数化的好处在于方差小，而不只是“让采样可导”。</p>
+<h3 id="52-gan">5.2 GAN</h3>
 <p>生成器和判别器对抗训练。</p>
 <ul>
 <li>优点：生成清晰。</li>
 <li>缺点：训练不稳定、模式坍塌（只生成少数几种样子），小数据集上尤其严重。</li>
 <li>缺陷场景：缺陷到良品的图像翻译（CycleGAN 类），或者在少量缺陷上做风格迁移。</li>
 </ul>
-<h3 id="扩散模型">扩散模型</h3>
+<p>目标函数是一个极小极大问题：</p>
+<div class="arithmatex">\[
+\min_G \max_D\ \mathbb{E}_{x}\big[\log D(x)\big] + \mathbb{E}_{z}\big[\log\big(1 - D(G(z))\big)\big]
+\]</div>
+<p>判别器 <span class="arithmatex">\(D\)</span> 做的事和第 4.3 节的探针是同一件：找出合成图和真实图之间的任何差别，不管这个差别是不是缺陷。区别在于 GAN 把判别器的输出反过来拿去改生成器，直到判别器分不出来为止。这也解释了模式坍塌：生成器只要找到几种能骗过判别器的样子就够了，没有任何一项要求它把真实数据的各种样子都覆盖到。对缺陷合成来说，这正是第 3.4 节量过的多样性问题。</p>
+<p>本章没有训练 GAN，上面三条优缺点是文献和经验里的说法，没有实测数字。</p>
+<h3 id="53-扩散模型">5.3 扩散模型</h3>
 <p><strong>前向过程</strong>：逐步加高斯噪声，T 步后变成纯噪声。有闭式解：</p>
 <div class="highlight"><pre><span></span><code>x_t = sqrt(ᾱ_t) · x_0 + sqrt(1 - ᾱ_t) · ε,    ᾱ_t = Π_{s≤t} (1 - β_s)
 </code></pre></div>
@@ -154,7 +657,302 @@
 <li>缺点：采样慢（DDIM 等方法可以少步采样）。</li>
 <li><strong>Stable Diffusion</strong>：在 VAE 的潜空间里做扩散，再用文本条件控制，大幅降低计算量。</li>
 </ul>
-<h2 id="5-可控生成缺陷合成真正需要的">5. 可控生成：缺陷合成真正需要的</h2>
+<p>下面四个小节把前向过程和训练目标量一遍。反向采样和条件生成不在本章范围内。</p>
+<h4 id="531-闭式和逐步加噪是一回事">5.3.1 闭式和逐步加噪是一回事</h4>
+<p>每一步做的事是把上一步的结果缩小一点，再加一点新噪声：</p>
+<div class="arithmatex">\[
+x_t = \sqrt{1 - \beta_t}\,x_{t-1} + \sqrt{\beta_t}\,\varepsilon_t
+\]</div>
+<p>把它展开一步：</p>
+<div class="arithmatex">\[
+x_t = \sqrt{(1-\beta_t)(1-\beta_{t-1})}\,x_{t-2} + \sqrt{(1-\beta_t)\beta_{t-1}}\,\varepsilon_{t-1} + \sqrt{\beta_t}\,\varepsilon_t
+\]</div>
+<p>后两项是两个独立的高斯噪声，合起来还是高斯，方差相加：<span class="arithmatex">\((1-\beta_t)\beta_{t-1} + \beta_t = 1 - (1-\beta_t)(1-\beta_{t-1})\)</span>。一直展开到 <span class="arithmatex">\(x_0\)</span>，信号的系数是所有 <span class="arithmatex">\(\sqrt{1-\beta_s}\)</span> 的乘积，噪声的总方差是 1 减去这个乘积的平方。记 <span class="arithmatex">\(\bar\alpha_t = \prod_{s \le t}(1-\beta_s)\)</span>，就是闭式：</p>
+<div class="arithmatex">\[
+x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1-\bar\alpha_t}\,\varepsilon
+\]</div>
+<p>信号系数的平方加噪声方差恒等于 1，所以 <span class="arithmatex">\(x_0\)</span> 的方差是 1 时 <span class="arithmatex">\(x_t\)</span> 的方差始终是 1，这叫方差保持。</p>
+<p>实测：线性噪声表 1000 步，从同一张 32×32 的条纹图出发真的一步一步加噪，100 条独立的链，在几个步数上量“信号系数”（多条链平均之后对 <span class="arithmatex">\(x_0\)</span> 的回归斜率）和“噪声标准差”，和公式比。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>步数 t（下标从 0 开始）</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">99</th>
+<th style="text-align: right;">299</th>
+<th style="text-align: right;">599</th>
+<th style="text-align: right;">999</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>公式：信号系数</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.947</td>
+<td style="text-align: right;">0.630</td>
+<td style="text-align: right;">0.161</td>
+<td style="text-align: right;">0.006</td>
+</tr>
+<tr>
+<td>逐步加噪量出的信号系数</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.945</td>
+<td style="text-align: right;">0.642</td>
+<td style="text-align: right;">0.159</td>
+<td style="text-align: right;">0.006</td>
+</tr>
+<tr>
+<td>公式：噪声标准差</td>
+<td style="text-align: right;">0.010</td>
+<td style="text-align: right;">0.321</td>
+<td style="text-align: right;">0.777</td>
+<td style="text-align: right;">0.987</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td>逐步加噪量出的噪声标准差</td>
+<td style="text-align: right;">0.010</td>
+<td style="text-align: right;">0.320</td>
+<td style="text-align: right;">0.773</td>
+<td style="text-align: right;">0.982</td>
+<td style="text-align: right;">0.994</td>
+</tr>
+</tbody>
+</table></div>
+<p>两者在抽样误差之内一致。不靠抽样也能核对：把 1000 步的系数连乘起来和 <span class="arithmatex">\(\sqrt{\bar\alpha_t}\)</span> 比，最大差是 1.2e-15；按 <span class="arithmatex">\(v \leftarrow (1-\beta_t)v + \beta_t\)</span> 递推出的噪声方差和 <span class="arithmatex">\(1-\bar\alpha_t\)</span> 的最大差是 5.6e-16。闭式的意义在训练上：不用真的走 <span class="arithmatex">\(t\)</span> 步，随机抽一个 <span class="arithmatex">\(t\)</span> 就能一步得到 <span class="arithmatex">\(x_t\)</span>。</p>
+<p>作业里的下标从 0 开始：<code>abar[0]</code> 是 0.9999，也就是下标 0 的那张图已经加过一次噪声；<code>abar[999]</code> 是 4e-05。写论文公式时下标从 1 开始，两种约定差一步，对照别人的代码时要先确认。</p>
+<p>本章 Notebook 让你预测“t=300 时还能不能认出条纹”。那张图的条纹取值是 -0.4 和 0.4，t=300 时 <span class="arithmatex">\(\bar\alpha\)</span> 是 0.394，按公式逐像素的相关系数只有 0.307，单看一个像素基本分不出亮暗。但每条条纹有 480 个像素，把一条条纹里的像素平均之后，相关系数是 0.99。眼睛做的就是这种平均，所以条纹仍然看得出来。“某一步还剩多少信息”取决于你问的是多大的结构，第 5.3.3 节专门量这件事。</p>
+<h4 id="532-线性表和余弦表">5.3.2 线性表和余弦表</h4>
+<p>噪声表决定 <span class="arithmatex">\(\bar\alpha_t\)</span> 怎样从 1 降到 0。两种常见的选择：</p>
+<ul>
+<li><strong>线性表</strong>：<span class="arithmatex">\(\beta_t\)</span> 从 0.0001 到 0.02 等间隔，作业的 <code>linear_beta_schedule</code> 就是它。</li>
+<li><strong>余弦表</strong>：直接规定 <span class="arithmatex">\(\bar\alpha_t\)</span> 按余弦平方下降，<span class="arithmatex">\(\bar\alpha_t = f(t)/f(0)\)</span>，<span class="arithmatex">\(f(t) = \cos^2\!\big(\tfrac{t/T + s}{1 + s}\cdot\tfrac{\pi}{2}\big)\)</span>，<span class="arithmatex">\(s = 0.008\)</span>，再反推出 <span class="arithmatex">\(\beta_t\)</span> 并截到 0.999 以下。它是 Nichol 和 Dhariwal（2021）为了改进线性表提出的。式子里 <span class="arithmatex">\(t\)</span> 从 1 数；按作业从 0 数的约定，下标 <span class="arithmatex">\(t\)</span> 处取的是 <span class="arithmatex">\(f(t+1)/f(0)\)</span>。</li>
+</ul>
+<p>比较两张表最方便的量是信噪比 <span class="arithmatex">\(\bar\alpha_t/(1-\bar\alpha_t)\)</span>，即信号系数和噪声标准差的平方比。</p>
+<figure><img src="../../20_合成缺陷与生成模型/figures/fig05_前向过程与噪声表.svg" alt="图 5：左，同一张 64×64 的图、同一份噪声，上排用线性表、下排用余弦表，从左到右是 t=0、100、300、500、700。中，线性表下闭式给出的信号系数和噪声标准差（实线），以及逐步加噪量出来的值（空心点）。右，两种噪声表的信噪比随步数的变化，纵轴是对数，虚线是信噪比 1 和 0.01" loading="lazy"><figcaption>图 5：左，同一张 64×64 的图、同一份噪声，上排用线性表、下排用余弦表，从左到右是 t=0、100、300、500、700。中，线性表下闭式给出的信号系数和噪声标准差（实线），以及逐步加噪量出来的值（空心点）。右，两种噪声表的信噪比随步数的变化，纵轴是对数，虚线是信噪比 1 和 0.01</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>都是 1000 步</th>
+<th style="text-align: right;">线性表</th>
+<th style="text-align: right;">余弦表</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(\bar\alpha\)</span> 在 t=100、300、500、700、900</td>
+<td style="text-align: right;">0.8951、0.3940、0.0778、0.0069、0.0003</td>
+<td style="text-align: right;">0.9716、0.7856、0.4923、0.2019、0.0236</td>
+</tr>
+<tr>
+<td>t=500 时的信噪比</td>
+<td style="text-align: right;">0.084</td>
+<td style="text-align: right;">0.970</td>
+</tr>
+<tr>
+<td>信噪比第一次低于 1 的步数</td>
+<td style="text-align: right;">259</td>
+<td style="text-align: right;">496</td>
+</tr>
+<tr>
+<td>信噪比第一次低于 0.01 的步数</td>
+<td style="text-align: right;">674</td>
+<td style="text-align: right;">936</td>
+</tr>
+<tr>
+<td>信噪比低于 0.01 的步数占比</td>
+<td style="text-align: right;">32.6%</td>
+<td style="text-align: right;">6.4%</td>
+</tr>
+<tr>
+<td>最后一步的 <span class="arithmatex">\(\bar\alpha\)</span></td>
+<td style="text-align: right;">4e-05</td>
+<td style="text-align: right;">2.4e-09</td>
+</tr>
+</tbody>
+</table></div>
+<p>线性表到第 259 步噪声就压过了信号，从第 674 步起信噪比低于 0.01，后面将近三分之一的步数都在处理几乎是纯噪声的图。余弦表把信噪比等于 1 的位置放在正中间附近（第 496 步），低于 0.01 的步数只占 6.4%。图 5 左栏里 t=500 的两张图差别最明显：线性表已经看不出条纹，余弦表还看得出。</p>
+<p><strong>步数少的时候，线性表的 β 范围要跟着改。</strong> 0.0001 到 0.02 这个范围是给 1000 步定的。只把步数改小：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>总步数 T</th>
+<th style="text-align: right;">100</th>
+<th style="text-align: right;">200</th>
+<th style="text-align: right;">500</th>
+<th style="text-align: right;">1000</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>β 范围不变，最后一步的 <span class="arithmatex">\(\bar\alpha\)</span></td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">0.13</td>
+<td style="text-align: right;">0.0064</td>
+<td style="text-align: right;">4e-05</td>
+</tr>
+<tr>
+<td>β 按 1000/T 放大，最后一步的 <span class="arithmatex">\(\bar\alpha\)</span></td>
+<td style="text-align: right;">2e-05</td>
+<td style="text-align: right;">3e-05</td>
+<td style="text-align: right;">3.8e-05</td>
+<td style="text-align: right;">4e-05</td>
+</tr>
+</tbody>
+</table></div>
+<p>100 步时最后一步的 <span class="arithmatex">\(\bar\alpha\)</span> 还有 0.36，<span class="arithmatex">\(x_T\)</span> 里信号系数是 0.6，远不是纯噪声。“T 步后变成纯噪声”这句话只对配套的 β 范围成立。采样时是从纯噪声出发的，如果训练时最后一步不是纯噪声，训练和采样的起点就对不上。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>把 <code>linear_beta_schedule</code> 的步数从 1000 改成 100，β 的起止值保持 0.0001 和 0.02 不变。最后一步的 x_T 是什么样子？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>仍然是纯噪声，步数只影响速度</span></button><button type="button" data-k="B"><b>B</b><span>最后一步的 ᾱ 还有 0.36，x_T 里还留着原图的信号，不是纯噪声</span></button><button type="button" data-k="C"><b>C</b><span>ᾱ 变成负数，程序报错</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。ᾱ 是 100 个 (1 - β) 的乘积，β 最大才 0.02，乘 100 次只降到 0.36，信号系数是它的平方根 0.6。把 β 整体放大 10 倍，最后一步的 ᾱ 才回到 2e-05。C 描述的是另一个错误：把累乘写成 1 减累加，1000 步时在第 312 步变成负数。</p></div></div>
+<h4 id="533-同一个步数不同分辨率下破坏的东西不一样">5.3.3 同一个步数，不同分辨率下破坏的东西不一样</h4>
+<p>噪声是逐像素独立加的。一个占很多像素的结构，可以靠平均把噪声压下去；一个只占几个像素的结构不行。所以同样的 <span class="arithmatex">\(\bar\alpha_t\)</span>，图的分辨率越高，粗结构保留得越多。</p>
+<p>把 <span class="arithmatex">\(k \times k\)</span> 个像素平均，信号不变，噪声的标准差除以 <span class="arithmatex">\(k\)</span>。平均之后和 <span class="arithmatex">\(x_0\)</span> 的相关系数是</p>
+<div class="arithmatex">\[
+\rho = \sqrt{\frac{\bar\alpha_t\,s^2}{\bar\alpha_t\,s^2 + (1-\bar\alpha_t)/k^2}}
+\]</div>
+<p><span class="arithmatex">\(s^2\)</span> 是粗尺度上 <span class="arithmatex">\(x_0\)</span> 的方差。实测：同一个场景按 32、64、128、256 四种分辨率采样（高分辨率的图块平均后和 32×32 的完全相同），各自用线性表加噪到第 <span class="arithmatex">\(t\)</span> 步，再块平均回 32×32，和 32×32 的 <span class="arithmatex">\(x_0\)</span> 算相关系数，20 次平均。</p>
+<figure><img src="../../20_合成缺陷与生成模型/figures/fig06_分辨率.svg" alt="图 6：左四栏，同一个场景在四种分辨率下加噪到 t=300 的结果，显示成同样大小。右，块平均到 32×32 之后和 x0 的相关系数随步数的变化，实线是公式，空心点是实测，虚线是 0.5" loading="lazy"><figcaption>图 6：左四栏，同一个场景在四种分辨率下加噪到 t=300 的结果，显示成同样大小。右，块平均到 32×32 之后和 x0 的相关系数随步数的变化，实线是公式，空心点是实测，虚线是 0.5</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>分辨率</th>
+<th style="text-align: right;">t=100</th>
+<th style="text-align: right;">t=300</th>
+<th style="text-align: right;">t=500</th>
+<th style="text-align: right;">t=700</th>
+<th style="text-align: right;">相关系数降到 0.5 的步数（线性表）</th>
+<th style="text-align: right;">同上（余弦表）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>32×32</td>
+<td style="text-align: right;">0.745</td>
+<td style="text-align: right;">0.305</td>
+<td style="text-align: right;">0.103</td>
+<td style="text-align: right;">0.030</td>
+<td style="text-align: right;">187</td>
+<td style="text-align: right;">369</td>
+</tr>
+<tr>
+<td>64×64</td>
+<td style="text-align: right;">0.914</td>
+<td style="text-align: right;">0.529</td>
+<td style="text-align: right;">0.215</td>
+<td style="text-align: right;">0.059</td>
+<td style="text-align: right;">315</td>
+<td style="text-align: right;">587</td>
+</tr>
+<tr>
+<td>128×128</td>
+<td style="text-align: right;">0.976</td>
+<td style="text-align: right;">0.781</td>
+<td style="text-align: right;">0.408</td>
+<td style="text-align: right;">0.124</td>
+<td style="text-align: right;">453</td>
+<td style="text-align: right;">769</td>
+</tr>
+<tr>
+<td>256×256</td>
+<td style="text-align: right;">0.994</td>
+<td style="text-align: right;">0.927</td>
+<td style="text-align: right;">0.671</td>
+<td style="text-align: right;">0.250</td>
+<td style="text-align: right;">577</td>
+<td style="text-align: right;">881</td>
+</tr>
+</tbody>
+</table></div>
+<p>实测和公式一致（t=300 时公式给出 0.296、0.527、0.779、0.928）。同样是第 300 步，32×32 的图上条纹已经基本没了，256×256 的图上相关系数还有 0.927。把结构破坏到同样程度所需的步数，从 187 步推迟到 577 步。</p>
+<p>这件事有两个后果：</p>
+<ol>
+<li><strong>噪声表不能跨分辨率照搬</strong>。在小图上调好的噪声表拿到大图上，前面很长一段步数几乎没有破坏任何粗结构（256×256 时到第 300 步相关系数还有 0.927）。讨论高分辨率扩散模型为什么要调整噪声表的工作，出发点就是这个现象，可以读 Hoogeboom 等人的 simple diffusion（2023）和 Chen 的 On the Importance of Noise Scheduling for Diffusion Models（2023），本章没有复现它们的做法。</li>
+<li><strong>小缺陷最先消失</strong>。缺陷只占几个像素，没有多少像素可以平均，它在很早的步数就被噪声淹没，而版图的线条还在。用“加噪到某一步再去噪”的办法改图时，这决定了哪些东西保得住、哪些保不住。具体怎么用属于规划中的第 29 章。</li>
+</ol>
+<h4 id="534-训练目标预测噪声到底在学什么">5.3.4 训练目标：预测噪声到底在学什么</h4>
+<p>训练时随机取一张 <span class="arithmatex">\(x_0\)</span>、一个步数 <span class="arithmatex">\(t\)</span>、一份噪声 <span class="arithmatex">\(\varepsilon\)</span>，按闭式得到 <span class="arithmatex">\(x_t\)</span>，让网络从 <span class="arithmatex">\(x_t\)</span> 和 <span class="arithmatex">\(t\)</span> 预测 <span class="arithmatex">\(\varepsilon\)</span>：</p>
+<div class="arithmatex">\[
+L = \mathbb{E}_{x_0,\,t,\,\varepsilon}\ \big\lVert \varepsilon - \varepsilon_\theta(x_t, t) \big\rVert^2
+\]</div>
+<p>知道了 <span class="arithmatex">\(\varepsilon\)</span> 的预测值，就能从闭式反解出对 <span class="arithmatex">\(x_0\)</span> 的估计：</p>
+<div class="arithmatex">\[
+\hat{x}_0 = \frac{x_t - \sqrt{1-\bar\alpha_t}\,\hat\varepsilon}{\sqrt{\bar\alpha_t}}
+\qquad\Longrightarrow\qquad
+\lVert x_0 - \hat{x}_0 \rVert^2 = \frac{1-\bar\alpha_t}{\bar\alpha_t}\,\lVert \varepsilon - \hat\varepsilon \rVert^2
+\]</div>
+<p>预测噪声和预测原图是同一件事的两种写法，只差一个和 <span class="arithmatex">\(t\)</span> 有关的倍数。反过来读：对噪声的平方误差，等于对原图的平方误差乘以信噪比。所以“每个步数权重相同的噪声预测损失”，其实是“按信噪比加权的原图预测损失”，<span class="arithmatex">\(t\)</span> 小的时候权重大，<span class="arithmatex">\(t\)</span> 大的时候权重小。</p>
+<p>这个倍数有多大，用一个很小的去噪网络量一下。三层 3×3 卷积、2769 个参数，在 500 张良品图上训练 300 步，在另外 100 张上按步数评估。同时算一个不用训练的基线：把 <span class="arithmatex">\(x_t\)</span> 原样当作噪声输出。“输出全 0”的损失恒为 1。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>步数 t</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">50</th>
+<th style="text-align: right;">100</th>
+<th style="text-align: right;">200</th>
+<th style="text-align: right;">300</th>
+<th style="text-align: right;">500</th>
+<th style="text-align: right;">700</th>
+<th style="text-align: right;">900</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网络的损失</td>
+<td style="text-align: right;">0.799</td>
+<td style="text-align: right;">0.303</td>
+<td style="text-align: right;">0.137</td>
+<td style="text-align: right;">0.0859</td>
+<td style="text-align: right;">0.0455</td>
+<td style="text-align: right;">0.0173</td>
+<td style="text-align: right;">0.0151</td>
+<td style="text-align: right;">0.0151</td>
+</tr>
+<tr>
+<td>把 <span class="arithmatex">\(x_t\)</span> 原样输出的损失</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">0.52</td>
+<td style="text-align: right;">0.21</td>
+<td style="text-align: right;">0.075</td>
+<td style="text-align: right;">0.0066</td>
+<td style="text-align: right;">0.00046</td>
+<td style="text-align: right;">1.8e-05</td>
+</tr>
+<tr>
+<td>换算倍数 <span class="arithmatex">\((1-\bar\alpha_t)/\bar\alpha_t\)</span></td>
+<td style="text-align: right;">0.0022</td>
+<td style="text-align: right;">0.031</td>
+<td style="text-align: right;">0.117</td>
+<td style="text-align: right;">0.524</td>
+<td style="text-align: right;">1.54</td>
+<td style="text-align: right;">11.9</td>
+<td style="text-align: right;">145</td>
+<td style="text-align: right;">3700</td>
+</tr>
+<tr>
+<td>网络预测换算成 <span class="arithmatex">\(x_0\)</span> 之后的均方误差</td>
+<td style="text-align: right;">0.00176</td>
+<td style="text-align: right;">0.00939</td>
+<td style="text-align: right;">0.0161</td>
+<td style="text-align: right;">0.045</td>
+<td style="text-align: right;">0.0699</td>
+<td style="text-align: right;">0.205</td>
+<td style="text-align: right;">2.18</td>
+<td style="text-align: right;">55.9</td>
+</tr>
+</tbody>
+</table></div>
+<p>三件事：</p>
+<ol>
+<li><strong>不同步数的损失不能直接比</strong>。t=10 时损失 0.799 看起来很差，换算成原图的误差只有 0.00176；t=900 时损失 0.0151 看起来很好，换算成原图的误差是 55.9，而原图的均方才 0.065，这个估计毫无用处。</li>
+<li><strong>t 大的时候，损失低不说明学到了东西</strong>。<span class="arithmatex">\(x_t\)</span> 本身就几乎是噪声，原样输出的损失在 t=700 时只有 0.00046。这个小网络在 t 不小于 500 的那一半步数上，平均损失是 0.015，比原样输出的 0.0011 高一个数量级，它在这一半上还不如把输入原样输出。</li>
+<li><strong>只看总的平均损失会漏掉第 2 点</strong>。对 t 均匀取平均，网络是 0.075，原样输出是 0.139，网络明显更好。它的优势全部来自 t 小于 500 的那一半（0.133 对 0.274）。</li>
+</ol>
+<p>训练扩散模型时，把损失按 <span class="arithmatex">\(t\)</span> 分成几段分别记录，并且和“原样输出”比，比盯着一条总的损失曲线有用得多。这个网络很小、训练很短，表里的数字只说明这一个网络，结论是读损失的方法。</p>
+<h2 id="6-交互演示扩散前向过程">6. 交互演示：扩散前向过程</h2>
+<p>拖动步数、切换噪声表和分辨率，看一张小图和信噪比曲线怎么变。计算和作业里的 <code>linear_beta_schedule</code>、<code>alpha_bars</code>、<code>q_sample</code> 相同。按页面下方“按顺序试”的五步操作，分别对应第 5.3.1 节的闭式、第 5.3.2 节的两种噪声表和步数陷阱、第 5.3.3 节的分辨率。</p>
+<div class="embed"><iframe src="../../demos/扩散前向过程.html" height="1193" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/扩散前向过程.html">打开交互演示：扩散模型的前向过程</a></p>
+<h2 id="7-可控生成缺陷合成真正需要的">7. 可控生成：缺陷合成真正需要的</h2>
 <p>光会“生成一张像缺陷的图”没用，需要控制缺陷在哪、多大、什么类型：</p>
 <ul>
 <li><strong>Inpainting</strong>：给良品图和掩码，只在掩码区域生成内容。缺陷位置和标签天然对齐。</li>
@@ -162,9 +960,74 @@
 <li><strong>少样本微调</strong>：DreamBooth、LoRA 用十几张真实缺陷图微调，让模型学会某种缺陷的外观。</li>
 </ul>
 <p>风险：生成模型可能在掩码外也修改了内容，或者掩码内什么也没生成，这时标签就错了。生成后要做质量筛选（比如用检测器或差分图确认掩码内确实有变化、掩码外没有变化）。</p>
-<h2 id="6-怎样证明合成数据有用">6. 怎样证明合成数据有用</h2>
+<p>这三种方法的实际操作属于规划中的第 29 章，本章没有跑过，上面是原理层面的说明。但“标签对不对”和“掩码外有没有被改”这两个风险不是生成模型独有的，第 4 节的剪贴已经遇到了：</p>
+<ul>
+<li>剪贴时改动的是整个图块，而缺陷掩膜只占其中一小部分。本章的 1500 个测试缺陷，以缺陷为中心的 12×12 图块里平均只有 16.1% 的像素属于缺陷掩膜，其余都是“掩膜外被改动的内容”。第 4.3 节的分类器正是从这部分学到了捷径。</li>
+<li>筛选的办法和第 4.3 节的探针一样：生成前后做差分，掩膜内的差分要明显大于噪声，掩膜外的差分要和噪声相当。阈值可以按第 18 章的做法用良品之间的差分来定。</li>
+</ul>
+<h2 id="8-怎样证明合成数据有用怎样评估">8. 怎样证明合成数据有用（怎样评估）</h2>
 <p>这是最容易被忽略、也最体现专业度的一步。</p>
+<h3 id="81-fid-等指标不够">8.1 FID 等指标不够</h3>
 <p><strong>FID 等指标不够</strong>：FID 衡量生成图和真实图整体特征分布的距离，和“训练出来的检测器在真实缺陷上好不好”没有必然关系。</p>
+<p>FID 的做法是把两组图各自过一个预训练网络，把特征各拟合成一个高斯分布，再算两个高斯之间的 Fréchet 距离。下面用同样的公式量一遍前面各种合成数据，每组 400 张，和另外 400 张真实缺陷图比。特征用 ResNet-18 的 layer2 输出做全局平均（128 维）。这不是标准的 FID（标准做法用 Inception-v3 的 2048 维特征和上万张图），数值不能和论文里的 FID 比，只看各行之间的相对大小。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>数据（按距离从小到大）</th>
+<th style="text-align: right;">到真实缺陷图的 Fréchet 距离</th>
+<th style="text-align: right;">只用它当缺陷样本训练，真实缺陷上的 AUROC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>程序化合成，成像前插入，全部随机</td>
+<td style="text-align: right;">0.0068</td>
+<td style="text-align: right;">0.917</td>
+</tr>
+<tr>
+<td>另一批真实缺陷图（基准）</td>
+<td style="text-align: right;">0.0076</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>程序化合成，只有亮缺陷</td>
+<td style="text-align: right;">0.0082</td>
+<td style="text-align: right;">0.826</td>
+</tr>
+<tr>
+<td>程序化合成，只有弱缺陷</td>
+<td style="text-align: right;">0.0087</td>
+<td style="text-align: right;">0.763</td>
+</tr>
+<tr>
+<td>良品图，一个缺陷都没有</td>
+<td style="text-align: right;">0.0123</td>
+<td style="text-align: right;">当不了正样本</td>
+</tr>
+<tr>
+<td>剪贴，泊松融合，相位对齐</td>
+<td style="text-align: right;">0.0280</td>
+<td style="text-align: right;">0.630</td>
+</tr>
+<tr>
+<td>程序化合成，成像后替换成固定灰度</td>
+<td style="text-align: right;">0.0378</td>
+<td style="text-align: right;">0.886</td>
+</tr>
+<tr>
+<td>剪贴，直接粘贴，相位随机</td>
+<td style="text-align: right;">0.1497</td>
+<td style="text-align: right;">0.915</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>距离最小的几组，下游结果差得很远</strong>。只有亮缺陷、只有弱缺陷的两组，距离和“另一批真实缺陷图”几乎一样（0.0082、0.0087 对 0.0076），训练出的分类器却只有 0.826 和 0.763。</li>
+<li><strong>一个缺陷都没有的良品图，距离是 0.0123</strong>，比后面三组合成数据都小。缺陷只占图像的一小块，整图的特征分布主要由背景决定。</li>
+<li><strong>距离最大的一组，下游的 AUROC 是 0.915</strong>，和最好的一组（0.917）几乎一样。它距离大是因为粘贴痕迹明显，而第 4.3 节说过，这个 0.915 本身就来自痕迹。</li>
+</ol>
+<p>所以整图特征分布的距离，既不能告诉你合成数据里有没有缺陷，也不能告诉你缺陷的种类够不够，更不能告诉你下游会怎样。它适合用来发现“合成图整体上明显不像真实图”这一类问题，替代不了下面的对照实验。</p>
+<h3 id="82-标准对照实验">8.2 标准对照实验</h3>
 <p><strong>标准对照实验</strong>：</p>
 <div class="table-wrap"><table>
 <thead>
@@ -197,16 +1060,265 @@
 </tr>
 </tbody>
 </table></div>
+<p>把这张表在本章的数据上填出来。“好的合成”是成像前插入、全部随机的程序化合成；“窄的合成”也在成像前插入，但只有亮的、幅度 0.3 到 0.45 的划痕。默认把真实和合成的缺陷图放在一起均匀抽样。负样本、训练步数和测试集都和图 1 相同。</p>
+<figure><img src="../../20_合成缺陷与生成模型/figures/fig07_真实加合成.svg" alt="图 7：左，真实缺陷图只有 8 张时，加进不同张数的合成缺陷图之后真实缺陷上的 AUROC，蓝线是好的合成，橙色方块是窄的合成加 512 张。右，真实缺陷图有 256 张时，加进窄的合成之后的检出率，黑色是全部真实缺陷，橙色是亮缺陷，紫色是暗缺陷；竖线右边两组空心点是对照：窄的合成 2048 张按来源配平，以及换成好的合成 2048 张" loading="lazy"><figcaption>图 7：左，真实缺陷图只有 8 张时，加进不同张数的合成缺陷图之后真实缺陷上的 AUROC，蓝线是好的合成，橙色方块是窄的合成加 512 张。右，真实缺陷图有 256 张时，加进窄的合成之后的检出率，黑色是全部真实缺陷，橙色是亮缺陷，紫色是暗缺陷；竖线右边两组空心点是对照：窄的合成 2048 张按来源配平，以及换成好的合成 2048 张</figcaption></figure>
+<p><strong>真实缺陷只有 8 张</strong>（3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练用的缺陷图</th>
+<th style="text-align: right;">AUROC</th>
+<th style="text-align: right;">检出率</th>
+<th style="text-align: right;">亮缺陷</th>
+<th style="text-align: right;">暗缺陷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真实 8 张</td>
+<td style="text-align: right;">0.581</td>
+<td style="text-align: right;">14.0%</td>
+<td style="text-align: right;">9.7%</td>
+<td style="text-align: right;">18.6%</td>
+</tr>
+<tr>
+<td>真实 8 张 + 好的合成 64 张</td>
+<td style="text-align: right;">0.850</td>
+<td style="text-align: right;">60.2%</td>
+<td style="text-align: right;">49.5%</td>
+<td style="text-align: right;">71.5%</td>
+</tr>
+<tr>
+<td>真实 8 张 + 好的合成 512 张</td>
+<td style="text-align: right;">0.921</td>
+<td style="text-align: right;">77.1%</td>
+<td style="text-align: right;">73.6%</td>
+<td style="text-align: right;">80.8%</td>
+</tr>
+<tr>
+<td>只用好的合成 400 张，没有真实</td>
+<td style="text-align: right;">0.917</td>
+<td style="text-align: right;">76.0%</td>
+<td style="text-align: right;">68.2%</td>
+<td style="text-align: right;">84.3%</td>
+</tr>
+<tr>
+<td>真实 8 张 + 窄的合成 512 张</td>
+<td style="text-align: right;">0.847</td>
+<td style="text-align: right;">61.2%</td>
+<td style="text-align: right;">81.7%</td>
+<td style="text-align: right;">39.4%</td>
+</tr>
+</tbody>
+</table></div>
+<p>真实样本只有几个时，加合成数据的收益很大，加得越多越好，64 张就从 0.581 到了 0.850。即使是窄的合成也比没有强（0.847），只是它没覆盖的暗缺陷只检出 39.4%。这时那 8 张真实缺陷图本身几乎不起作用：加了 512 张好的合成之后是 0.921，完全不用真实、只用 400 张好的合成是 0.917。</p>
+<p><strong>真实缺陷有 256 张</strong>（3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练用的缺陷图</th>
+<th style="text-align: right;">AUROC</th>
+<th style="text-align: right;">检出率</th>
+<th style="text-align: right;">亮缺陷</th>
+<th style="text-align: right;">暗缺陷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真实 256 张</td>
+<td style="text-align: right;">0.919</td>
+<td style="text-align: right;">76.2%</td>
+<td style="text-align: right;">74.2%</td>
+<td style="text-align: right;">78.3%</td>
+</tr>
+<tr>
+<td>+ 窄的合成 64 张</td>
+<td style="text-align: right;">0.932</td>
+<td style="text-align: right;">79.2%</td>
+<td style="text-align: right;">79.0%</td>
+<td style="text-align: right;">79.4%</td>
+</tr>
+<tr>
+<td>+ 窄的合成 512 张</td>
+<td style="text-align: right;">0.897</td>
+<td style="text-align: right;">71.0%</td>
+<td style="text-align: right;">80.9%</td>
+<td style="text-align: right;">60.6%</td>
+</tr>
+<tr>
+<td>+ 窄的合成 2048 张</td>
+<td style="text-align: right;">0.871</td>
+<td style="text-align: right;">66.5%</td>
+<td style="text-align: right;">82.8%</td>
+<td style="text-align: right;">49.1%</td>
+</tr>
+<tr>
+<td>+ 窄的合成 2048 张，按来源配平</td>
+<td style="text-align: right;">0.923</td>
+<td style="text-align: right;">77.1%</td>
+<td style="text-align: right;">82.2%</td>
+<td style="text-align: right;">71.7%</td>
+</tr>
+<tr>
+<td>+ 好的合成 2048 张</td>
+<td style="text-align: right;">0.920</td>
+<td style="text-align: right;">76.4%</td>
+<td style="text-align: right;">70.6%</td>
+<td style="text-align: right;">82.6%</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>加太多窄的合成会变差</strong>。加 64 张时没有坏处（AUROC 0.932 对 0.919，差别在种子的波动之内），加到 512 张，暗缺陷的检出率从 78.3% 掉到 60.6%，加到 2048 张掉到 49.1%，总检出率从 76.2% 掉到 66.5%。3 个种子里，加 512 张和 2048 张时暗缺陷的检出率都低于不加的时候。合成样本是真实的 8 倍，分类器每个 batch 里见到的几乎全是亮的划痕，256 张真实缺陷图教给它的东西被冲掉了。</li>
+<li><strong>变差的地方藏在分组里</strong>。加 512 张时总的 AUROC 只从 0.919 变成 0.897，亮缺陷的检出率还升了（74.2% 到 80.9%），只有把暗缺陷单独拿出来才看得见掉了 18 个点。这正是原讲义“报告每类缺陷的检出率”那一条的理由。</li>
+<li><strong>按来源配平能救回大部分</strong>。每个 batch 里真实和合成各占一半，总检出率回到 77.1%，亮缺陷保住了合成带来的提升（82.2%）。暗缺陷是 71.7%，比不加合成时的 78.3% 仍然低一些。</li>
+<li><strong>好的合成加 2048 张，没有变好也没有变差</strong>（0.920 对 0.919）。真实样本已经够用时，合成数据的增益趋于零。这时还要不要它，取决于它能不能补上真实数据里缺的类型。</li>
+</ol>
+<p>把两张表合起来，就是本章核心问题的答案：<strong>真实样本越少，合成数据越有用，对质量的要求也越低；真实样本多了之后，窄的合成数据如果在数量上压过真实数据，就会帮倒忙。</strong></p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>真实缺陷图有 256 张。又加了 2048 张合成缺陷图，全是亮的强划痕。总的 AUROC 从 0.919 变成 0.871，看上去掉得不多。最该先查什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>训练步数够不够</span></button><button type="button" data-k="B"><b>B</b><span>按极性、类型、幅度分组看检出率，暗缺陷从 78.3% 掉到了 49.1%</span></button><button type="button" data-k="C"><b>C</b><span>合成图的 FID</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。合成数据只覆盖了亮缺陷，数量又是真实的 8 倍，分类器被它带偏了。亮缺陷的检出率其实升到了 82.8%，把暗缺陷的损失在总数上抵消了一部分。按来源配平之后暗缺陷回到 71.7%，总检出率 77.1%。C 帮不上忙：第 8.1 节里只有亮缺陷的合成数据，Fréchet 距离和真实数据几乎一样小。</p></div></div>
+<h3 id="83-注意事项">8.3 注意事项</h3>
 <p>注意：</p>
 <ul>
 <li>测试集必须是真实数据，并且和训练用的真实数据按晶圆或批次严格分开。</li>
 <li>报告每类缺陷的检出率，合成数据常常只对某几类有用。</li>
 <li>关注过检：合成数据可能让模型对某些正常纹理更敏感。</li>
 </ul>
-<h2 id="7-和其他章节的关系">7. 和其他章节的关系</h2>
+<p>本章的实测给这三条各补了一点：</p>
 <ul>
-<li>第 21、22 章的渲染和成像仿真，是物理仿真式合成的基础。</li>
-<li>第 24 章的数据生成器就是一个程序化合成加成像仿真的例子，读它的源码是很好的练习。</li>
+<li><strong>加探针</strong>。除了真实测试集，再准备一组“走完合成流程但没放缺陷”的图。它直接回答第三条里的“对正常内容更敏感”：第 4.3 节相位随机的剪贴，在这组探针上的报警比例是 97% 左右。</li>
+<li><strong>合成的验证集不算数</strong>。第 3.2 节里，成像后直接画的合成数据在自己的验证集上检出 97.5%，在真实缺陷上只有 71.5%。</li>
+<li><strong>看种子之间的波动</strong>。本章每个条件 3 个种子，同一个条件的 AUROC 在种子之间可以差到 0.07（成像前插入的三个种子是 0.871、0.938、0.941）。两种合成方法的平均 AUROC 差 0.02 时，不要急着下结论，先看是不是每个种子上方向都一样。</li>
+<li><strong>合成缺陷不能充当验证集</strong>。第 19 章第 5.4 节讲过定阈值需要多少个缺陷样本，那里要的是真实缺陷。</li>
+</ul>
+<h3 id="84-怎么报告">8.4 怎么报告</h3>
+<ul>
+<li>四行对照表都填上：只用真实、只用合成、真实加合成、不同比例。只报“加了合成数据之后提升了多少”不够。</li>
+<li>写清合成的做法：在成像链的哪一步插入，形状、幅度、极性、位置各自的范围，贴法和是否对齐。</li>
+<li>写清比例和抽样方式：真实和合成各多少张，是混在一起抽还是按来源配平。</li>
+<li>分组报检出率，至少按缺陷类型和极性分；每组写上缺陷个数。本章 1500 个测试缺陷，全部缺陷检出率的抽样标准误差约 1 个百分点，分到几百个一组时是 1.5 到 2.6 个百分点。</li>
+<li>报探针的报警比例，说明分类器学到的是缺陷还是合成痕迹。</li>
+<li>训练有随机性时报多个种子，写出每个种子的值。</li>
+</ul>
+<h2 id="9-作业里的零件">9. 作业里的零件</h2>
+<ul>
+<li><code>scratch_mask</code>：点到线段的距离加线性过渡（第 3.1 节）。注意是线段不是直线，<code>softness</code> 必须大于 0，两端点重合时退化成圆点。</li>
+<li><code>blend</code>：<span class="arithmatex">\(\text{bg}(1-m) + \text{fg}\,m\)</span>，前景可以是标量或数组，掩膜超出 0 到 1 要报错。返回 float64，不取整不裁剪。第 4.1 节的直接粘贴和羽化融合都是它。</li>
+<li><code>linear_beta_schedule</code>：等间隔，首尾分别等于给定的起止值（第 5.3.2 节）。</li>
+<li><code>alpha_bars</code>：累乘，不是累加（第 5.3.1 节）。</li>
+<li><code>q_sample</code>：闭式加噪，<span class="arithmatex">\(t\)</span> 是从 0 开始的下标，越界要抛 <code>IndexError</code>。</li>
+<li><code>reparameterize</code>：<span class="arithmatex">\(\mu + \exp(0.5\log\sigma^2)\,\varepsilon\)</span>（第 5.1 节）。</li>
+</ul>
+<p>Notebook 先比较“先插缺陷再成像”和“成像后直接贴”，再把前向加噪的六个步数画出来。跑的时候留意：它的贴纸用的是“替换成固定灰度 0.95”，同时改了锐度、噪声和对比度三件事，第 3.2 节把它们拆开量过。</p>
+<h2 id="10-常见错误">10. 常见错误</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>划痕两头是方的，线段端点之外还有值</td>
+<td>按无限长的直线算距离，没有把投影参数截到 0 和 1 之间</td>
+<td>20×30 的图上从 (10, 5) 到 (10, 25)、宽 3 px 的划痕，掩膜取值之和应为 67.343，按直线算是 90；端点外 3 px 处应为 0</td>
+</tr>
+<tr>
+<td>划痕比设定的窄，紧挨中心线的像素只有 0.5</td>
+<td>分子里漏了 <code>softness / 2</code></td>
+<td>宽 3 px、过渡带 1 px 时，离中心线 1 px 处应为 1</td>
+</tr>
+<tr>
+<td>两端点重合时出现 nan</td>
+<td>除以线段长度的平方，分母是 0</td>
+<td>单独处理退化成点的情况</td>
+</tr>
+<tr>
+<td>混合后的图存成 8 位出现异常的灰度</td>
+<td><code>blend</code> 的结果超出位深范围，没有裁剪就转换类型</td>
+<td>先裁剪到合法范围再转换；第 18 章的常见错误表里有同类问题</td>
+</tr>
+<tr>
+<td>合成的验证集上接近满分，真实数据上差很多</td>
+<td>缺陷画在了成像之后，或者分类器学到了粘贴痕迹</td>
+<td>画一条横截面和真实缺陷比宽度和峰值（图 2 中栏）；做第 4.3 节的无缺陷粘贴探针</td>
+</tr>
+<tr>
+<td>最后一步的 <span class="arithmatex">\(x_T\)</span> 里还看得见原图</td>
+<td>把 <span class="arithmatex">\(\bar\alpha_t\)</span> 写成了 <span class="arithmatex">\(1-\beta_t\)</span> 没有累乘，或者步数改小了但 β 范围没有放大</td>
+<td>算 <span class="arithmatex">\(x_T\)</span> 和噪声的相关系数，正确时接近 1；没有累乘时是 0.352，和 <span class="arithmatex">\(x_0\)</span> 的相关系数是 0.941</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\bar\alpha\)</span> 出现负数，开方得到 nan</td>
+<td>把累乘写成了 1 减累加</td>
+<td>1000 步的线性表，这样写在第 312 步变负，最后一步是 -9.05</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(x_t\)</span> 的方差在中间的步数变小</td>
+<td>系数忘了开方，写成 <span class="arithmatex">\(\bar\alpha\,x_0 + (1-\bar\alpha)\,\varepsilon\)</span></td>
+<td>方差为 1 的数据，t=500 时方差应为 1，这样写是 0.857</td>
+</tr>
+<tr>
+<td>逐步加噪的结果越来越大</td>
+<td>每一步用了同一份噪声，各步的噪声相加而不是方差相加</td>
+<td>1000 步后标准差应约为 1，这样写是 14.826</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(t\)</span> 传了负数没有报错</td>
+<td>Python 的负下标悄悄取到了数组末尾</td>
+<td>显式检查 <span class="arithmatex">\(t\)</span> 的范围</td>
+</tr>
+<tr>
+<td>VAE 采样的标准差大得离谱</td>
+<td>把 <span class="arithmatex">\(\exp(0.5\log\sigma^2)\)</span> 写成了 <span class="arithmatex">\(\exp(\log\sigma^2)\)</span></td>
+<td><span class="arithmatex">\(\log\sigma^2 = \log 9\)</span> 时标准差应为 3，这样写是 8.986</td>
+</tr>
+<tr>
+<td>加了合成数据之后，某一类缺陷的检出率反而下降</td>
+<td>合成数据没覆盖这一类，数量又压过了真实数据</td>
+<td>按类型和极性分组看；按来源配平再训一次（第 8.2 节）</td>
+</tr>
+<tr>
+<td>标签框和缺陷对不上</td>
+<td>做了平移、裁剪、缩放，掩膜和坐标没有同步变换</td>
+<td>把掩膜叠在图上逐张看几十张</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="11-破坏实验">11. 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>在 Notebook 的第一个实验里把 <code>softness</code> 改成 0.05（接近硬边），分别看“先插缺陷再成像”和“成像后直接贴”两张图。哪一张变了，哪一张几乎没变？对照第 3.3 节解释。</li>
+<li>用第 24 章的 <code>数据生成.py</code> 生成数据。只在带划痕的 die 上调一个差值阈值，再用这个阈值测颗粒和图形缺失，检出率差多少？这就是第 3.4 节“只合成一种”的翻版，换成了阈值法。</li>
+<li>把 <code>linear_beta_schedule</code> 的步数改成 100，β 的起止值不变，画出最后一步的 <span class="arithmatex">\(x_T\)</span>。先按第 5.3.2 节预测 <span class="arithmatex">\(\bar\alpha\)</span> 是多少，再运行。然后把 β 的起止值都乘 10 重画。</li>
+<li>自己写一个直接粘贴：把一张良品图上的 12×12 图块贴到另一张良品图的随机位置，不放任何缺陷。用第 18 章的金模板 z 图去检，会不会报警？报在哪里？再换成 <code>blend</code> 加一张渐变的掩膜做羽化，重复一遍。</li>
+<li>从 <span class="arithmatex">\(x_0\)</span> 出发写一个循环真的加 300 次噪声，和 <code>q_sample(x0, 299, ...)</code> 比较均值和标准差。再故意让每一步用同一份噪声，看标准差变成多少。</li>
+<li>用 <code>reparameterize</code> 采 10 万个样本，分别用重参数化和打分函数估计 <span class="arithmatex">\(\mathbb{E}[z^2]\)</span> 对 <span class="arithmatex">\(\mu\)</span> 的导数，比较两种估计的标准差。把 <span class="arithmatex">\(\sigma\)</span> 从 3 改成 0.5 和 10，方差之比怎么变？</li>
+</ol>
+<h2 id="12-扩展深挖档">12. 扩展（深挖档）</h2>
+<ul>
+<li><strong>复现第 8.2 节的对照表</strong>。用第 24 章的 <code>数据生成.py</code> 当“真实”数据，本章作业的 <code>scratch_mask</code> 和 <code>blend</code> 造合成缺陷，自己写一个小分类器（本章用的是三层卷积加全局最大池化，8161 个参数，训练 400 步；在一台 Mac 的 CPU 上、同时还有别的任务在跑时测过一次，训练一次约 1.9 秒，全章 84 次训练几分钟跑完）。填出四行对照表，并按缺陷类型分组。</li>
+<li><strong>加探针</strong>。在上一题里加一组“走完合成流程但不放缺陷”的图，报告报警比例。</li>
+<li><strong>实现泊松融合</strong>。用雅可比迭代解第 4.1 节的方程，或者直接用 <code>cv2.seamlessClone</code>，和直接粘贴、羽化比较第 4.2 节的边界统计量。本章自己写的求解器没有和 <code>cv2.seamlessClone</code> 逐像素比过，这一步可以由你来补。</li>
+<li><strong>实现余弦噪声表</strong>，画出和线性表的信噪比曲线，复现第 5.3.2 节的表。</li>
+<li><strong>训练一个小去噪网络</strong>（第 5.3.4 节），把损失按步数分成四段记录，和“原样输出”的基线画在一张图上。</li>
+<li><strong>（选做，需要 GPU 或耐心）</strong> 用 diffusers 跑一次 Stable Diffusion inpainting，在良品图上指定区域生成缺陷，再按第 7 节的办法做差分筛选，统计有多少张“掩膜内没变化”或“掩膜外被改了”。模型权重有几个 GB，放在默认缓存目录，不要放进仓库。</li>
+</ul>
+<p>最后一题要用显卡。本章的数字都是在没有 CUDA 的 Mac 上测的，没有任何显卡上的耗时和显存数字。在你自己的机器上按通用做法确认：</p>
+<ul>
+<li>显卡能不能用：<code>python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"</code>。输出 False 时先查 PyTorch 是不是装成了只支持 CPU 的版本。</li>
+<li>显存占了多少：另开一个终端运行 <code>nvidia-smi</code>，或者在代码里打印 <code>torch.cuda.max_memory_allocated()</code>。</li>
+<li>显存不够时：先减小批大小和图像分辨率，再换半精度（加载模型时指定 <code>torch_dtype=torch.float16</code>）。diffusers 还提供了按需把子模块挪到显卡上的开关，名称以它当前的文档为准。</li>
+</ul>
+<h2 id="13-和其他章节的关系和后续章节的关系">13. 和其他章节的关系（和后续章节的关系）</h2>
+<ul>
+<li>第 13 章是本章的前置，那里讲了自编码器、VAE、GAN 和 DDPM 的基本形式，本章第 5 节在它的基础上量了重参数化和前向过程。</li>
+<li>第 21、22 章的渲染和成像仿真，是物理仿真式合成的基础。第 22 章第 9.1 节量了仿真和真实图的差距怎样影响检出率的预测，和本章第 3.2 节是同一个问题的两面：那里是测试数据不对，这里是训练数据不对。</li>
+<li>第 24 章的数据生成器就是一个程序化合成加成像仿真的例子，读它的源码是很好的练习。它是先加缺陷、再模糊、再加噪声的，符合第 3.2 节的要求。</li>
+<li>第 19 章的异常检测只用良品。它的第 3.5 节量了良品库里混进带缺陷的图的后果；用生成模型扩充良品库时，生成图里带了瑕疵就是同一种情况。第 4.3 节相位随机的剪贴训练出来的，其实是那一章的异常检测器。</li>
+<li>第 18、19 章的检出率、误报和 AUROC 是本章所有实验的评估工具。</li>
+<li>第 29 章（规划中）是扩散模型实战：Stable Diffusion、ControlNet、LoRA，包括反向采样和条件生成。本章的前向过程、噪声表和训练目标是它的预备知识。</li>
 </ul>
 <h2 id="自测问题">自测问题</h2>
 <ol>
@@ -215,10 +1327,12 @@
 <li>ᾱ_t 接近 0 时 x_t 是什么样子？</li>
 <li>用 inpainting 生成缺陷，怎样确认标签是对的？</li>
 <li>一个合成数据集 FID 很低，但加进训练后检出率没变，可能是什么原因？</li>
+<li>一个分类器在真实缺陷上的 AUROC 很高，但对“贴了一块没有缺陷的图块”的良品也报警。这说明什么？用什么实验确认它到底认不认识缺陷？</li>
+<li>真实缺陷图已经有几百张，又加进几千张只含一种缺陷的合成图，总的 AUROC 几乎没变。哪里可能已经变差了？怎么查，怎么补救？</li>
 </ol></article><nav class="prev-next"><a href="19.html">← 第 19 章 异常检测与深度缺陷检测</a><a href="21.html">第 21 章 3D 数学与渲染管线 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#1-为什么需要合成数据">1. 为什么需要合成数据</a></li><li><a href="#2-方法分类">2. 方法分类</a></li><li><a href="#3-程序化合成要点">3. 程序化合成要点</a></li><li><a href="#4-三类生成模型">4. 三类生成模型</a></li><li class="sub"><a href="#vae">VAE</a></li><li class="sub"><a href="#gan">GAN</a></li><li class="sub"><a href="#扩散模型">扩散模型</a></li><li><a href="#5-可控生成缺陷合成真正需要的">5. 可控生成：缺陷合成真正需要的</a></li><li><a href="#6-怎样证明合成数据有用">6. 怎样证明合成数据有用</a></li><li><a href="#7-和其他章节的关系">7. 和其他章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#1-为什么需要合成数据">1. 为什么需要合成数据</a></li><li><a href="#2-方法分类">2. 方法分类</a></li><li><a href="#3-程序化合成要点">3. 程序化合成要点</a></li><li class="sub"><a href="#31-作业里的软掩膜和混合">3.1 作业里的软掩膜和混合</a></li><li class="sub"><a href="#32-在成像链的哪一步插入">3.2 在成像链的哪一步插入</a></li><li class="sub"><a href="#33-软掩膜到底管什么用">3.3 软掩膜到底管什么用</a></li><li class="sub"><a href="#34-多样性形状对比度位置">3.4 多样性：形状、对比度、位置</a></li><li><a href="#4-剪贴融合三种贴法和它们留下的痕迹">4. 剪贴融合：三种贴法和它们留下的痕迹</a></li><li class="sub"><a href="#41-三种贴法各自在做什么">4.1 三种贴法各自在做什么</a></li><li class="sub"><a href="#42-边界上的痕迹有多明显">4.2 边界上的痕迹有多明显</a></li><li class="sub"><a href="#43-分类器学到的是缺陷还是粘贴痕迹">4.3 分类器学到的是缺陷还是粘贴痕迹</a></li><li><a href="#5-三类生成模型">5. 三类生成模型</a></li><li class="sub"><a href="#51-vae">5.1 VAE</a></li><li class="sub"><a href="#52-gan">5.2 GAN</a></li><li class="sub"><a href="#53-扩散模型">5.3 扩散模型</a></li><li><a href="#6-交互演示扩散前向过程">6. 交互演示：扩散前向过程</a></li><li><a href="#7-可控生成缺陷合成真正需要的">7. 可控生成：缺陷合成真正需要的</a></li><li><a href="#8-怎样证明合成数据有用怎样评估">8. 怎样证明合成数据有用（怎样评估）</a></li><li class="sub"><a href="#81-fid-等指标不够">8.1 FID 等指标不够</a></li><li class="sub"><a href="#82-标准对照实验">8.2 标准对照实验</a></li><li class="sub"><a href="#83-注意事项">8.3 注意事项</a></li><li class="sub"><a href="#84-怎么报告">8.4 怎么报告</a></li><li><a href="#9-作业里的零件">9. 作业里的零件</a></li><li><a href="#10-常见错误">10. 常见错误</a></li><li><a href="#11-破坏实验">11. 破坏实验</a></li><li><a href="#12-扩展深挖档">12. 扩展（深挖档）</a></li><li><a href="#13-和其他章节的关系和后续章节的关系">13. 和其他章节的关系（和后续章节的关系）</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

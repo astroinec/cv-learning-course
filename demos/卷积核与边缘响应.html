@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷积核与边缘响应：一行像素上的演示</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 20px; align-items: end; }
+  .controls > label { min-width: 0; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; min-width: 0; font: inherit; font-size: 12.5px; padding: 5px 2px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .status { font-size: 13px; }
+  .status div { margin: 1px 0; }
+  .two { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>卷积核与边缘响应：一行像素上的演示（第 2 章）</h1>
+  <div class="sub">把图像换成一行 96 个像素：一条竖直边或一条竖直亮线的横剖面，暗处灰度 60，亮处 160。计算和第 2 章的配图一致：高斯平滑，用一个三元素的核做相关，在响应里找峰（二阶差分找过零点），再取小数。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>场景<div class="seg" id="scene"><button data-v="edge" class="on">单条边</button><button data-v="line">一条亮线</button></div></label>
+    <label>核<div class="seg" id="kern"><button data-v="central" class="on">中心差分</button><button data-v="forward">前向差分</button><button data-v="second">二阶差分</button></div></label>
+    <label>运算<div class="seg" id="op"><button data-v="corr" class="on">相关</button><button data-v="conv">卷积（核翻转）</button></div></label>
+    <label>输出类型<div class="seg" id="out"><button data-v="float" class="on">float</button><button data-v="u8">uint8</button></div></label>
+    <label>边界填充<div class="seg" id="pad"><button data-v="reflect" class="on">镜像</button><button data-v="edge">复制边缘</button><button data-v="zero">补零</button></div></label>
+    <label>平滑范围<div class="seg" id="dim"><button data-v="2d" class="on">二维</button><button data-v="1d">只在行内</button></div></label>
+    <label>高斯平滑 sigma（px）<b id="sigmaV"></b><input type="range" id="sigma" min="0" max="4" step="0.1" value="0"></label>
+    <label>噪声标准差（灰度）<b id="noiseV"></b><input type="range" id="noise" min="0" max="20" step="1" value="0"></label>
+    <label>边的位置或线的中心（px）<b id="posV"></b><input type="range" id="pos" min="2" max="90" step="0.05" value="48.3"></label>
+    <label>线宽（px，只对亮线有效）<b id="widthV"></b><input type="range" id="width" min="2" max="16" step="0.5" value="5"></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span id="kTrueL">真值</span><b id="kTrue"></b></div>
+    <div class="kpi"><span>本次测得</span><b id="kOne"></b></div>
+    <div class="kpi" id="kBiasBox"><span>200 次的平均偏差</span><b id="kBias"></b></div>
+    <div class="kpi"><span>200 次的标准差</span><b id="kStd"></b></div>
+  </div>
+
+  <div class="panel status" id="status"></div>
+
+  <figure class="panel"><figcaption>一行像素<i style="background:#8f959e"></i>理想剖面<i style="background:var(--blue)"></i>相机输出（带噪声、量化）<i style="background:var(--orange)"></i>平滑之后</figcaption><canvas id="c1" height="140"></canvas></figure>
+  <div class="two">
+    <figure class="panel"><figcaption>核的响应<i style="background:var(--orange)"></i>响应<i style="background:var(--green)"></i>真实边缘<i style="background:var(--red)"></i>测得位置</figcaption><canvas id="c2" height="200"></canvas></figure>
+    <figure class="panel"><figcaption>等效核：高斯和所选的核合在一起</figcaption><canvas id="c3" height="200"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>一条 5 px 的亮线，中心差分，输出 float：左边是正峰，右边是负峰。把输出类型换成 uint8，右边的负峰和线宽还在吗？左边的峰顶变成了多少？再把运算换成卷积，消失的换成了哪条边？<button data-preset='{"scene":"line","kern":"central","op":"corr","out":"float","pad":"reflect","dim":"2d","sigma":0,"noise":0,"pos":48.3,"width":5}'>载入</button></li>
+      <li>单条边，前向差分（核 [0, -1, 1]，不对称）。在相关和卷积之间切换：响应的符号怎么变，测得的位置差多少？换回中心差分再切一次，还差吗？<button data-preset='{"scene":"edge","kern":"forward","op":"corr","out":"float","pad":"reflect","dim":"2d","sigma":0,"noise":0,"pos":48.3,"width":5}'>载入</button></li>
+      <li>单条边，噪声 10，平滑范围选二维。把 sigma 从 0 慢慢拖到 4，看 200 次的标准差怎么变；换成“只在行内”再拖一遍。最后换回二维、sigma 回到 0，把核换成二阶差分：还量得准吗？sigma 调到 1 之后呢？<button data-preset='{"scene":"edge","kern":"central","op":"corr","out":"float","pad":"reflect","dim":"2d","sigma":0,"noise":10,"pos":48.3,"width":5}'>载入</button></li>
+      <li>一条 5 px 的亮线，噪声 10，sigma 2：标准差很小，平均偏差是多少？把 sigma 在 0 到 3 之间拖动，再把线宽调到 12，偏差还在吗？<button data-preset='{"scene":"line","kern":"central","op":"corr","out":"float","pad":"reflect","dim":"2d","sigma":2,"noise":10,"pos":48.3,"width":5}'>载入</button></li>
+      <li>把单条边放到离左边界 3 px 的地方，sigma 2，无噪声，边界补零：测到的“边”在哪？依次换成镜像和复制边缘，哪个更准？<button data-preset='{"scene":"edge","kern":"central","op":"corr","out":"float","pad":"zero","dim":"2d","sigma":2,"noise":0,"pos":3,"width":5}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ==== core begin（纯计算，不碰页面；用 node 核对时只执行这一段）
+const N = 96, LO = 60, HI = 160, BLUR = 0.7, TRIALS = 200, HALF = 8;
+const DERIV = { central: [-1, 0, 1], forward: [0, -1, 1], second: [1, -2, 1] };
+
+function erf(x) { const s = x < 0 ? -1 : 1; x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x); return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)); }
+const phi = t => 0.5 * (1 + erf(t / Math.SQRT2));
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+
+function profile(st) {
+  const a = new Float64Array(N);
+  for (let x = 0; x < N; x++) a[x] = st.scene === "edge" ? LO + (HI - LO) * phi((x - st.pos) / BLUR)
+    : LO + (HI - LO) * (phi((x - (st.pos - st.width / 2)) / BLUR) - phi((x - (st.pos + st.width / 2)) / BLUR));
+  return a;
+}
+function gaussKernel(sigma) {
+  if (sigma <= 0) return [1];
+  const r = Math.max(1, Math.ceil(3 * sigma)), k = []; let s = 0;
+  for (let i = -r; i <= r; i++) { const v = Math.exp(-i * i / (2 * sigma * sigma)); k.push(v); s += v; }
+  return k.map(v => v / s);
+}
+function convFull(a, b) { const out = new Array(a.length + b.length - 1).fill(0); for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) out[i + j] += a[i] * b[j]; return out; }
+// 二维的 Sobel 等于行内的差分乘上沿边方向的 [1,2,1]。沿边方向的高斯和 [1,2,1] 只是把各行的噪声加权平均，
+// 所以二维流程中间一行的结果，等价于行内流程把噪声乘上下面这个系数、再把响应乘 4。
+function noiseFactor(sigma) { const w = convFull(gaussKernel(sigma), [1, 2, 1]); return Math.sqrt(w.reduce((s, v) => s + v * v, 0)) / 4; }
+function correlate(x, k, mode) {
+  const c = (k.length - 1) / 2, out = new Float64Array(N);
+  const at = i => (i >= 0 && i < N) ? x[i] : mode === "zero" ? 0 : mode === "edge" ? x[i < 0 ? 0 : N - 1] : x[i < 0 ? -i : 2 * (N - 1) - i];
+  for (let i = 0; i < N; i++) { let s = 0; for (let j = 0; j < k.length; j++) s += k[j] * at(i + j - c); out[i] = s; }
+  return out;
+}
+function derivKernel(st) { const k = DERIV[st.kern]; return st.op === "conv" ? [...k].reverse() : k; }
+function camera(clean, st, r) { return clean.map(v => Math.min(255, Math.max(0, Math.round(v + (st.noise ? st.noise * gauss(r) : 0))))); }
+function respond(clean, raw, st) {
+  const two = st.dim === "2d", f = two && st.noise ? noiseFactor(st.sigma) : 1;
+  const eff = two ? clean.map((v, i) => v + f * (raw[i] - v)) : raw;
+  const smooth = correlate(eff, gaussKernel(st.sigma), st.pad);
+  const rf = correlate(smooth, derivKernel(st), st.pad).map(v => v * (two ? 4 : 1));
+  const r = st.out === "u8" ? rf.map(v => Math.min(255, Math.max(0, Math.round(v)))) : rf;
+  return { smooth, rf, r };
+}
+function edgesOf(st) {
+  const c = v => Math.max(0, Math.min(N - 1, v));
+  if (st.scene === "edge") return [{ name: "这条边（暗到亮）", x: st.pos, rising: true, lo: c(Math.round(st.pos) - HALF), hi: c(Math.round(st.pos) + HALF) }];
+  const xl = st.pos - st.width / 2, xr = st.pos + st.width / 2;
+  return [{ name: "左边（暗到亮）", x: xl, rising: true, lo: c(Math.round(xl) - HALF), hi: c(Math.floor(st.pos)) },
+          { name: "右边（亮到暗）", x: xr, rising: false, lo: c(Math.ceil(st.pos)), hi: c(Math.round(xr) + HALF) }];
+}
+function locate(r, e, st) {
+  if (st.kern === "second") {
+    let best = -1, steep = 0;
+    for (let i = e.lo; i < e.hi; i++) { const a = r[i], b = r[i + 1]; if ((e.rising ? (a > 0 && b < 0) : (a < 0 && b > 0)) && Math.abs(a - b) > steep) { steep = Math.abs(a - b); best = i; } }
+    return best < 0 ? null : best + r[best] / (r[best] - r[best + 1]);
+  }
+  const s = (e.rising ? 1 : -1) * (st.op === "conv" ? -1 : 1);
+  let i = e.lo; for (let j = e.lo; j <= e.hi; j++) if (s * r[j] > s * r[i]) i = j;
+  if (s * r[i] <= 0) return null;
+  if (i <= 0 || i >= N - 1) return i;
+  const l = s * r[i - 1], m = s * r[i], q = s * r[i + 1], den = l - 2 * m + q;
+  return i + (Math.abs(den) < 1e-12 ? 0 : Math.max(-0.5, Math.min(0.5, 0.5 * (l - q) / den)));
+}
+function measure(found, edges, st) {
+  if (found.some(v => v === null)) return null;
+  return st.scene === "edge" ? found[0] - edges[0].x : (found[1] - found[0]) - st.width;
+}
+function simulate(st) {
+  const clean = profile(st), edges = edgesOf(st);
+  const raw = camera(clean, st, rng(99)), one = respond(clean, raw, st);
+  const found = edges.map(e => locate(one.r, e, st)), err = measure(found, edges, st);
+  const errs = [];
+  for (let t = 0; t < TRIALS; t++) {
+    const rr = respond(clean, camera(clean, st, rng(1000 + t)), st);
+    const e = measure(edges.map(ed => locate(rr.r, ed, st)), edges, st);
+    if (e !== null) errs.push(e);
+  }
+  let bias = null, std = null;
+  if (errs.length > TRIALS / 2) { bias = errs.reduce((s, v) => s + v, 0) / errs.length; std = Math.sqrt(errs.reduce((s, v) => s + (v - bias) * (v - bias), 0) / errs.length); }
+  const signs = edges.map(e => { let i = e.lo; for (let j = e.lo; j <= e.hi; j++) if (Math.abs(one.rf[j]) > Math.abs(one.rf[i])) i = j; return Math.sign(one.rf[i]); });
+  let peakOut = 0; for (const e of edges) for (let j = e.lo; j <= e.hi; j++) peakOut = Math.max(peakOut, Math.abs(one.r[j]));
+  return { clean, raw, edges, found, err, bias, std, signs, peakOut, nFound: errs.length, smooth: one.smooth, rf: one.rf, r: one.r,
+           truth: st.scene === "edge" ? st.pos : st.width, kernel: convFull(gaussKernel(st.sigma), derivKernel(st)) };
+}
+// ==== core end
+
+const state = { scene: "edge", kern: "central", op: "corr", out: "float", pad: "reflect", dim: "2d", sigma: 0, noise: 0, pos: 48.3, width: 5 };
+const SEGS = ["scene", "kern", "op", "out", "pad", "dim"], SLIDERS = ["sigma", "noise", "pos", "width"];
+const $ = id => document.getElementById(id);
+const signed = (v, d) => (v >= 0 ? "+" : "") + v.toFixed(d);
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function axes(ctx, w, h, x0, x1, y0, y1, ticks) {
+  const L = 40, R = 8, T = 8, B = 22, sx = v => L + (v - x0) / (x1 - x0) * (w - L - R), sy = v => h - B - (v - y0) / (y1 - y0) * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  for (const t of ticks) { ctx.beginPath(); ctx.moveTo(sx(t), T); ctx.lineTo(sx(t), h - B); ctx.stroke(); ctx.fillText(t, sx(t), h - 7); }
+  ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; ctx.beginPath(); ctx.moveTo(L, sy(v)); ctx.lineTo(w - R, sy(v)); ctx.stroke(); ctx.fillText(v.toFixed(Math.abs(y1 - y0) < 2 ? 2 : 0), L - 5, sy(v) + 4); }
+  return [sx, sy, T, h - B];
+}
+function line(ctx, xs, ys, sx, sy, color, width) { ctx.strokeStyle = color; ctx.lineWidth = width || 1.6; ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(sx(x), sy(ys[i])) : ctx.moveTo(sx(x), sy(ys[i]))); ctx.stroke(); }
+function vline(ctx, x, sx, top, bot, color, dash) { ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(sx(x), top); ctx.lineTo(sx(x), bot); ctx.stroke(); ctx.setLineDash([]); }
+
+function render() {
+  const res = simulate(state), unit = " px", isEdge = state.scene === "edge";
+  $("sigmaV").textContent = state.sigma.toFixed(1); $("noiseV").textContent = state.noise.toFixed(0); $("posV").textContent = state.pos.toFixed(2); $("widthV").textContent = state.width.toFixed(1);
+  $("kTrueL").textContent = isEdge ? "边的真实位置" : "真实线宽";
+  $("kTrue").textContent = res.truth.toFixed(2) + unit;
+  $("kOne").textContent = res.err === null ? "找不到" : (res.truth + res.err).toFixed(2) + unit;
+  $("kBias").textContent = res.bias === null ? "找不到" : signed(res.bias, 3) + unit;
+  $("kStd").textContent = res.std === null ? "找不到" : res.std.toFixed(3) + unit;
+  $("kBiasBox").className = "kpi " + (res.bias === null || Math.abs(res.bias) >= 0.2 ? "bad" : "ok");
+  const rows = res.edges.map((e, i) => {
+    const sign = state.kern === "second" ? "响应一正一负，边在过零点" : "响应为" + (res.signs[i] > 0 ? "正" : res.signs[i] < 0 ? "负" : "零");
+    const got = res.found[i] === null ? "<b style='color:var(--red)'>找不到</b>" + (state.out === "u8" ? "（负的响应存成 uint8 后都是 0）" : "") : "测得 " + res.found[i].toFixed(2) + "，误差 " + signed(res.found[i] - e.x, 3) + " px";
+    return "<div>" + e.name + "：真实位置 " + e.x.toFixed(2) + "，" + sign + "，" + got + "</div>";
+  });
+  rows.push("<div style='color:var(--muted)'>窗口内输出的最大绝对值 " + res.peakOut.toFixed(0) + (state.out === "u8" && res.peakOut >= 255 ? "（已经削平在 255）" : "") + "；200 次里有 " + res.nFound + " 次量得出来。"
+    + (state.dim === "2d" ? "二维：相当于 Sobel，响应是行内差分的 4 倍。" : "只在行内：一维高斯加三元素的核。") + "</div>");
+  $("status").innerHTML = rows.join("");
+
+  const idx = [...Array(N).keys()], ticks = [0, 12, 24, 36, 48, 60, 72, 84, 95];
+  let [ctx, w, h] = setup($("c1"));
+  let [sx, sy, top, bot] = axes(ctx, w, h, 0, N - 1, 0, 255, ticks);
+  line(ctx, idx, [...res.clean], sx, sy, "#8f959e", 1.3); line(ctx, idx, [...res.raw], sx, sy, "#2f6fed", 1.2); line(ctx, idx, [...res.smooth], sx, sy, "#e8710a", 1.8);
+  for (const e of res.edges) vline(ctx, e.x, sx, top, bot, "#1a9c4b", [5, 4]);
+
+  [ctx, w, h] = setup($("c2"));
+  const lo = Math.min(0, ...res.r), hi = Math.max(1, ...res.r), padY = (hi - lo) * 0.08;
+  [sx, sy, top, bot] = axes(ctx, w, h, 0, N - 1, lo - padY, hi + padY, ticks);
+  line(ctx, [0, N - 1], [0, 0], sx, sy, "#8f959e", 1); line(ctx, idx, [...res.r], sx, sy, "#e8710a", 1.6);
+  for (const e of res.edges) vline(ctx, e.x, sx, top, bot, "#1a9c4b", [5, 4]);
+  for (const f of res.found) if (f !== null) vline(ctx, f, sx, top, bot, "#d6362f");
+
+  [ctx, w, h] = setup($("c3"));
+  const k = res.kernel, half = (k.length - 1) / 2, km = Math.max(...k.map(Math.abs)) * 1.15 || 1, kt = [-half, 0, half];
+  [sx, sy, top, bot] = axes(ctx, w, h, -half - 0.7, half + 0.7, -km, km, kt);
+  line(ctx, [-half - 0.7, half + 0.7], [0, 0], sx, sy, "#8f959e", 1);
+  const bw = Math.max(2, Math.min(18, (sx(1) - sx(0)) * 0.6));
+  k.forEach((v, i) => { ctx.fillStyle = v >= 0 ? "#2f6fed" : "#e8710a"; const y0 = sy(0), y1 = sy(v); ctx.fillRect(sx(i - half) - bw / 2, Math.min(y0, y1), bw, Math.abs(y1 - y0)); });
+}
+
+function syncControls() {
+  for (const id of SEGS) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state[id]));
+  for (const id of SLIDERS) $(id).value = state[id];
+}
+for (const id of SEGS) $(id).addEventListener("click", e => { if (e.target.dataset.v) { state[id] = e.target.dataset.v; syncControls(); render(); } });
+for (const id of SLIDERS) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+</script>
+</body>
+</html>

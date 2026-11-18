@@ -40,6 +40,10 @@ NN_主题/
 | `docs/升级进度.md` | 哪些章已按新规范升级、剩下什么、按什么顺序做 | 每升级完一章 |
 | `docs/升级任务说明.md` | 升级单章的文件归属、步骤、踩过的坑和回报格式，多个助手并行时必须遵守 | 流程变化时 |
 | `scripts/check_chapter.py` | 单章自检，不写共享目录 | 检查项变化时 |
+| `scripts/audit_numbers.py` | 核对讲义里的数字在 `实测数字.json` 里有没有出处 | 规则变化时 |
+| `scripts/check_demos.py`、`scripts/demo_check.html` | 用无界面 Chrome 检查演示页的报错、横向溢出和高度，`--fix` 改写讲义里的嵌入高度 | 新增演示页后运行 |
+| `docs/待处理问题.md` | 升级时发现但没有处理的问题：验收偏松、Notebook 错误、文档不一致、没有验证的事 | 处理掉一条就删一条 |
+| `docs/升级记录/` | 并行升级时各章子任务的回报原文 | 只增不改 |
 | `scripts/build_site.py` | 把各章讲义生成为 `site/` 下的离线网页 | 改了讲义或 `course.json` 后运行，加 `--strict` |
 | `NN_*/figures/` | 讲义配图和 `实测数字.json`，由 `solutions` 分支的 `solutions/figures/chNN.py` 生成 | 改讲义里的数字前先重跑脚本 |
 | `scripts/build_track2_notebooks.py` | 生成第 16–24 章 Notebook | 改 Notebook 内容时改这里再运行 |

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>结构元与开闭运算：方格演示</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 22px; align-items: start; }
+  label, .lab { display: block; font-size: 12.5px; color: var(--muted); }
+  label b, .lab b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; min-width: 0; font: inherit; font-size: 12.5px; padding: 5px 2px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .sebox { display: flex; gap: 12px; align-items: center; margin-top: 4px; }
+  .sebox canvas { width: 64px; height: 64px; flex: none; border: 1px solid var(--line); border-radius: 6px; }
+  .sebox span { font-size: 12.5px; color: var(--muted); }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi.del b { color: var(--red); } .kpi.add b { color: var(--green); }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 10px; height: 10px; vertical-align: -1px; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { display: block; }
+  .grid { width: 100%; touch-action: none; }
+  #src { cursor: crosshair; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button, .mini { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 640px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>结构元与开闭运算：方格演示（第 3 章）</h1>
+  <div class="sub">一张 40×28 的二值图，蓝色格子是前景。约定和作业一致：图像外算背景，结构元盖住的位置里有前景才算“碰到”。闭运算先在四周补一圈背景再算。左图可以用鼠标点或拖动来改。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <div class="lab">场景<div class="seg" id="scene"><button data-v="cand" class="on">候选图</button><button data-v="hgap">水平断口</button><button data-v="dgap">45° 断口</button><button data-v="pair">相邻颗粒</button></div></div>
+    <div class="lab">操作<div class="seg" id="op"><button data-v="erode">腐蚀</button><button data-v="dilate">膨胀</button><button data-v="open" class="on">开运算</button><button data-v="close">闭运算</button></div></div>
+    <div class="lab">结构元形状<div class="seg" id="shape"><button data-v="rect" class="on">方形</button><button data-v="cross">十字</button><button data-v="ellipse">椭圆</button><button data-v="hline">横线</button><button data-v="vline">竖线</button><button data-v="diag">斜线</button></div></div>
+    <label>结构元边长<b id="kV"></b><input type="range" id="k" min="3" max="15" step="2" value="3"></label>
+    <div class="lab">连通域怎么数<div class="seg" id="conn"><button data-v="8" class="on">8 连通</button><button data-v="4">4 连通</button></div></div>
+    <div class="lab">当前结构元<div class="sebox"><canvas id="sec" width="64" height="64"></canvas><span id="seInfo"></span></div></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>原图的连通域</span><b id="kN0"></b></div>
+    <div class="kpi"><span>结果的连通域</span><b id="kN1"></b></div>
+    <div class="kpi del"><span>删掉的像素</span><b id="kDel"></b></div>
+    <div class="kpi add"><span>新增的像素</span><b id="kAdd"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>原图，<span id="px0"></span> 个前景像素（可以点或拖动来改）<button class="mini" id="clear">清空</button></figcaption><canvas class="grid" id="src"></canvas></figure>
+    <figure class="panel"><figcaption>结果，<span id="px1"></span> 个前景像素<i style="background:#2f6fed"></i>保留<i style="background:#f3b6b2"></i>删掉<i style="background:#1a9c4b"></i>新增</figcaption><canvas class="grid" id="dst"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>候选图、3×3 方形开运算。零散的噪点和右边那条 1 px 宽的竖线都没了，连通域从 20 个降到 3 个。再数一数真缺陷：2×2 的颗粒和 1 px 宽的细划痕也被删了。<button data-preset='{"scene":"cand","op":"open","shape":"rect","k":3,"conn":8}'>载入</button></li>
+      <li>同一张图，把结构元换成边长 5 的横线。细划痕回来了，竖线和噪点仍然被删，但这次 3×3 的颗粒没了。结构元的形状决定了什么算“噪声”。<button data-preset='{"scene":"cand","op":"open","shape":"hline","k":5,"conn":8}'>载入</button></li>
+      <li>水平断口（上面一条 1 px 宽，下面一条 3 px 宽，断口都是 3 列）、3×3 方形闭运算：一个像素都没补上。把边长拖到 5：两条都连上了，新增的 12 个像素正好是两处断口。<button data-preset='{"scene":"hgap","op":"close","shape":"rect","k":3,"conn":8}'>载入</button></li>
+      <li>45° 断口、15×15 方形闭运算：新增像素是 0，还是两段。把边长在 3 到 15 之间来回拖，始终补不上。把边长调到 5、形状换成斜线，补上 3 个像素就连上了。再把操作换成膨胀、形状换回方形，也能连上，代价是整条变粗。<button data-preset='{"scene":"dgap","op":"close","shape":"rect","k":15,"conn":8}'>载入</button></li>
+      <li>相邻颗粒（上面两个左右并排，下面两个沿对角错开，间距都是 3 px）、5×5 方形闭运算：并排的一对被粘成一个，连通域从 4 个变成 3 个；对角的一对没有粘上，把边长拖到 15 也一样。<button data-preset='{"scene":"pair","op":"close","shape":"rect","k":5,"conn":8}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ---------------- 计算部分：不依赖页面，可以用 node 单独执行来核对 ----------------
+const W = 40, H = 28;
+
+// 结构元用相对中心的偏移 [dy, dx] 列表表示
+function makeSE(shape, k) {
+  const r = (k - 1) / 2, cells = [];
+  for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) {
+    const dy = i - r, dx = j - r;
+    let on = false;
+    if (shape === "rect") on = true;
+    else if (shape === "cross") on = dy === 0 || dx === 0;
+    else if (shape === "hline") on = dy === 0;
+    else if (shape === "vline") on = dx === 0;
+    else if (shape === "diag") on = dy === -dx;                 // 右上到左下，和“45° 断口”场景里的划痕同向
+    else if (shape === "ellipse") {                             // 和 OpenCV 的 MORPH_ELLIPSE 同一个公式
+      const half = r === 0 ? 0 : Math.round(r * Math.sqrt((r * r - dy * dy) / (r * r)));
+      on = Math.abs(dx) <= half;
+    }
+    if (on) cells.push([dy, dx]);
+  }
+  return cells;
+}
+
+function erode(img, se, w, h) {
+  const out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let all = 1;
+    for (const [dy, dx] of se) { const yy = y + dy, xx = x + dx; if (yy < 0 || yy >= h || xx < 0 || xx >= w || !img[yy * w + xx]) { all = 0; break; } }
+    out[y * w + x] = all;
+  }
+  return out;
+}
+
+function dilate(img, se, w, h) {
+  const out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let any = 0;
+    for (const [dy, dx] of se) { const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < h && xx >= 0 && xx < w && img[yy * w + xx]) { any = 1; break; } }
+    out[y * w + x] = any;
+  }
+  return out;
+}
+
+function padded(img, w, h, p) { const out = new Uint8Array((w + 2 * p) * (h + 2 * p)); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[(y + p) * (w + 2 * p) + x + p] = img[y * w + x]; return out; }
+function cropped(img, w, h, p) { const out = new Uint8Array(w * h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[y * w + x] = img[(y + p) * (w + 2 * p) + x + p]; return out; }
+
+function apply(img, op, se, k, w = W, h = H) {
+  if (op === "erode") return erode(img, se, w, h);
+  if (op === "dilate") return dilate(img, se, w, h);
+  if (op === "open") return dilate(erode(img, se, w, h), se, w, h);
+  // 闭运算：图像外是背景，直接先膨胀再腐蚀会把贴边的前景吃掉，所以先补一圈背景
+  const p = k, big = padded(img, w, h, p), W2 = w + 2 * p, H2 = h + 2 * p;
+  return cropped(erode(dilate(big, se, W2, H2), se, W2, H2), w, h, p);
+}
+
+function countComponents(img, conn, w = W, h = H) {
+  const seen = new Uint8Array(w * h), stack = [];
+  const nb = conn === 4 ? [[0, 1], [0, -1], [1, 0], [-1, 0]] : [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  let n = 0;
+  for (let s = 0; s < w * h; s++) {
+    if (!img[s] || seen[s]) continue;
+    n++; seen[s] = 1; stack.push(s);
+    while (stack.length) {
+      const c = stack.pop(), y = Math.floor(c / w), x = c % w;
+      for (const [dy, dx] of nb) { const yy = y + dy, xx = x + dx; if (yy < 0 || yy >= h || xx < 0 || xx >= w) continue; const t = yy * w + xx; if (img[t] && !seen[t]) { seen[t] = 1; stack.push(t); } }
+    }
+  }
+  return n;
+}
+
+function countOn(img) { let n = 0; for (const v of img) n += v; return n; }
+
+function makeScene(name) {
+  const a = new Uint8Array(W * H);
+  const box = (y, x, h, w) => { for (let i = 0; i < h; i++) for (let j = 0; j < w; j++) a[(y + i) * W + x + j] = 1; };
+  if (name === "cand") {
+    box(4, 5, 2, 2); box(4, 14, 3, 3); box(3, 24, 5, 5);   // 三个颗粒：2×2、3×3、5×5
+    box(13, 4, 1, 14); box(19, 4, 3, 14);                   // 细划痕 1×14，粗划痕 3×14
+    box(10, 33, 12, 1);                                     // 竖线：模拟沿图形边缘的对齐残差
+    for (const [y, x] of [[1, 1], [1, 19], [1, 36], [8, 9], [9, 21], [9, 37], [16, 24], [16, 37], [16, 1], [24, 8], [25, 20], [25, 30], [23, 37], [10, 28]]) a[y * W + x] = 1;
+  } else if (name === "hgap") {
+    box(8, 5, 1, 30); box(17, 5, 3, 30);
+    for (let y = 0; y < H; y++) for (let x = 18; x <= 20; x++) a[y * W + x] = 0;
+  } else if (name === "dgap") {
+    for (let i = 0; i < 22; i++) if (i < 10 || i > 12) a[(25 - i) * W + 6 + i] = 1;
+  } else if (name === "pair") {
+    box(2, 3, 5, 5); box(2, 11, 5, 5);                      // 左右并排，间距 3
+    box(13, 22, 5, 5); box(21, 30, 5, 5);                   // 对角错开，行和列各隔 3
+  }
+  return a;
+}
+
+function summarize(img, op, shape, k, conn) {
+  const se = makeSE(shape, k), out = apply(img, op, se, k);
+  let del = 0, add = 0;
+  for (let i = 0; i < img.length; i++) { if (img[i] && !out[i]) del++; if (!img[i] && out[i]) add++; }
+  return { out, se, n0: countComponents(img, conn), n1: countComponents(out, conn), px0: countOn(img), px1: countOn(out), del, add };
+}
+
+if (typeof module !== "undefined") module.exports = { W, H, makeSE, erode, dilate, apply, countComponents, countOn, makeScene, summarize };
+
+// ---------------- 页面部分 ----------------
+if (typeof document !== "undefined") {
+  const state = { scene: "cand", op: "open", shape: "rect", k: 3, conn: 8, img: makeScene("cand") };
+  const $ = id => document.getElementById(id);
+  const NAMES = { rect: "方形", cross: "十字", ellipse: "椭圆（OpenCV 的画法）", hline: "横线", vline: "竖线", diag: "斜线" };
+
+  function prep(canvas) {
+    const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, cell = Math.max(4, Math.floor(w / W)), h = cell * H;
+    canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px";
+    const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    return [ctx, cell];
+  }
+  function drawGrid(canvas, color) {
+    const [ctx, cell] = prep(canvas);
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cell * W, cell * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = color(y * W + x); if (c) { ctx.fillStyle = c; ctx.fillRect(x * cell, y * cell, cell, cell); } }
+    ctx.strokeStyle = "#eceef1"; ctx.lineWidth = 1; ctx.beginPath();
+    for (let x = 0; x <= W; x++) { ctx.moveTo(x * cell + 0.5, 0); ctx.lineTo(x * cell + 0.5, cell * H); }
+    for (let y = 0; y <= H; y++) { ctx.moveTo(0, y * cell + 0.5); ctx.lineTo(cell * W, y * cell + 0.5); }
+    ctx.stroke();
+    return cell;
+  }
+  function drawSE(se, k) {
+    const c = $("sec"), ctx = c.getContext("2d"), cell = Math.floor(64 / 15), off = Math.floor((64 - cell * 15) / 2) + cell * (15 - k) / 2, r = (k - 1) / 2;
+    ctx.clearRect(0, 0, 64, 64);
+    ctx.fillStyle = "#f6f7f9"; ctx.fillRect(off, off, cell * k, cell * k);
+    ctx.fillStyle = "#e8710a";
+    for (const [dy, dx] of se) ctx.fillRect(off + (dx + r) * cell, off + (dy + r) * cell, cell, cell);
+  }
+
+  let cellSize = 9;
+  function render() {
+    const s = summarize(state.img, state.op, state.shape, state.k, state.conn);
+    $("kV").textContent = state.k + " px"; $("kN0").textContent = s.n0; $("kN1").textContent = s.n1; $("kDel").textContent = s.del; $("kAdd").textContent = s.add;
+    $("px0").textContent = s.px0; $("px1").textContent = s.px1;
+    $("seInfo").textContent = NAMES[state.shape] + "，" + s.se.length + " 个像素";
+    drawSE(s.se, state.k);
+    cellSize = drawGrid($("src"), i => state.img[i] ? "#2f6fed" : null);
+    drawGrid($("dst"), i => state.img[i] && s.out[i] ? "#2f6fed" : state.img[i] ? "#f3b6b2" : s.out[i] ? "#1a9c4b" : null);
+  }
+  function syncControls() {
+    for (const id of ["scene", "op", "shape", "conn"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(state[id])));
+    $("k").value = state.k;
+  }
+  for (const id of ["op", "shape"]) $(id).addEventListener("click", e => { if (e.target.dataset.v) { state[id] = e.target.dataset.v; syncControls(); render(); } });
+  $("conn").addEventListener("click", e => { if (e.target.dataset.v) { state.conn = +e.target.dataset.v; syncControls(); render(); } });
+  $("scene").addEventListener("click", e => { if (e.target.dataset.v) { state.scene = e.target.dataset.v; state.img = makeScene(state.scene); syncControls(); render(); } });
+  $("k").addEventListener("input", e => { state.k = +e.target.value; render(); });
+  $("clear").addEventListener("click", () => { state.img = new Uint8Array(W * H); state.scene = ""; syncControls(); render(); });
+
+  let painting = null;
+  function cellAt(e) { const r = $("src").getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / cellSize), y = Math.floor((e.clientY - r.top) / cellSize); return x >= 0 && x < W && y >= 0 && y < H ? y * W + x : -1; }
+  $("src").addEventListener("pointerdown", e => { const i = cellAt(e); if (i < 0) return; painting = state.img[i] ? 0 : 1; state.img[i] = painting; state.scene = ""; syncControls(); render(); $("src").setPointerCapture(e.pointerId); });
+  $("src").addEventListener("pointermove", e => { if (painting === null) return; const i = cellAt(e); if (i >= 0 && state.img[i] !== painting) { state.img[i] = painting; render(); } });
+  for (const ev of ["pointerup", "pointercancel"]) $("src").addEventListener(ev, () => { painting = null; });
+
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+    Object.assign(state, JSON.parse(b.dataset.preset)); state.img = makeScene(state.scene); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" });
+  }));
+  window.addEventListener("resize", render);
+  syncControls(); render();
+}
+</script>
+</body>
+</html>

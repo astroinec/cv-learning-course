@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷积尺寸与感受野计算器</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.8fr) minmax(0, 2.2fr); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  input[type=number], select { width: 100%; font: inherit; font-size: 12.5px; padding: 2px 3px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); }
+  input:disabled { background: #f1f2f4; color: #b4b8bf; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btns button { font: inherit; font-size: 12.5px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink); cursor: pointer; }
+  .btns button:hover { border-color: var(--blue); color: var(--blue); }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.bad b { color: var(--red); }
+  .tablewrap { max-height: 318px; overflow-y: auto; overflow-x: hidden; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  th { position: sticky; top: 0; background: #fff; color: var(--muted); font-weight: 500; text-align: right; padding: 2px 3px 5px; border-bottom: 1px solid var(--line); z-index: 1; }
+  td { padding: 3px 3px; text-align: right; border-bottom: 1px solid #f0f1f3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  th.l, td.l { text-align: left; }
+  th.in { color: var(--blue); }
+  tr.bad td { color: var(--red); }
+  tr.dead td.out { color: #b4b8bf; }
+  .notes { font-size: 12.5px; min-height: 46px; max-height: 104px; overflow-y: auto; }
+  .notes div { padding-left: 14px; text-indent: -14px; }
+  .notes .warn { color: var(--orange); }
+  .notes .err { color: var(--red); }
+  .notes .ok { color: var(--muted); }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 14px; height: 9px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .controls { grid-template-columns: minmax(0, 1fr); } .tablewrap { overflow-x: auto; } table { min-width: 700px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>卷积尺寸与感受野计算器（第 9 章）</h1>
+  <div class="sub">一层一层往上加卷积和池化，看输出尺寸、理论感受野 r、间隔 j、参数量和乘加次数怎么变。输入按正方形算，卷积不带偏置，池化不计参数和乘加次数。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>输入边长（px）<b id="sizeV"></b><input type="range" id="size" min="1" max="256" step="1" value="32"></label>
+    <label>输入通道<input type="number" id="cin" min="1" max="2048" step="1" value="3"></label>
+    <div class="btns">
+      <button id="addConv">+ 卷积</button><button id="addMax">+ 最大池化</button><button id="addAvg">+ 平均池化</button><button id="delLast">删除最后一层</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" id="kOutBox"><span>最后的输出（通道 × 高 × 宽）</span><b id="kOut"></b></div>
+    <div class="kpi"><span>最后一层的理论感受野 r（间隔 j）</span><b id="kRf"></b></div>
+    <div class="kpi"><span>总参数量</span><b id="kParams"></b></div>
+    <div class="kpi"><span>总乘加次数</span><b id="kMacs"></b></div>
+  </div>
+
+  <div class="panel">
+    <div class="tablewrap">
+      <table>
+        <colgroup><col style="width:3.2%"><col style="width:11.6%"><col style="width:6.4%"><col style="width:6.4%"><col style="width:6.4%"><col style="width:6.4%"><col style="width:7.6%"><col style="width:6.8%"><col style="width:13.2%"><col style="width:5.6%"><col style="width:5%"><col style="width:11.2%"><col style="width:10.2%"></colgroup>
+        <thead><tr><th class="l">#</th><th class="l in">类型</th><th class="in">核 k</th><th class="in">步长 s</th><th class="in">填充 p</th><th class="in">膨胀 d</th><th class="in">输出通道</th><th class="in">分组</th><th>输出</th><th>r</th><th>j</th><th>参数量</th><th>乘加次数</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel notes" id="notes"></div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>感受野示意<i style="background:#dfe3ea"></i>输入图像<i style="background:var(--blue)"></i>中心输出位置在每一层的理论感受野</figcaption><canvas id="c1" height="210"></canvas></figure>
+    <figure class="panel"><figcaption>每层占总量的比例<i style="background:#8f959e"></i>参数量<i style="background:var(--blue)"></i>乘加次数（右侧数字）</figcaption><canvas id="c2" height="210"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>讲义 9.4 节的例子：3×3 卷积、2×2 池化（步长 2）、3×3 卷积。逐层的 r 和 j 应该是 3 和 1、4 和 2、8 和 2。再把池化的步长改成 1，最后的 r 变成多少？<button data-preset="rf">载入</button></li>
+      <li>两层 3×3 和一层 5×5（64 通道）：感受野都是 5，参数量分别是多少？<button data-preset="two3">载入两层 3×3</button><button data-preset="one5">载入一层 5×5</button></li>
+      <li>普通 3×3 卷积和深度可分离卷积（逐通道 3×3 加 1×1）：参数量和乘加次数各差多少倍？把第一层的分组改成 4 再看。<button data-preset="plain">载入普通 3×3</button><button data-preset="dws">载入深度可分离</button></li>
+      <li>向下取整丢掉了什么：输入 32，3×3、步长 2、无填充，看下面的提示；换成填充 1 再看提示；最后把输入边长拖到 31。<button data-preset="floor0">载入无填充</button><button data-preset="floor1">载入填充 1</button></li>
+      <li>ResNet-18 的主干（只有主路上的卷积和池化）：224 的输入最后剩 7×7，最后一层的理论感受野是多少，和输入边长比怎么样？参数和乘加次数各集中在哪几层？把输入边长拖到 64 和 32，最后的输出还剩多大？<button data-preset="resnet">载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ---------------------------------------------------------------- 计算（不依赖页面，可以单独用 node 执行）
+function conv(k, s, p, c, g, d) { return { t: "conv", k: k, s: s, p: p, d: d || 1, c: c, g: g || 1 }; }
+function pool(t, k, s, p) { return { t: t, k: k, s: s, p: p || 0, d: 1, c: 0, g: 1 }; }
+function rep(n, f) { const a = []; for (let i = 0; i < n; i++) a.push(f()); return a; }
+
+const PRESETS = {
+  rf: { size: 32, cin: 3, layers: [conv(3, 1, 0, 16), pool("max", 2, 2), conv(3, 1, 0, 32)] },
+  two3: { size: 56, cin: 64, layers: [conv(3, 1, 1, 64), conv(3, 1, 1, 64)] },
+  one5: { size: 56, cin: 64, layers: [conv(5, 1, 2, 64)] },
+  plain: { size: 56, cin: 64, layers: [conv(3, 1, 1, 64)] },
+  dws: { size: 56, cin: 64, layers: [conv(3, 1, 1, 64, 64), conv(1, 1, 0, 64)] },
+  floor0: { size: 32, cin: 3, layers: [conv(3, 2, 0, 16)] },
+  floor1: { size: 32, cin: 3, layers: [conv(3, 2, 1, 16)] },
+  resnet: { size: 224, cin: 3, layers: [conv(7, 2, 3, 64), pool("max", 3, 2, 1)].concat(rep(4, () => conv(3, 1, 1, 64)), [conv(3, 2, 1, 128)], rep(3, () => conv(3, 1, 1, 128)),
+    [conv(3, 2, 1, 256)], rep(3, () => conv(3, 1, 1, 256)), [conv(3, 2, 1, 512)], rep(3, () => conv(3, 1, 1, 512))) }
+};
+
+// 单个方向上的输出长度：向下取整；不是正数时返回 0 表示这一层放不下
+function outSize(size, k, s, p, d) {
+  const out = Math.floor((size + 2 * p - d * (k - 1) - 1) / s) + 1;
+  return out > 0 ? out : 0;
+}
+
+// 一个方向上有多少个真实输入位置没有被任何窗口读到
+function unreadCount(size, k, s, p, d, out) {
+  const hit = new Uint8Array(size + 2 * p);
+  for (let i = 0; i < out; i++) for (let t = 0; t < k; t++) hit[i * s + t * d] = 1;
+  let n = 0;
+  for (let x = p; x < p + size; x++) if (!hit[x]) n++;
+  return n;
+}
+
+function compute(state) {
+  const rows = [];
+  let size = state.size, cin = state.cin, r = 1, j = 1, dead = false, totalParams = 0, totalMacs = 0, exceeded = false;
+  state.layers.forEach((L, idx) => {
+    const row = { idx: idx + 1, type: L.t, notes: [], error: null, valid: false };
+    rows.push(row);
+    if (dead) { row.error = "前面的层已经出错，这一层没有计算"; return; }
+    const ints = [L.k, L.s, L.p, L.d].every(Number.isInteger);
+    if (!ints || L.k < 1 || L.s < 1 || L.p < 0 || L.d < 1) { row.error = "核、步长、膨胀要是不小于 1 的整数，填充要是不小于 0 的整数"; dead = true; return; }
+    if (L.t === "conv") {
+      if (!Number.isInteger(L.c) || !Number.isInteger(L.g) || L.c < 1 || L.g < 1) { row.error = "输出通道和分组要是不小于 1 的整数"; dead = true; return; }
+      if (cin % L.g !== 0 || L.c % L.g !== 0) { row.error = "分组数 " + L.g + " 必须同时整除输入通道 " + cin + " 和输出通道 " + L.c; dead = true; return; }
+    } else if (2 * L.p > L.k) { row.error = "池化的填充不能超过核的一半（PyTorch 会报错）"; dead = true; return; }
+    const out = outSize(size, L.k, L.s, L.p, L.d);
+    if (out === 0) { row.error = "核的覆盖范围 " + (L.d * (L.k - 1) + 1) + " 比补边后的输入 " + (size + 2 * L.p) + " 还大，输出尺寸不是正数"; dead = true; return; }
+    const rem = (size + 2 * L.p - L.d * (L.k - 1) - 1) % L.s;
+    const unread = unreadCount(size, L.k, L.s, L.p, L.d, out);
+    r += (L.k - 1) * L.d * j;
+    j *= L.s;
+    const cout = L.t === "conv" ? L.c : cin;
+    const params = L.t === "conv" ? L.c * (cin / L.g) * L.k * L.k : 0;
+    const macs = params * out * out;
+    Object.assign(row, { valid: true, inSize: size, out: out, cout: cout, r: r, j: j, params: params, macs: macs, rem: rem, unread: unread,
+      unreadPixels: size * size - (size - unread) * (size - unread), unusedPad: Math.min(rem, L.p) });
+    if (unread > 0) {
+      const pct = (100 * row.unreadPixels / (size * size)).toFixed(1);
+      if (L.s > L.d * (L.k - 1) + 1) row.notes.push(["warn", "步长 " + L.s + " 大于核的覆盖范围 " + (L.d * (L.k - 1) + 1) + "，窗口之间有空隙：" + size + "×" + size + " 的输入里有 " + row.unreadPixels + " 个位置（" + pct + "%）没有被任何窗口读到"]);
+      else row.notes.push(["warn", "除以步长有余数 " + rem + "，向下取整后最下面 " + unread + " 行和最右边 " + unread + " 列（共 " + row.unreadPixels + " 个像素，" + pct + "%）没有被任何窗口读到"]);
+    } else if (rem > 0 && L.p > 0) {
+      row.notes.push(["ok", "除以步长有余数 " + rem + "：右边和下边各有 " + row.unusedPad + " 行（列）补边没有被用到，实际用到的补边是左、上各 " + L.p + "，右、下各 " + (L.p - row.unusedPad) + "；真实像素都被读到了"]);
+    }
+    if (r > state.size && !exceeded) { exceeded = true; row.notes.push(["ok", "从这一层起，理论感受野（" + r + "）超过了输入边长 " + state.size]); }
+    totalParams += params; totalMacs += macs; size = out; cin = cout;
+  });
+  const last = rows.filter(x => x.valid).pop() || null;
+  return { rows: rows, ok: !dead, last: last, totalParams: totalParams, totalMacs: totalMacs };
+}
+
+function fmtInt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function fmtMacs(n) { if (n >= 1e9) return (n / 1e9).toFixed(2) + " G"; if (n >= 1e6) return (n / 1e6).toFixed(2) + " M"; if (n >= 1e3) return (n / 1e3).toFixed(1) + " K"; return String(n); }
+
+// ---------------------------------------------------------------- 页面
+if (typeof document !== "undefined") {
+  const TYPE_NAME = { conv: "卷积", max: "最大池化", avg: "平均池化" };
+  const state = JSON.parse(JSON.stringify(PRESETS.rf));
+  const $ = id => document.getElementById(id);
+
+  function buildRows() {
+    const body = $("rows");
+    body.innerHTML = "";
+    state.layers.forEach((L, i) => {
+      const tr = document.createElement("tr");
+      const cell = (html, cls) => { const td = document.createElement("td"); if (cls) td.className = cls; td.innerHTML = html; tr.appendChild(td); return td; };
+      cell(String(i + 1), "l");
+      const sel = cell('<select data-f="t">' + Object.keys(TYPE_NAME).map(t => '<option value="' + t + '"' + (t === L.t ? " selected" : "") + ">" + TYPE_NAME[t] + "</option>").join("") + "</select>", "l");
+      const num = (f, min) => cell('<input type="number" data-f="' + f + '" min="' + min + '" step="1" value="' + L[f] + '"' + ((f === "c" || f === "g" || f === "d") && L.t !== "conv" ? " disabled" : "") + ">");
+      num("k", 1); num("s", 1); num("p", 0); num("d", 1); num("c", 1); num("g", 1);
+      ["out", "r", "j", "params", "macs"].forEach(f => cell("", "out " + f));
+      tr.addEventListener("input", e => {
+        const f = e.target.dataset.f;
+        if (!f) return;
+        if (f === "t") {
+          L.t = e.target.value;
+          if (L.t === "conv") { if (!L.c) L.c = 16; } else { L.d = 1; L.g = 1; }
+          buildRows(); update(); return;
+        }
+        L[f] = e.target.value === "" ? NaN : Number(e.target.value);
+        update();
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+
+  function drawRf(res) {
+    const [ctx, w, h] = setup($("c1"));
+    const valid = res.rows.filter(x => x.valid);
+    const rMax = valid.length ? valid[valid.length - 1].r : 1;
+    const span = Math.max(state.size, rMax), side = Math.min(w, h) - 26, scale = side / span, cx = w / 2, cy = h / 2 + 4;
+    const half = state.size * scale / 2;
+    ctx.fillStyle = "#eef0f4"; ctx.strokeStyle = "#b9bec7"; ctx.lineWidth = 1;
+    ctx.fillRect(cx - half, cy - half, 2 * half, 2 * half); ctx.strokeRect(cx - half, cy - half, 2 * half, 2 * half);
+    valid.slice().reverse().forEach((row, i) => {
+      const a = row.r * scale / 2, t = valid.length > 1 ? (valid.length - 1 - i) / (valid.length - 1) : 1;
+      ctx.fillStyle = "rgba(47,111,237," + (0.07 + 0.05 * t).toFixed(3) + ")"; ctx.strokeStyle = "rgba(47,111,237," + (0.35 + 0.6 * t).toFixed(3) + ")"; ctx.lineWidth = i === 0 ? 2 : 1;
+      ctx.fillRect(cx - a, cy - a, 2 * a, 2 * a); ctx.strokeRect(cx - a, cy - a, 2 * a, 2 * a);
+    });
+    ctx.fillStyle = "#646a73"; ctx.font = "11.5px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText("输入 " + state.size + "×" + state.size, 6, 14);
+    ctx.fillStyle = "#2f6fed"; ctx.textAlign = "right";
+    ctx.fillText("最后一层 r = " + rMax + (rMax > state.size ? "（超出输入）" : ""), w - 6, 14);
+  }
+
+  function drawBars(res) {
+    const [ctx, w, h] = setup($("c2"));
+    const valid = res.rows.filter(x => x.valid), n = valid.length;
+    if (!n) return;
+    const L = 30, R = 44, T = 4, rowH = Math.min(22, (h - T - 4) / n), bar = Math.max(2, rowH * 0.36);
+    ctx.font = Math.min(11, rowH * 0.8).toFixed(1) + "px sans-serif";
+    valid.forEach((row, i) => {
+      const y = T + i * rowH, ps = res.totalParams ? row.params / res.totalParams : 0, ms = res.totalMacs ? row.macs / res.totalMacs : 0;
+      ctx.fillStyle = "#646a73"; ctx.textAlign = "right"; ctx.fillText(String(row.idx), L - 6, y + rowH * 0.7);
+      ctx.fillStyle = "#f0f1f3"; ctx.fillRect(L, y + 1, w - L - R, rowH - 2);
+      ctx.fillStyle = "#8f959e"; ctx.fillRect(L, y + rowH / 2 - bar, (w - L - R) * ps, bar);
+      ctx.fillStyle = "#2f6fed"; ctx.fillRect(L, y + rowH / 2, (w - L - R) * ms, bar);
+      ctx.fillStyle = "#646a73"; ctx.textAlign = "left"; ctx.fillText((100 * ms).toFixed(0) + "%", w - R + 5, y + rowH * 0.7);
+    });
+  }
+
+  function update() {
+    const res = compute(state);
+    $("sizeV").textContent = state.size;
+    const trs = $("rows").children;
+    res.rows.forEach((row, i) => {
+      const tr = trs[i], set = (f, v) => { tr.querySelector("td." + f).textContent = v; };
+      tr.className = row.error ? (row.valid === false && i === res.rows.findIndex(x => x.error) ? "bad" : "dead") : "";
+      if (row.valid) { set("out", row.cout + "×" + row.out + "×" + row.out); set("r", row.r); set("j", row.j); set("params", fmtInt(row.params)); set("macs", fmtMacs(row.macs)); }
+      else { set("out", i === res.rows.findIndex(x => x.error) ? "出错" : "-"); ["r", "j", "params", "macs"].forEach(f => set(f, "-")); }
+    });
+    const last = res.last;
+    $("kOut").textContent = !res.ok ? "出错" : last ? last.cout + " × " + last.out + " × " + last.out : state.cin + " × " + state.size + " × " + state.size;
+    $("kOutBox").className = "kpi" + (res.ok ? "" : " bad");
+    $("kRf").textContent = last ? last.r + "（" + last.j + "）" : "1（1）";
+    $("kParams").textContent = fmtInt(res.totalParams);
+    $("kMacs").textContent = fmtMacs(res.totalMacs);
+    const notes = [];
+    res.rows.forEach(row => {
+      if (row.error && row.idx === res.rows.findIndex(x => x.error) + 1) notes.push('<div class="err">第 ' + row.idx + " 层：" + row.error + "</div>");
+      row.notes.forEach(([cls, text]) => notes.push('<div class="' + cls + '">第 ' + row.idx + " 层：" + text + "</div>"));
+    });
+    $("notes").innerHTML = notes.length ? notes.join("") : '<div class="ok">提示：这里会列出向下取整丢掉的行列、没有用到的补边、步长大于核时被跳过的位置，以及尺寸出错的层。当前结构没有这些情况。</div>';
+    drawRf(res); drawBars(res);
+  }
+
+  function load(p) { const s = JSON.parse(JSON.stringify(p)); state.size = s.size; state.cin = s.cin; state.layers = s.layers; $("size").value = state.size; $("cin").value = state.cin; buildRows(); update(); }
+  function add(L) { state.layers.push(L); buildRows(); update(); const wrap = document.querySelector(".tablewrap"); wrap.scrollTop = wrap.scrollHeight; }
+
+  $("size").addEventListener("input", e => { state.size = +e.target.value; update(); });
+  $("cin").addEventListener("input", e => { state.cin = e.target.value === "" ? 1 : Math.max(1, Math.round(+e.target.value)); update(); });
+  $("addConv").addEventListener("click", () => { const res = compute(state); add(conv(3, 1, 1, res.last ? res.last.cout : 16)); });
+  $("addMax").addEventListener("click", () => add(pool("max", 2, 2)));
+  $("addAvg").addEventListener("click", () => add(pool("avg", 2, 2)));
+  $("delLast").addEventListener("click", () => { state.layers.pop(); buildRows(); update(); });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { load(PRESETS[b.dataset.preset]); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+  window.addEventListener("resize", update);
+  load(PRESETS.rf);
+}
+if (typeof module !== "undefined") module.exports = { PRESETS: PRESETS, compute: compute, outSize: outSize, fmtInt: fmtInt, fmtMacs: fmtMacs, conv: conv, pool: pool };
+</script>
+</body>
+</html>

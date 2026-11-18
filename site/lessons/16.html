@@ -473,11 +473,11 @@ a = \frac{l + r - 2c}{2}, \qquad b = \frac{r - l}{2}
 <li><strong>先粗后精</strong>：用低分辨率或者大视场先定到整周期，再精修。</li>
 <li><strong>用设计数据</strong>（die-to-database）：拿版图渲染图做参考，参考图里有全局结构。</li>
 </ol>
-<p>第 24 章开发时踩的就是这个坑：版图 x 方向周期 24 px，相位相关最大偏差 23.8 px，差不多正好一个周期。</p>
+<p>第 24 章开发时踩的就是这个坑：版图 x 方向周期 24 px，相位相关最大偏差 23.8 px，差不多正好一个周期。这是原讲义记下的开发过程中的数字。现在的课程数据带对位标记，第 24 章讲义实测 740 次对齐里没有一次对错周期，把标记去掉之后才会大量出错。</p>
 <div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>严格周期的版图上，相位相关限制搜索范围后仍然失败 182/200，换成普通互相关、同样的搜索范围就是 0/200。差别来自哪里？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>普通互相关的峰更尖</span></button><button type="button" data-k="B"><b>B</b><span>白化把没有信号的频率也拉到同样权重，相关面被噪声淹没</span></button><button type="button" data-k="C"><b>C</b><span>普通互相关不受周期影响</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。普通互相关同样有周期性的多峰（全范围搜索时 199/200 失败），所以 C 不对。它的峰比相位相关宽，A 也不对。区别在于它按频谱幅度加权，空频率里的噪声几乎不起作用。</p></div></div>
 <h2 id="9-交互演示">9. 交互演示</h2>
 <p>把二维图像换成一行 128 个像素，其余和作业里的算法一致。按页面下方“按顺序试”的五步操作，每一步先预测再拖动。</p>
-<div class="embed"><iframe src="../../demos/相位相关.html" height="1010" loading="lazy" title="交互演示"></iframe></div>
+<div class="embed"><iframe src="../../demos/相位相关.html" height="1070" loading="lazy" title="交互演示"></iframe></div>
 <p><a href="../../demos/相位相关.html">打开交互演示：相位相关与亚像素</a></p>
 <h2 id="10-怎样评估对齐精度">10. 怎样评估对齐精度</h2>
 <p>不要只看一张图对得准不准。标准做法：</p>

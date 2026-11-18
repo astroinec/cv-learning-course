@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>预处理契约：训练和部署差一处</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); min-width: 0; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1 1 0; min-width: 0; font: inherit; font-size: 12px; padding: 5px 2px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .seg button.off { background: var(--orange); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .views { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 3fr) minmax(0, 3fr) minmax(0, 3fr); gap: 12px; align-items: start; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; min-height: 40px; }
+  figcaption i { font-style: normal; display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin: 0 3px 0 6px; border-radius: 2px; }
+  canvas { width: 100%; display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; table-layout: fixed; }
+  th, td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 500; }
+  td.diff { color: var(--red); font-weight: 600; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .views { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>预处理契约：训练和部署差一处（第 14 章）</h1>
+  <div class="sub">一张 160×120 的小图。训练时的契约固定为：RGB，保持比例缩到 48×48 并加边（抗锯齿双线性，加边值 114），除以 255，减训练集均值、除以标准差，HWC 转成 CHW。下面选的是部署时的做法，橙色的按钮表示和契约不一致。所有计算在浏览器里完成，不执行 Python，也不运行模型。</div>
+
+  <div class="panel controls">
+    <label>场景<div class="seg" id="scene"><button data-v="cup">红杯</button><button data-v="card">黄卡片（3:2）</button><button data-v="keys">键盘</button></div></label>
+    <label>通道顺序<div class="seg" id="order"><button data-v="rgb">RGB</button><button data-v="bgr">BGR</button></div></label>
+    <label>缩放方式<div class="seg" id="geom"><button data-v="letterbox">保持比例加边</button><button data-v="stretch">直接拉伸</button></div></label>
+    <label>插值<div class="seg" id="interp"><button data-v="aa">抗锯齿双线性</button><button data-v="linear">双线性</button><button data-v="nearest">最近邻</button></div></label>
+    <label>取值范围<div class="seg" id="range"><button data-v="div">除以 255</button><button data-v="none">没有除</button><button data-v="twice">除了两次</button></div></label>
+    <label>均值方差<div class="seg" id="norm"><button data-v="train">训练集的</button><button data-v="imagenet">ImageNet 的</button><button data-v="off">不做</button></div></label>
+    <label>HWC 转 CHW<div class="seg" id="layout"><button data-v="transpose">transpose</button><button data-v="reshape">reshape</button></div></label>
+    <label>加边值<div class="seg" id="pad"><button data-v="114">114</button><button data-v="0">0</button></div></label>
+    <label>框怎样反算回原图<div class="seg" id="inverse"><button data-v="letterbox">减加边再除比例</button><button data-v="nopad">只除比例</button><button data-v="stretch">按拉伸比例</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" id="kDiffBox"><span>输入的平均绝对差（单位：标准差）</span><b id="kDiff"></b></div>
+    <div class="kpi"><span>契约下输入的取值范围</span><b id="kRangeRef"></b></div>
+    <div class="kpi" id="kRangeBox"><span>部署做法下输入的取值范围</span><b id="kRange"></b></div>
+    <div class="kpi" id="kIouBox"><span>框反算回原图后的 IoU</span><b id="kIou"></b></div>
+  </div>
+
+  <div class="panel views">
+    <figure><figcaption>原图 160×120<i style="background:#fff;border:1px solid #646a73"></i>真值框<i style="background:var(--red)"></i>反算回来的框</figcaption><canvas id="cSrc" width="480" height="360"></canvas></figure>
+    <figure><figcaption>契约下模型收到的输入（48×48）</figcaption><canvas id="cRef" width="48" height="48"></canvas></figure>
+    <figure><figcaption>部署做法下模型收到的输入，按契约的均值方差还原成颜色</figcaption><canvas id="cDep" width="48" height="48"></canvas></figure>
+    <figure><figcaption>两者之差，三个通道取平均。越红差得越多，3 个标准差以上是最红</figcaption><canvas id="cDiff" width="48" height="48"></canvas></figure>
+  </div>
+
+  <div class="panel">
+    <table>
+      <thead><tr><th>输入张量的统计量（归一化之后）</th><th>第 0 通道均值</th><th>第 1 通道均值</th><th>第 2 通道均值</th><th>整体标准差</th><th>最小值</th><th>最大值</th></tr></thead>
+      <tbody>
+        <tr><td>按契约</td><td id="r0"></td><td id="r1"></td><td id="r2"></td><td id="rs"></td><td id="rmin"></td><td id="rmax"></td></tr>
+        <tr><td>按部署做法</td><td id="d0"></td><td id="d1"></td><td id="d2"></td><td id="ds"></td><td id="dmin"></td><td id="dmax"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>只把通道顺序改成 BGR，其余和契约一致。先点一下“RGB”看一致时的样子：平均绝对差是 0，框反算回来和真值重合（IoU 1.00）。再点回“BGR”：第三张图里红杯变成了蓝杯，差集中在杯子上。表里三个通道的均值变化都不到 0.05，整体标准差从 0.69 变成 0.68，所以只比统计量发现不了这个错误，要看图，或者拿一张颜色已知的图来测。<button data-preset='{"scene":"cup","order":"bgr","geom":"letterbox","interp":"aa","range":"div","norm":"train","layout":"transpose","pad":"114","inverse":"letterbox"}'>载入</button></li>
+      <li>通道顺序改回 RGB，取值范围选“没有除”。输入的最大值从 1.7 变成一千多，第三张图全白。再试“除了两次”：全部的值挤在 -3.7 附近，整体标准差只有 0.03。最后把取值范围改回“除以 255”、均值方差选“不做”：值落在 0 到 1 之间，标准差只有契约下的七分之一左右。<button data-preset='{"scene":"cup","order":"rgb","geom":"letterbox","interp":"aa","range":"none","norm":"train","layout":"transpose","pad":"114","inverse":"letterbox"}'>载入</button></li>
+      <li>换成黄卡片，缩放方式选“直接拉伸”，反算仍然用“减加边再除比例”。卡片在输入里从 3:2 变成接近方形，框的 IoU 掉到 0.75。把反算改成“按拉伸比例”，IoU 回到 1.00，但模型看到的仍然是变了形的卡片。再把缩放方式改回加边、反算选“只除比例”（漏减加边），IoU 只有 0.29。<button data-preset='{"scene":"card","order":"rgb","geom":"stretch","interp":"aa","range":"div","norm":"train","layout":"transpose","pad":"114","inverse":"letterbox"}'>载入</button></li>
+      <li>换成键盘，插值选“最近邻”。格纹的样子和契约下不一样，平均绝对差 0.15 个标准差，差分布在键盘和整个桌面的纹理上。再换成“双线性”（不抗锯齿），平均绝对差 0.10。两种做法下输入的整体标准差（0.61 和 0.59）都比契约下的 0.50 大：没有抗锯齿，细纹理和噪声没有被平均掉。<button data-preset='{"scene":"keys","order":"rgb","geom":"letterbox","interp":"nearest","range":"div","norm":"train","layout":"transpose","pad":"114","inverse":"letterbox"}'>载入</button></li>
+      <li>插值改回抗锯齿双线性，HWC 转 CHW 选“reshape”。数组的元素个数没变，程序不会报错，画面却成了彩色条纹。表里的整体标准差、最小值、最大值和契约下完全相同，只有各通道的均值变了。<button data-preset='{"scene":"keys","order":"rgb","geom":"letterbox","interp":"aa","range":"div","norm":"train","layout":"reshape","pad":"114","inverse":"letterbox"}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+const SW = 160, SH = 120, D = 48;
+const CONTRACT = { order: "rgb", geom: "letterbox", interp: "aa", range: "div", norm: "train", layout: "transpose", pad: "114" };
+const MEAN = { train: [0.522, 0.515, 0.504], imagenet: [0.485, 0.456, 0.406] };
+const STD = { train: [0.144, 0.139, 0.138], imagenet: [0.229, 0.224, 0.225] };
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+
+// 一张 160x120 的桌面图，返回 { rgb: HWC 的 0 到 255 整数, box: [x0, y0, x1, y1] }
+function makeScene(kind) {
+  const r = rng(kind === "cup" ? 11 : kind === "card" ? 12 : 13);
+  const rgb = new Float64Array(SW * SH * 3);
+  const box = kind === "cup" ? [41, 37, 83, 79] : kind === "card" ? [38, 46, 92, 82] : [44, 40, 116, 76];
+  const rows = []; for (let y = 0; y < SH; y++) rows.push(gauss(r));
+  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+    const grain = 4 * (0.6 * rows[y] + 0.4 * rows[Math.min(SH - 1, y + 1)]);
+    let c = [128 + grain, 150 + grain, 140 + grain];
+    const inside = x >= box[0] && x < box[2] && y >= box[1] && y < box[3];
+    if (kind === "cup") {
+      const d = Math.hypot(x + 0.5 - 62, y + 0.5 - 58), m = Math.max(0, Math.min(1, 21 - d + 0.5)), inner = Math.max(0, Math.min(1, 15 - d + 0.5));
+      const col = [200, 45, 40].map(v => v * (1 - 0.35 * inner));
+      c = c.map((v, i) => v * (1 - m) + col[i] * m);
+    } else if (kind === "card" && inside) {
+      c = [228, 198, 62];
+    } else if (kind === "keys" && inside) {
+      const line = ((x - box[0]) % 8) < 2 || ((y - box[1]) % 8) < 2;
+      c = line ? [157, 157, 163] : [72, 72, 78];
+    }
+    const light = 1 + 0.12 * (x - SW / 2) / (SW / 2);
+    for (let k = 0; k < 3; k++) rgb[(y * SW + x) * 3 + k] = Math.max(0, Math.min(255, Math.round(c[k] * light + 3 * gauss(r))));
+  }
+  return { rgb, box };
+}
+
+// 和作业里的 letterbox_metadata 同样的公式。JS 的 Math.round 遇到 .5 向上取，Python 的 round 取偶数，这个页面用到的尺寸不会正好落在 .5 上
+function letterboxMeta(srcH, srcW, dstH, dstW) {
+  const scale = Math.min(dstH / srcH, dstW / srcW);
+  const nh = Math.min(dstH, Math.round(srcH * scale)), nw = Math.min(dstW, Math.round(srcW * scale));
+  return { scale, nh, nw, padX: Math.floor((dstW - nw) / 2), padY: Math.floor((dstH - nh) / 2) };
+}
+
+// 一个方向上的重采样权重。aa：三角核按缩小倍数放宽（抗锯齿）；linear：只看相邻两个像素；nearest：取一个像素
+function axisWeights(src, dst, mode) {
+  const scale = src / dst, out = [];
+  for (let i = 0; i < dst; i++) {
+    if (mode === "nearest") { out.push([[Math.min(src - 1, Math.floor(i * scale)), 1]]); continue; }
+    const center = (i + 0.5) * scale, support = mode === "aa" ? Math.max(1, scale) : 1, taps = [];
+    let sum = 0;
+    for (let j = Math.max(0, Math.floor(center - support)); j <= Math.min(src - 1, Math.ceil(center + support)); j++) {
+      const w = Math.max(0, 1 - Math.abs(j + 0.5 - center) / support);
+      if (w > 0) { taps.push([j, w]); sum += w; }
+    }
+    if (!taps.length) { taps.push([Math.max(0, Math.min(src - 1, Math.round(center - 0.5))), 1]); sum = 1; }
+    out.push(taps.map(([j, w]) => [j, w / sum]));
+  }
+  return out;
+}
+function resize(rgb, sw, sh, dw, dh, mode) {
+  const wx = axisWeights(sw, dw, mode), wy = axisWeights(sh, dh, mode);
+  const tmp = new Float64Array(dw * sh * 3), out = new Float64Array(dw * dh * 3);
+  for (let y = 0; y < sh; y++) for (let x = 0; x < dw; x++) for (let k = 0; k < 3; k++) { let s = 0; for (const [j, w] of wx[x]) s += w * rgb[(y * sw + j) * 3 + k]; tmp[(y * dw + x) * 3 + k] = s; }
+  for (let y = 0; y < dh; y++) for (let x = 0; x < dw; x++) for (let k = 0; k < 3; k++) { let s = 0; for (const [j, w] of wy[y]) s += w * tmp[(j * dw + x) * 3 + k]; out[(y * dw + x) * 3 + k] = Math.round(s); }
+  return out;
+}
+
+// 按给定做法得到模型的输入：长度 3*D*D 的 CHW 数组，以及缩放用的元数据
+function preprocess(scene, o) {
+  const meta = o.geom === "letterbox" ? letterboxMeta(SH, SW, D, D) : { scale: null, nh: D, nw: D, padX: 0, padY: 0 };
+  const canvas = new Float64Array(D * D * 3).fill(+o.pad);
+  const small = resize(scene.rgb, SW, SH, meta.nw, meta.nh, o.interp);
+  for (let y = 0; y < meta.nh; y++) for (let x = 0; x < meta.nw; x++) for (let k = 0; k < 3; k++) canvas[((y + meta.padY) * D + x + meta.padX) * 3 + k] = small[(y * meta.nw + x) * 3 + k];
+  const div = o.range === "div" ? 255 : o.range === "twice" ? 255 * 255 : 1;
+  const hwc = new Float64Array(D * D * 3);
+  for (let p = 0; p < D * D; p++) for (let k = 0; k < 3; k++) {
+    let v = canvas[p * 3 + (o.order === "bgr" ? 2 - k : k)] / div;
+    if (o.norm !== "off") v = (v - MEAN[o.norm][k]) / STD[o.norm][k];
+    hwc[p * 3 + k] = v;
+  }
+  if (o.layout === "reshape") return { x: hwc, meta };
+  const chw = new Float64Array(D * D * 3);
+  for (let p = 0; p < D * D; p++) for (let k = 0; k < 3; k++) chw[k * D * D + p] = hwc[p * 3 + k];
+  return { x: chw, meta };
+}
+
+function stats(x) {
+  const n = D * D, mean = [0, 0, 0];
+  let min = Infinity, max = -Infinity, s = 0, s2 = 0;
+  for (let k = 0; k < 3; k++) { for (let p = 0; p < n; p++) { const v = x[k * n + p]; mean[k] += v; s += v; s2 += v * v; if (v < min) min = v; if (v > max) max = v; } mean[k] /= n; }
+  const m = s / (3 * n);
+  return { mean, std: Math.sqrt(Math.max(0, s2 / (3 * n) - m * m)), min, max };
+}
+function meanAbsDiff(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; }
+
+// 真值框变到部署做法的画布上（当作检测器的理想输出），再按选定的方式反算回原图
+function boxToCanvas(box, meta) {
+  const sx = meta.nw / SW, sy = meta.nh / SH;
+  return [box[0] * sx + meta.padX, box[1] * sy + meta.padY, box[2] * sx + meta.padX, box[3] * sy + meta.padY];
+}
+function boxBack(b, how) {
+  const m = letterboxMeta(SH, SW, D, D);
+  let o;
+  if (how === "letterbox") o = [(b[0] - m.padX) / m.scale, (b[1] - m.padY) / m.scale, (b[2] - m.padX) / m.scale, (b[3] - m.padY) / m.scale];
+  else if (how === "nopad") o = b.map(v => v / m.scale);
+  else o = [b[0] * SW / D, b[1] * SH / D, b[2] * SW / D, b[3] * SH / D];
+  return [Math.max(0, Math.min(SW, o[0])), Math.max(0, Math.min(SH, o[1])), Math.max(0, Math.min(SW, o[2])), Math.max(0, Math.min(SH, o[3]))];
+}
+function iou(a, b) {
+  const ix = Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0])), iy = Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
+  const inter = ix * iy, uni = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter;
+  return uni > 0 ? inter / uni : 0;
+}
+
+function compute(state) {
+  const scene = makeScene(state.scene);
+  const ref = preprocess(scene, CONTRACT), dep = preprocess(scene, state);
+  const back = boxBack(boxToCanvas(scene.box, dep.meta), state.inverse);
+  return { scene, ref, dep, back, diff: meanAbsDiff(ref.x, dep.x), sRef: stats(ref.x), sDep: stats(dep.x), iou: iou(back, scene.box) };
+}
+
+if (typeof document !== "undefined") {
+  const state = Object.assign({ scene: "cup", inverse: "letterbox" }, CONTRACT);
+  const $ = id => document.getElementById(id);
+  const fmt = v => Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2);
+
+  function drawTensor(canvas, x) {
+    const ctx = canvas.getContext("2d"), im = ctx.createImageData(D, D), n = D * D;
+    for (let p = 0; p < n; p++) { for (let k = 0; k < 3; k++) im.data[p * 4 + k] = Math.max(0, Math.min(255, Math.round((x[k * n + p] * STD.train[k] + MEAN.train[k]) * 255))); im.data[p * 4 + 3] = 255; }
+    ctx.putImageData(im, 0, 0);
+  }
+  function drawDiff(canvas, a, b) {
+    const ctx = canvas.getContext("2d"), im = ctx.createImageData(D, D), n = D * D;
+    for (let p = 0; p < n; p++) {
+      let d = 0; for (let k = 0; k < 3; k++) d += Math.abs(a[k * n + p] - b[k * n + p]) / 3;
+      const t = Math.min(1, d / 3);
+      im.data[p * 4] = 255; im.data[p * 4 + 1] = Math.round(255 * (1 - 0.8 * t)); im.data[p * 4 + 2] = Math.round(255 * (1 - 0.85 * t)); im.data[p * 4 + 3] = 255;
+    }
+    ctx.putImageData(im, 0, 0);
+  }
+  function drawSource(canvas, scene, back) {
+    const ctx = canvas.getContext("2d"), off = document.createElement("canvas");
+    off.width = SW; off.height = SH;
+    const octx = off.getContext("2d"), im = octx.createImageData(SW, SH);
+    for (let p = 0; p < SW * SH; p++) { for (let k = 0; k < 3; k++) im.data[p * 4 + k] = scene.rgb[p * 3 + k]; im.data[p * 4 + 3] = 255; }
+    octx.putImageData(im, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+    const s = canvas.width / SW;
+    const rect = (b, color, width, dash) => { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.strokeRect(b[0] * s, b[1] * s, (b[2] - b[0]) * s, (b[3] - b[1]) * s); ctx.setLineDash([]); };
+    rect(scene.box, "#ffffff", 4, []);
+    rect(back, "#d6362f", 2.5, [9, 5]);
+  }
+
+  function render() {
+    const r = compute(state);
+    drawSource($("cSrc"), r.scene, r.back); drawTensor($("cRef"), r.ref.x); drawTensor($("cDep"), r.dep.x); drawDiff($("cDiff"), r.ref.x, r.dep.x);
+    $("kDiff").textContent = fmt(r.diff); $("kDiffBox").className = "kpi " + (r.diff < 0.02 ? "ok" : "bad");
+    $("kRangeRef").textContent = fmt(r.sRef.min) + " 到 " + fmt(r.sRef.max);
+    $("kRange").textContent = fmt(r.sDep.min) + " 到 " + fmt(r.sDep.max);
+    $("kRangeBox").className = "kpi " + (Math.abs(r.sDep.min - r.sRef.min) + Math.abs(r.sDep.max - r.sRef.max) < 0.5 ? "ok" : "bad");
+    $("kIou").textContent = r.iou.toFixed(2); $("kIouBox").className = "kpi " + (r.iou > 0.95 ? "ok" : "bad");
+    const cell = (id, v, refv) => { const el = $(id); el.textContent = fmt(v); el.className = refv !== undefined && Math.abs(v - refv) > 0.05 ? "diff" : ""; };
+    for (let k = 0; k < 3; k++) { cell("r" + k, r.sRef.mean[k]); cell("d" + k, r.sDep.mean[k], r.sRef.mean[k]); }
+    cell("rs", r.sRef.std); cell("ds", r.sDep.std, r.sRef.std); cell("rmin", r.sRef.min); cell("dmin", r.sDep.min, r.sRef.min); cell("rmax", r.sRef.max); cell("dmax", r.sDep.max, r.sRef.max);
+  }
+  const ids = ["scene", "order", "geom", "interp", "range", "norm", "layout", "pad", "inverse"];
+  function syncControls() {
+    for (const id of ids) $(id).querySelectorAll("button").forEach(b => {
+      const on = b.dataset.v === state[id], wrong = on && id in CONTRACT && CONTRACT[id] !== state[id];
+      b.className = on ? (wrong ? "off" : "on") : "";
+    });
+  }
+  for (const id of ids) $(id).addEventListener("click", e => { if (e.target.dataset.v) { state[id] = e.target.dataset.v; syncControls(); render(); } });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+  syncControls(); render();
+} else {
+  module.exports = { compute, CONTRACT, letterboxMeta, preprocess, makeScene, stats, D };
+}
+</script>
+</body>
+</html>

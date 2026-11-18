@@ -58,9 +58,49 @@
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 5 章 <span class="tag P1">P1</span> <span class="badge">原版讲义</span></div><h1>特征点与描述子</h1><p class="scene"><b>用在哪：</b>大位移或带旋转缩放的对齐，重复图案上要慎用</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 10 小时</span><span class="chip"><b>深挖</b> 12 小时</span><span class="chip">前置：<a href="../lessons/02.html">第 2 章 卷积与边缘</a>、<a href="../lessons/04.html">第 4 章 几何变换</a></span></div><div class="meta-row"><span class="chip mono">验收：python 05_特征点/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="05"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
-<p>配套练习：<code>5-1_手写Harris.py</code> | <code>5-2_SIFT匹配.py</code></p>
+<div class="lesson-head"><div class="crumbs">第 5 章 <span class="tag P1">P1</span> <span class="badge ok">已升级</span></div><h1>特征点与描述子</h1><p class="scene"><b>用在哪：</b>大位移或带旋转缩放的对齐，重复图案上要慎用</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 10 小时</span><span class="chip"><b>深挖</b> 12 小时</span><span class="chip">前置：<a href="../lessons/02.html">第 2 章 卷积与边缘</a>、<a href="../lessons/04.html">第 4 章 几何变换</a></span></div><div class="meta-row"><span class="chip mono">验收：python 05_特征点/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="05"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自合成图像上的实测，记录在 <a href="../../05_特征点/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch05.py</code> 生成。Harris 响应用本章作业的参考实现，SIFT、ORB、匹配和 RANSAC 用 OpenCV 5.0。耗时是在一台 Apple 芯片的 Mac 上测的，只能看量级和相对快慢。换成真实图像或别的机器，数值会变，结论的方向要自己再测一遍。</p>
+</div>
+<!-- -->
+
+<blockquote>
+<p>配套练习：<code>5-1_Harris响应.py</code> 是本章自动验收的作业。原讲义提到的“练习 5-1 手写 Harris”就是它；“练习 5-2 SIFT 匹配”的题目在 <a href="../../视觉算法学习计划.md"><code>视觉算法学习计划.md</code></a> 的“第 5 天”一节，需要自己新建文件完成。</p>
 </blockquote>
+<hr />
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：大位移或带旋转缩放的对齐，重复图案上要慎用。典型用法是两张图之间的位移、角度、倍率都不知道，先用特征点给出一个粗的变换，再交给第 16 章的方法精修。图像拼接、换倍率之后的定位、手持拍摄的照片对齐都属于这一类。</p>
+<p><strong>优先级</strong>：P1。前置是第 2 章（梯度、Sobel）和第 4 章（单应和 RANSAC）。后面第 6 章的光流用角点决定“跟踪谁”，第 7 章的位姿估计和第 16 章的对齐都把本章当作“提供对应点”的一步。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">3 小时</td>
+<td>读第 0 节和 5.1、5.2、5.5、5.8 节，看懂图 1、图 2、图 5、图 6，把第 5.9 节演示的五步都试一遍，答完 5 道小测</td>
+<td>能讲清角点为什么好定位、k 在管什么、比值检验在过滤什么，以及特征点在周期图案上为什么会对错整数个周期</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">10 小时</td>
+<td>读完全章，跑 Notebook，完成作业并验收通过，做第 5.11 节前三个破坏实验，填实验记录</td>
+<td>验收 PASS，实验记录里有一次旋转或阈值导致的失效，以及一条自己测的比值阈值曲线</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">12 小时</td>
+<td>再做第 5.11 节后三个破坏实验和第 5.12 节的扩展</td>
+<td>能在自己拍的一对照片上报告匹配正确率、内点比例和耗时，并写清条件</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。SIFT 的五步只要求能按顺序讲出每一步在解决什么问题，不要求推导。</p>
+</div>
 <hr />
 <h2 id="51-从整张图变成少数可靠地标">5.1 从“整张图”变成“少数可靠地标”</h2>
 <p>两张照片可能尺寸不同、亮度不同，还可能发生旋转和局部遮挡。如果逐像素比较，它们几乎处处不同；但窗户角、书本标题的笔画交点、建筑纹理等局部结构仍可能被重复找到。特征方法的目标，就是把百万像素压缩成几百到几千个可靠地标。</p>
@@ -78,6 +118,44 @@
 <li><strong>数量与分布合适</strong>：不是越多越好；一千个挤在树叶上的点不如均匀覆盖画面的几百个点。</li>
 </ol>
 <p>平坦区域不是好特征，因为向任何方向移动都看不出变化；直线边缘也不够好，因为沿边缘移动几乎不变，这叫<strong>孔径问题</strong>。角点在两个方向都变化，位置最容易被唯一确定。</p>
+<h3 id="实测小块能不能在第二张图里找回来">实测：小块能不能在第二张图里找回来</h3>
+<p>上面这段话可以直接量。同一个场景拍两次，各加标准差 10 的噪声，从第一张图上取一个 15×15 的小块，在第二张图的 ±8 px 范围内找平方差最小的位置。真实位移是 0，三种位置各做 200 次。</p>
+<figure><img src="../../05_特征点/figures/fig01_平坦边缘角点的定位.svg" alt="图 1：最左是 120×120 的合成场景和三个 15×15 小块的位置。右边三栏是三个小块各 200 次定位的误差，横轴是垂直于边的方向（x），纵轴是沿着边的方向（y），点做了轻微抖动以便看清重叠" loading="lazy"><figcaption>图 1：最左是 120×120 的合成场景和三个 15×15 小块的位置。右边三栏是三个小块各 200 次定位的误差，横轴是垂直于边的方向（x），纵轴是沿着边的方向（y），点做了轻微抖动以便看清重叠</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>小块位置</th>
+<th style="text-align: right;">x 方向均方根误差（px）</th>
+<th style="text-align: right;">y 方向均方根误差（px）</th>
+<th style="text-align: right;">两个方向都找对的比例</th>
+<th>结构张量的两个特征值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平坦</td>
+<td style="text-align: right;">5.18</td>
+<td style="text-align: right;">5.06</td>
+<td style="text-align: right;">0%</td>
+<td>0 和 0</td>
+</tr>
+<tr>
+<td>边缘（竖直边）</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">4.94</td>
+<td style="text-align: right;">8.5%</td>
+<td>15415 和 0</td>
+</tr>
+<tr>
+<td>角点</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">100%</td>
+<td>8554 和 6506</td>
+</tr>
+</tbody>
+</table></div>
+<p>在 ±8 px 里完全瞎猜，均方根误差是 4.9 px。平坦小块两个方向都和瞎猜一样；边缘小块垂直于边的方向 200 次全对，沿着边的方向和瞎猜一样；角点两个方向都对。最右一列是下一节要讲的结构张量特征值：哪个方向的特征值是 0，哪个方向就定不住。</p>
 <hr />
 <h2 id="52-harris-角点看小窗口往哪里移动都会变">5.2 Harris 角点：看小窗口往哪里移动都会变</h2>
 <h3 id="直觉">直觉</h3>
@@ -126,6 +204,224 @@ M = Σ_w [ Ix²   IxIy ]
   = λ1λ2 - k(λ1+λ2)²
 </code></pre></div>
 <p>通常 <code>k=0.04~0.06</code>。角点的 <code>R</code> 较大且为正，边缘常为负，平坦区接近 0。这里的 <code>k</code> 不是窗口大小，而是抑制边缘响应的经验系数。</p>
+<p>图 1 的三个小块正好对应这三种情况：平坦块的响应是 0，边缘块是 <span class="arithmatex">\(-9.51\times10^{6}\)</span>，角点块是 <span class="arithmatex">\(4.66\times10^{7}\)</span>。</p>
+<h3 id="k-到底在管什么">k 到底在管什么</h3>
+<p>把 <span class="arithmatex">\(\lambda_1 = r\,\lambda_2\)</span>（<span class="arithmatex">\(r \ge 1\)</span>）代进响应函数：</p>
+<div class="arithmatex">\[
+R = \lambda_2^2\left[r - k\,(1+r)^2\right]
+\]</div>
+<p><span class="arithmatex">\(R &gt; 0\)</span> 等价于 <span class="arithmatex">\(r + 1/r + 2 &lt; 1/k\)</span>。所以 <strong>k 只决定一件事：两个特征值之比 <span class="arithmatex">\(r\)</span> 在多大以内还算角点</strong>。和特征值的绝对大小无关。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>k</th>
+<th style="text-align: right;">0.02</th>
+<th style="text-align: right;">0.04</th>
+<th style="text-align: right;">0.06</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">0.15</th>
+<th style="text-align: right;">0.2</th>
+<th style="text-align: right;">0.24</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>特征值之比的上限</td>
+<td style="text-align: right;">48.0</td>
+<td style="text-align: right;">23.0</td>
+<td style="text-align: right;">14.6</td>
+<td style="text-align: right;">7.9</td>
+<td style="text-align: right;">4.4</td>
+<td style="text-align: right;">2.6</td>
+<td style="text-align: right;">1.5</td>
+</tr>
+<tr>
+<td>理想模型下能得到正响应的最小张角（度）</td>
+<td style="text-align: right;">16.4</td>
+<td style="text-align: right;">23.6</td>
+<td style="text-align: right;">29.3</td>
+<td style="text-align: right;">39.2</td>
+<td style="text-align: right;">50.8</td>
+<td style="text-align: right;">63.4</td>
+<td style="text-align: right;">78.5</td>
+</tr>
+</tbody>
+</table></div>
+<p>第二行用的理想模型是：窗口里只有两条等长的直边，夹角为 <span class="arithmatex">\(\varphi\)</span>，这时两个特征值正比于 <span class="arithmatex">\(1 \pm \lvert\cos\varphi\rvert\)</span>，<span class="arithmatex">\(R &gt; 0\)</span> 等价于 <span class="arithmatex">\(\sin\varphi &gt; 2\sqrt{k}\)</span>。k 趋于 0.25 时上限趋于 1，只有两个特征值完全相等才算角点，所以 k 必须小于 0.25。</p>
+<p>这个式子还说明了一件原讲义没提的事：<span class="arithmatex">\(\sin\varphi\)</span> 对 <span class="arithmatex">\(\varphi\)</span> 和 <span class="arithmatex">\(180° - \varphi\)</span> 是一样的，所以在理想模型里，<strong>30 度的锐角和 150 度的钝角对 k 来说同样“扁”</strong>。实测并不对称：</p>
+<figure><img src="../../05_特征点/figures/fig02_k与窗口大小.svg" alt="图 2：左一，特征值平面上 R &gt; 0 的区域夹在两条直线之间，k 越大夹角越小，黑点是图 1 的三个小块。左二，64×64 楔形顶点处的最大响应随张角的变化，每个张角取 16 种随机朝向和亚像素位置平均。右二，带噪声的方块上，响应大于最大值 1% 的假角点随 k 的变化。最右，直角楔形的响应峰值离真实顶点的平均距离随窗口边长的变化" loading="lazy"><figcaption>图 2：左一，特征值平面上 R &gt; 0 的区域夹在两条直线之间，k 越大夹角越小，黑点是图 1 的三个小块。左二，64×64 楔形顶点处的最大响应随张角的变化，每个张角取 16 种随机朝向和亚像素位置平均。右二，带噪声的方块上，响应大于最大值 1% 的假角点随 k 的变化。最右，直角楔形的响应峰值离真实顶点的平均距离随窗口边长的变化</figcaption></figure>
+<p>以 k=0.04 为例（数值是相对直角的比例，16 种摆放的平均）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>张角（度）</th>
+<th style="text-align: right;">15</th>
+<th style="text-align: right;">30</th>
+<th style="text-align: right;">45</th>
+<th style="text-align: right;">60</th>
+<th style="text-align: right;">90</th>
+<th style="text-align: right;">120</th>
+<th style="text-align: right;">135</th>
+<th style="text-align: right;">150</th>
+<th style="text-align: right;">165</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>顶点处的最大响应</td>
+<td style="text-align: right;">0.072</td>
+<td style="text-align: right;">0.494</td>
+<td style="text-align: right;">1.002</td>
+<td style="text-align: right;">1.222</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">0.437</td>
+<td style="text-align: right;">0.179</td>
+<td style="text-align: right;">0.001</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>有正响应的摆放比例</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">62%</td>
+<td style="text-align: right;">0%</td>
+</tr>
+</tbody>
+</table></div>
+<p>15 度的尖角仍然 100% 有正响应，150 度的钝角只剩 62%，165 度一个都没有。k 加大到 0.1 时，135 度就只剩 44% 有正响应。原因是锐角顶点附近的窗口里两条边的梯度都很强，而钝角的两条边方向接近，窗口里几乎只看到一条“弯了一点的边”。实际含义是：<strong>提高 k 去压边缘误检时，最先丢掉的是钝角</strong>，比如多边形版图上 135 度的拐角。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>把 k 从 0.04 提高到 0.1，哪类顶点最先失去正响应？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>15 度的尖角，因为它最“细”</span></button><button type="button" data-k="B"><b>B</b><span>135 度左右的钝角</span></button><button type="button" data-k="C"><b>C</b><span>90 度直角</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。理想模型里 30 度和 150 度一样扁，但实测锐角顶点附近两条边的梯度都很强，15 度的尖角在 k=0.04 时仍然 100% 有正响应。k=0.1 时 135 度的钝角只有 44% 的摆放还有正响应，150 度只剩 12%。直角的特征值之比最小，最不受 k 影响。</p></div></div>
+<h3 id="k-和噪声k-只管得住边上的假角点">k 和噪声：k 只管得住“边上的”假角点</h3>
+<p>k 的设计目标是让边缘的响应为负。直边加了噪声之后，小的特征值不再是 0，比值从无穷大降下来，一旦低于上限就会冒出假角点。实测一个转了 20 度的方块（边长 70，灰度 60 和 200），取响应大于最大值 1% 的局部极大，每格 20 张图平均：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>k</th>
+<th style="text-align: right;">0.01</th>
+<th style="text-align: right;">0.02</th>
+<th style="text-align: right;">0.04</th>
+<th style="text-align: right;">0.06</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">0.15</th>
+<th style="text-align: right;">0.2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>噪声 10：边上的假角点（每张图）</td>
+<td style="text-align: right;">18.2</td>
+<td style="text-align: right;">20.1</td>
+<td style="text-align: right;">10.6</td>
+<td style="text-align: right;">3.0</td>
+<td style="text-align: right;">0.1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>噪声 20：边上的假角点</td>
+<td style="text-align: right;">17.8</td>
+<td style="text-align: right;">18.0</td>
+<td style="text-align: right;">19.1</td>
+<td style="text-align: right;">20.9</td>
+<td style="text-align: right;">17.2</td>
+<td style="text-align: right;">6.7</td>
+<td style="text-align: right;">0.9</td>
+</tr>
+<tr>
+<td>噪声 20：平坦区的假角点</td>
+<td style="text-align: right;">54.8</td>
+<td style="text-align: right;">55.1</td>
+<td style="text-align: right;">55.7</td>
+<td style="text-align: right;">57.4</td>
+<td style="text-align: right;">70.6</td>
+<td style="text-align: right;">83.5</td>
+<td style="text-align: right;">90.9</td>
+</tr>
+</tbody>
+</table></div>
+<p>四个真实顶点在所有格子里几乎都找到了（只有噪声 20、k=0.2 时平均 3.95 个）。三点读法：</p>
+<ol>
+<li>噪声 10 时，k 从 0.04 提到 0.1，边上的假角点从 10.6 降到 0.1。这是 k 的本职工作。</li>
+<li>噪声 20 时，平坦区的假角点是主体，而且 <strong>k 越大越多</strong>（54.8 到 90.9）。平坦区的噪声没有方向性，两个特征值本来就接近，k 管不着它。至于为什么 k 越大反而越多，一个可能的解释是：k 加大后真实角点的响应变小，“最大值的 1%”这个门槛跟着降低，噪声点更容易过线。这个解释本章没有单独验证。</li>
+<li>所以噪声大的时候，该做的是先平滑或者提高阈值，而不是继续加大 k。</li>
+</ol>
+<h3 id="窗口大小方框窗越大峰值离顶点越远">窗口大小：方框窗越大，峰值离顶点越远</h3>
+<p>窗口有两个作用：把一个像素的梯度扩展成一片邻域的统计，以及决定“局部”有多大。窗口大了统计更稳，但会带来一个原讲义没提的副作用。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>窗口边长 w</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">7</th>
+<th style="text-align: right;">9</th>
+<th style="text-align: right;">11</th>
+<th style="text-align: right;">15</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>方框窗：响应峰值到真实顶点的平均距离（px）</td>
+<td style="text-align: right;">1.35</td>
+<td style="text-align: right;">2.03</td>
+<td style="text-align: right;">2.89</td>
+<td style="text-align: right;">3.74</td>
+<td style="text-align: right;">4.66</td>
+<td style="text-align: right;">6.55</td>
+</tr>
+<tr>
+<td>方差相同的高斯窗</td>
+<td style="text-align: right;">1.29</td>
+<td style="text-align: right;">1.75</td>
+<td style="text-align: right;">1.94</td>
+<td style="text-align: right;">2.32</td>
+<td style="text-align: right;">2.78</td>
+<td style="text-align: right;">3.55</td>
+</tr>
+</tbody>
+</table></div>
+<p>实验是 96×96 的直角楔形，16 种随机朝向和亚像素顶点位置。方框窗的峰值在所有摆放下都落在直角内部。一个直观的解释：窗口中心往角里面挪一点，两条边都还在窗口里，而且离窗口边界更远，两个方向的梯度都能完整计入；窗口越大能挪得越远，所以偏移大约随 w 线性增长。高斯窗中心权重大，偏移大约只有一半。</p>
+<p>偏移是可以修的。用 <code>cv2.cornerSubPix</code>（11×11 搜索窗）从方框窗的峰值出发迭代，w=5 和 w=9 两种情况修正后的误差都是平均 0.18 px、最大 0.23 px。它用的不是 Harris 响应，而是“角点附近的梯度都和指向角点的向量垂直”这个几何条件。它只在搜索窗内找，所以初始点要离真实角点足够近；本章只测了 w=5 和 w=9 两种初始点。</p>
+<p>窗口大小对噪声下的重复率影响反而不大。6 个合成场景，同一场景各加标准差 10 的噪声拍两次，每个场景 4 组，共 24 对图：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>做法</th>
+<th style="text-align: right;">方框窗 3</th>
+<th style="text-align: right;">方框窗 5</th>
+<th style="text-align: right;">方框窗 7</th>
+<th style="text-align: right;">方框窗 9</th>
+<th style="text-align: right;">方框窗 11</th>
+<th style="text-align: right;">先做标准差 1.5 的高斯平滑，再用方框窗 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>重复率（取最强的 50 个）</td>
+<td style="text-align: right;">0.615</td>
+<td style="text-align: right;">0.738</td>
+<td style="text-align: right;">0.763</td>
+<td style="text-align: right;">0.763</td>
+<td style="text-align: right;">0.758</td>
+<td style="text-align: right;">0.876</td>
+</tr>
+<tr>
+<td>重复率（取最强的 100 个）</td>
+<td style="text-align: right;">0.530</td>
+<td style="text-align: right;">0.655</td>
+<td style="text-align: right;">0.658</td>
+<td style="text-align: right;">0.633</td>
+<td style="text-align: right;">0.611</td>
+<td style="text-align: right;">0.846</td>
+</tr>
+</tbody>
+</table></div>
+<p>各格平均值的标准误差在 0.007 到 0.017 之间。窗口从 3 加到 5 有明显好处，再往上不再提高，取 100 个点时 11×11 还比 5×5 略低。先对图像做一次高斯平滑再求梯度，比加大窗口有效得多：取 50 个点时从 0.738 提到 0.876。</p>
+<p>所以加大方框窗的主要后果是定位变差，而不是更稳。要提高噪声下的稳定性先做平滑，要精确定位用 <code>cornerSubPix</code> 修正。</p>
 <h3 id="opencv-api">OpenCV API</h3>
 <div class="highlight"><pre><span></span><code><span class="n">gray</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2GRAY</span><span class="p">)</span>
 <span class="n">gray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">gray</span><span class="p">)</span>
@@ -150,8 +446,168 @@ M = Σ_w [ Ix²   IxIy ]
 <span class="p">)</span>
 </code></pre></div>
 <p><code>goodFeaturesToTrack</code> 默认使用 Shi-Tomasi 分数 <code>min(λ1, λ2)</code>，它直接要求较小的特征值也足够大；设置 <code>useHarrisDetector=True</code> 才切换为 Harris。</p>
+<p>同一张图、同样的 <code>qualityLevel</code> 和 <code>minDistance</code>，默认版返回 141 个点，Harris 版返回 71 个。两种分数的量纲不同（一个是特征值，一个是特征值的平方），“最大值的 1%”切出来的门槛不一样。</p>
+<p>“亮起一片红点”有多严重：在本章 400×400 的合成场景上，前面那段 <code>cornerHarris</code> 代码标红了 1027 个像素；对同一张响应图做邻域半径 4 的非极大值抑制，只剩 105 个点。</p>
+<p><strong>自己写的响应和 OpenCV 的差多少</strong>。本章作业的参考实现和 <code>cornerHarris</code>（float32 输入）的响应图相关系数是 1.0，但数值上差一个固定的 256 倍，换窗口大小也一样。按 OpenCV 的源码推算，它把 Sobel 的结果乘以 <span class="arithmatex">\(1/(4\cdot\text{blockSize})\)</span>，窗口内求和而不是求平均，合起来结构张量是参考实现的 1/16，响应差 <span class="arithmatex">\(16^2 = 256\)</span> 倍，和实测一致。所以比较两者时要看相对值，不要看绝对值。还有一个更容易踩的坑：同一张图用 uint8 和 float32 传给 <code>cornerHarris</code>，最大响应差了 <span class="arithmatex">\(4.23\times10^{9}\)</span> 倍，正好是 255 的四次方，相当于 uint8 输入时灰度被缩放到了 0 到 1。</p>
 <h3 id="harris-的能力边界">Harris 的能力边界</h3>
 <p>Harris 对旋转较稳定：窗口旋转后，<code>M</code> 的特征值不因坐标轴旋转而改变。但它没有主动搜索尺度；同一个窗角在原图占 9×9 像素，在缩小图里只占 2×2 像素，固定窗口可能无法重复检测。因此 Harris 不是天然尺度不变。</p>
+<p>下面把这几句话量出来。重复率的定义：两张图各自只保留公共区域里的角点，再各取响应最强的 50 个，按真实变换配对，2 px 以内算重复，除以两边点数里较少的一方。实验用 6 个 400×400 的多边形场景（矩形、多边形、圆和文字），另有 3 个平滑随机纹理场景做对照。</p>
+<figure><img src="../../05_特征点/figures/fig03_Harris重复率.svg" alt="图 3：Harris 角点的重复率。左一，旋转；左二，缩放（横轴是对数刻度）。两栏里蓝线是 6 个多边形场景的平均，浅蓝带是最小到最大，橙线是平滑纹理场景，绿色虚线是只平移半个像素时的重复率，灰色点线是两张不相干的图之间碰巧重合的水平。右二，图像整体调暗时检出的角点数。最右，两张独立加噪的图之间的重复率，四条线是取点个数不同和先做平滑" loading="lazy"><figcaption>图 3：Harris 角点的重复率。左一，旋转；左二，缩放（横轴是对数刻度）。两栏里蓝线是 6 个多边形场景的平均，浅蓝带是最小到最大，橙线是平滑纹理场景，绿色虚线是只平移半个像素时的重复率，灰色点线是两张不相干的图之间碰巧重合的水平。右二，图像整体调暗时检出的角点数。最右，两张独立加噪的图之间的重复率，四条线是取点个数不同和先做平滑</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>旋转角（度）</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">15</th>
+<th style="text-align: right;">30</th>
+<th style="text-align: right;">45</th>
+<th style="text-align: right;">60</th>
+<th style="text-align: right;">90</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>多边形场景平均</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">0.94</td>
+<td style="text-align: right;">0.923</td>
+<td style="text-align: right;">0.883</td>
+<td style="text-align: right;">0.893</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">1.0</td>
+</tr>
+<tr>
+<td>6 个场景里的最低</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">1.0</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>放大倍数</th>
+<th style="text-align: right;">0.5</th>
+<th style="text-align: right;">0.7</th>
+<th style="text-align: right;">0.9</th>
+<th style="text-align: right;">1.1</th>
+<th style="text-align: right;">1.5</th>
+<th style="text-align: right;">2.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>多边形场景平均</td>
+<td style="text-align: right;">0.523</td>
+<td style="text-align: right;">0.703</td>
+<td style="text-align: right;">0.893</td>
+<td style="text-align: right;">0.907</td>
+<td style="text-align: right;">0.747</td>
+<td style="text-align: right;">0.48</td>
+</tr>
+<tr>
+<td>平滑纹理场景平均</td>
+<td style="text-align: right;">0.693</td>
+<td style="text-align: right;">0.853</td>
+<td style="text-align: right;">0.907</td>
+<td style="text-align: right;">0.907</td>
+<td style="text-align: right;">0.773</td>
+<td style="text-align: right;">0.467</td>
+</tr>
+</tbody>
+</table></div>
+<p>两点结论：</p>
+<ol>
+<li><strong>旋转确实基本不变，掉的那一点和重采样的影响在同一水平</strong>。只平移半个像素、不做任何旋转（只有插值重采样），重复率就是 0.92（多边形场景）和 0.947（平滑纹理）；旋转 5 到 90 度的平均都在 0.883 以上。90 度是像素网格的对称操作，没有插值，所以回到 1.0。</li>
+<li><strong>缩放才是 Harris 的软肋</strong>，而且两个方向都掉：缩小到 0.5 倍时剩 0.523，放大到 2 倍时剩 0.48。</li>
+</ol>
+<div class="callout callout-warn"><div class="callout-title">注意</div><p>重复率的统计口径会改变结论。如果每张图先在整幅图里取最强的 50 个，再裁到公共区域去配对，同样的检测结果在缩小到 0.5 倍时会报出 0.755，放大到 2 倍时报出 0.861，看起来 Harris 对缩放也挺稳。原因是缩放之后两张图的视野不一样大，视野宽的那张留在公共区域里的只剩最强的少数几个点，最强的点本来就最容易重复。比较检测器的时候，一定要先裁到公共区域再取点，并写清取了多少个。</p>
+</div>
+<p><strong>亮度</strong>。图像整体乘一个增益 <span class="arithmatex">\(a\)</span>，梯度变成 <span class="arithmatex">\(a\)</span> 倍，结构张量变成 <span class="arithmatex">\(a^2\)</span> 倍，响应变成 <span class="arithmatex">\(a^4\)</span> 倍。实测增益 0.5 时最大响应正好变成 0.0625 倍。所以固定的绝对阈值在调暗时会让角点成片消失：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>亮度增益</th>
+<th style="text-align: right;">0.3</th>
+<th style="text-align: right;">0.5</th>
+<th style="text-align: right;">0.7</th>
+<th style="text-align: right;">0.9</th>
+<th style="text-align: right;">1.0</th>
+<th style="text-align: right;">1.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>固定阈值（原图最大响应的 1%）检出的角点数</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">27.3</td>
+<td style="text-align: right;">61.3</td>
+<td style="text-align: right;">88.5</td>
+<td style="text-align: right;">98.3</td>
+<td style="text-align: right;">105.5</td>
+</tr>
+<tr>
+<td>每张图用自己最大响应的 1%</td>
+<td style="text-align: right;">97.5</td>
+<td style="text-align: right;">98.5</td>
+<td style="text-align: right;">99.3</td>
+<td style="text-align: right;">98.8</td>
+<td style="text-align: right;">98.3</td>
+<td style="text-align: right;">99.0</td>
+</tr>
+</tbody>
+</table></div>
+<p>相对阈值不受整体增益影响，取最强的 50 个时，增益 0.3 到 1.1 的重复率都在 0.977 以上。但相对阈值有自己的弱点：响应按对比度的四次方增长，“最大值的 1%”相当于只保留对比度不低于最强角点 0.316 倍的角点。实测在场景左上角贴一个黑白棋盘格交点之后，相对阈值检出的角点数从 85 个掉到 29 个。图里出现一个特别强的角，其他角点就被挤掉了。按个数取前 N 个（再加非极大值抑制）通常比按比例取阈值更稳。</p>
+<p><strong>噪声</strong>。两张图各自加噪声，取的点越多，重复率越低：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>噪声标准差</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">20</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>取最强的 25 个</td>
+<td style="text-align: right;">0.963</td>
+<td style="text-align: right;">0.897</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">0.53</td>
+</tr>
+<tr>
+<td>取最强的 50 个</td>
+<td style="text-align: right;">0.93</td>
+<td style="text-align: right;">0.872</td>
+<td style="text-align: right;">0.752</td>
+<td style="text-align: right;">0.492</td>
+</tr>
+<tr>
+<td>取最强的 200 个</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">0.639</td>
+<td style="text-align: right;">0.493</td>
+<td style="text-align: right;">0.289</td>
+</tr>
+<tr>
+<td>取最强的 50 个，先做标准差 1.5 的高斯平滑</td>
+<td style="text-align: right;">0.972</td>
+<td style="text-align: right;">0.932</td>
+<td style="text-align: right;">0.862</td>
+<td style="text-align: right;">0.728</td>
+</tr>
+</tbody>
+</table></div>
+<p>一个解释是：强角点的响应远高于噪声，排名靠后的弱角点和噪声在同一个量级。不管原因如何，实测说明“检出很多点”本身不是好事，后面匹配时这些靠后的点多半配不上。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>同一个检测器，你把“每张图先取最强的 50 个，再裁到两图的公共区域去配对”改成“先裁到公共区域，再各取最强的 50 个”。缩小到 0.5 倍时的重复率会怎样？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>基本不变，统计口径不影响检测器本身</span></button><button type="button" data-k="B"><b>B</b><span>从 0.755 降到 0.523</span></button><button type="button" data-k="C"><b>C</b><span>从 0.523 升到 0.755</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。缩小之后第二张图的视野比第一张宽，先取点再裁剪时，第二张图留在公共区域里的只有最强的少数点，最容易重复，于是重复率被抬高到 0.755。先裁剪再取点，两边都在同一块区域里各取 50 个，才是公平的比较，结果是 0.523。检测结果没变，变的只是统计口径。</p></div></div>
 <hr />
 <h2 id="53-sift在位置尺度方向上建立统一坐标系">5.3 SIFT：在位置、尺度、方向上建立统一坐标系</h2>
 <p>SIFT（Scale-Invariant Feature Transform）不只是一个角点检测器，而是一套“检测 + 定位 + 方向 + 描述”的完整系统。它的经典流程可拆成五步。</p>
@@ -172,7 +628,7 @@ M = Σ_w [ Ix²   IxIy ]
 <li>对比度太低的点：容易受噪声影响。</li>
 <li>强边缘上的点：沿边缘方向定位不稳定。</li>
 </ul>
-<p>边缘抑制仍依赖 Hessian 矩阵两个特征值的比例。若一个曲率远大于另一个，说明它更像边缘而不是二维稳定结构。</p>
+<p>边缘抑制仍依赖 Hessian 矩阵两个特征值的比例。若一个曲率远大于另一个，说明它更像边缘而不是二维稳定结构。这和 Harris 里 k 的作用是同一个思路：限制两个特征值之比。</p>
 <h3 id="第四步分配主方向">第四步：分配主方向</h3>
 <p>在关键点对应尺度的邻域内统计梯度方向直方图，主峰作为关键点方向。之后描述邻域时先旋转到主方向，图像旋转 30°，局部坐标系也跟着转 30°，描述子就能保持相近。</p>
 <p>若方向直方图存在多个明显峰值，SIFT 可以在同一位置、尺度生成多个不同方向的关键点。这不是重复错误，而是在分叉结构上保留多种合理方向。</p>
@@ -187,7 +643,7 @@ M = Σ_w [ Ix²   IxIy ]
 <li><strong>旋转不变</strong>：按局部主方向对齐。</li>
 <li><strong>一定的光照鲁棒性</strong>：使用梯度并归一化描述子。</li>
 </ul>
-<p>它并非对任意视角、严重模糊或非线性光照完全不变，“不变性”都有适用范围。</p>
+<p>它并非对任意视角、严重模糊或非线性光照完全不变，“不变性”都有适用范围。第 5.4 节之后的实测会给出这些范围在合成图上大概是多少，也会看到“描述子对亮度不变”不等于“整套 SIFT 对亮度不变”。</p>
 <h3 id="opencv-使用">OpenCV 使用</h3>
 <div class="highlight"><pre><span></span><code><span class="n">gray</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2GRAY</span><span class="p">)</span>
 <span class="n">sift</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">SIFT_create</span><span class="p">(</span>
@@ -205,7 +661,49 @@ M = Σ_w [ Ix²   IxIy ]
     <span class="n">flags</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>nfeatures=0</code> 表示不硬性限制最终数量。提高 <code>contrastThreshold</code> 会减少低对比度点；<code>edgeThreshold</code> 的含义容易误解，增大它会保留更多边缘附近候选点，而不是更严格地删除边缘。</p>
+<p>上面四个参数就是 OpenCV 5.0 的默认值。<code>nfeatures=0</code> 表示不硬性限制最终数量。提高 <code>contrastThreshold</code> 会减少低对比度点；<code>edgeThreshold</code> 的含义容易误解，增大它会保留更多边缘附近候选点，而不是更严格地删除边缘。</p>
+<p>在本章的合成场景上实测：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th><code>edgeThreshold</code></th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">50</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关键点数</td>
+<td style="text-align: right;">88</td>
+<td style="text-align: right;">228</td>
+<td style="text-align: right;">268</td>
+<td style="text-align: right;">295</td>
+<td style="text-align: right;">326</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th><code>contrastThreshold</code></th>
+<th style="text-align: right;">0.02</th>
+<th style="text-align: right;">0.04</th>
+<th style="text-align: right;">0.08</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关键点数</td>
+<td style="text-align: right;">385</td>
+<td style="text-align: right;">268</td>
+<td style="text-align: right;">164</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>edgeThreshold</code> 是允许的主曲率之比的上限，和 Harris 的特征值比上限是同一类东西，越大越宽松。</p>
 <hr />
 <h2 id="54-orb用二进制比较换取速度">5.4 ORB：用二进制比较换取速度</h2>
 <p>SIFT 稳健，但描述子是 128 维浮点向量，计算和存储成本较高。ORB（Oriented FAST and Rotated BRIEF）组合了三个思想：</p>
@@ -224,6 +722,128 @@ M = Σ_w [ Ix²   IxIy ]
 <span class="nb">print</span><span class="p">(</span><span class="n">des</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">des</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>  <span class="c1"># 常见 (N, 32), uint8；32 字节 = 256 位</span>
 </code></pre></div>
 <p>ORB 适合实时跟踪、移动端、SLAM 前端等速度敏感场景。它通常不如 SIFT 应对大尺度变化、强模糊和复杂纹理，但“更快、内存更小、效果够用”常比理论上更强更重要。</p>
+<h3 id="实测siftorb-和一个没有尺度和方向的对照">实测：SIFT、ORB 和一个没有尺度和方向的对照</h3>
+<p>下面把三种做法放在同样的条件下比：SIFT、ORB（<code>nfeatures=1000</code>），以及一个故意做得很朴素的对照，叫“固定小块”：参考实现的 Harris 角点，加上角点周围 15×15 的灰度小块（减均值再归一化）当描述子。它没有尺度，也没有方向，用来看 SIFT 和 ORB 的那些设计到底换来了什么。</p>
+<p>4 个多边形场景，每个场景拍两张，各加标准差 3 的噪声，第二张再做变换。暴力匹配取两个最近邻，比值阈值 0.75，按真实变换投影误差不超过 3 px 记为正确。</p>
+<figure><img src="../../05_特征点/figures/fig04_SIFT与ORB.svg" alt="图 4：上排是找回率（正确匹配数除以第一张图里落在第二张图视野内的关键点数），下排是正确率（正确匹配数除以通过比值检验的匹配数）。四列分别是旋转、缩放（横轴对数刻度）、整体调暗和噪声。调暗一列的虚线是把 SIFT 的对比度阈值和 ORB 的 FAST 阈值按增益同比降低之后的结果" loading="lazy"><figcaption>图 4：上排是找回率（正确匹配数除以第一张图里落在第二张图视野内的关键点数），下排是正确率（正确匹配数除以通过比值检验的匹配数）。四列分别是旋转、缩放（横轴对数刻度）、整体调暗和噪声。调暗一列的虚线是把 SIFT 的对比度阈值和 ORB 的 FAST 阈值按增益同比降低之后的结果</figcaption></figure>
+<p>三种做法检出的点数不同（第一张图平均 SIFT 272 个、ORB 664 个、固定小块 107 个），所以找回率的高低不能直接比，要看的是<strong>每条曲线随变换下降的形状</strong>。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>变换</th>
+<th style="text-align: right;">SIFT 找回率</th>
+<th style="text-align: right;">ORB 找回率</th>
+<th style="text-align: right;">固定小块找回率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无变换</td>
+<td style="text-align: right;">0.803</td>
+<td style="text-align: right;">0.822</td>
+<td style="text-align: right;">0.858</td>
+</tr>
+<tr>
+<td>旋转 15 度</td>
+<td style="text-align: right;">0.683</td>
+<td style="text-align: right;">0.551</td>
+<td style="text-align: right;">0.28</td>
+</tr>
+<tr>
+<td>旋转 30 度</td>
+<td style="text-align: right;">0.67</td>
+<td style="text-align: right;">0.533</td>
+<td style="text-align: right;">0.017</td>
+</tr>
+<tr>
+<td>旋转 90 度</td>
+<td style="text-align: right;">0.754</td>
+<td style="text-align: right;">0.811</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>缩小到 0.5 倍</td>
+<td style="text-align: right;">0.345</td>
+<td style="text-align: right;">0.114</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr>
+<td>放大到 2 倍</td>
+<td style="text-align: right;">0.521</td>
+<td style="text-align: right;">0.167</td>
+<td style="text-align: right;">0.479</td>
+</tr>
+<tr>
+<td>整体调暗到 0.3</td>
+<td style="text-align: right;">0.117</td>
+<td style="text-align: right;">0.087</td>
+<td style="text-align: right;">0.678</td>
+</tr>
+<tr>
+<td>噪声标准差 20</td>
+<td style="text-align: right;">0.187</td>
+<td style="text-align: right;">0.281</td>
+<td style="text-align: right;">0.034</td>
+</tr>
+</tbody>
+</table></div>
+<p>逐条看：</p>
+<ol>
+<li><strong>方向</strong>。固定小块旋转 15 度找回率就掉到 0.28，30 度几乎全丢（0.017），正确率也跌到 0.068，配上的大多是错的。SIFT 和 ORB 在 30 度时还有 0.67 和 0.533。主方向这一步就是这个差别的来源。</li>
+<li><strong>尺度</strong>。缩小到 0.5 倍时 SIFT 还剩 0.345，ORB 和固定小块都在 0.1 左右。ORB 的金字塔默认每层缩小 1.2 倍、共 8 层，在这组合成图上缩小时的表现明显不如 SIFT。放大 2 倍时，SIFT 的找回率是 0.521，但正确率从 0.979 降到 0.755，ORB 的正确率是 0.855。固定小块的找回率有 0.479，看起来不差，但它的正确率只剩 0.359，配上的大多是错的。“SIFT 尺度不变”在缩小方向上表现好，在放大方向上要打折扣。</li>
+<li><strong>亮度</strong>。最反直觉的一条：<strong>整体调暗到 0.3 倍时，最朴素的固定小块找回率是 0.678，SIFT 和 ORB 只有 0.117 和 0.087</strong>。原因不在描述子，而在检测：SIFT 的 <code>contrastThreshold</code> 和 ORB 的 FAST 阈值都是绝对的灰度门槛，调暗之后大部分点直接没检出来（默认参数下第二张图平均只检出 SIFT 35 个、ORB 54 个，原来是 268 和 671 个）。固定小块用的是“最大响应的 1%”这个相对阈值，不受整体增益影响。把两者的检测阈值按增益同比降低，增益 0.3 时找回率回到 0.652 和 0.56。</li>
+<li><strong>噪声</strong>。三者都随噪声下降，固定小块下降最快（噪声 20 时 0.034）。</li>
+</ol>
+<p>调暗那一条还剩一点差距（0.652 对无变换的 0.803）。把第二张图的噪声也按增益同比缩小、保持信噪比不变，SIFT 的找回率回到 0.798，ORB 回到 0.695。所以剩下的差距主要来自信噪比：同样的噪声，图像暗了，信号相对就弱了。只加偏置不改增益时，两者的结果完全不变，因为偏置在求梯度时就被减掉了。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>图像整体调暗到原来的 0.3 倍（噪声不变）。SIFT 用默认参数时找回率从 0.803 掉到 0.117。主要原因是什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>SIFT 描述子对亮度敏感，暗了就配不上</span></button><button type="button" data-k="B"><b>B</b><span>检测阶段的对比度阈值是绝对值，大部分关键点直接没检出来</span></button><button type="button" data-k="C"><b>C</b><span>比值检验在暗图上失效</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。描述子做了归一化，对整体增益不敏感。实测默认参数下第二张图平均只检出 35 个关键点（原来 268 个）；把 <code>contrastThreshold</code> 按增益同比降到 0.012 之后，找回率回到 0.652，正确率仍在 0.966。剩下的差距来自信噪比变低，噪声同比缩小后回到 0.798。</p></div></div>
+<p><strong>耗时</strong>。在一台 Apple 芯片（M5 Pro）的 Mac 上实测，OpenCV 5.0，取多次运行的中位数：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>操作</th>
+<th style="text-align: right;">OpenCV 默认线程设置（ms）</th>
+<th style="text-align: right;">限制为单线程（ms）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400×400 图，SIFT 检测加描述（292 个点）</td>
+<td style="text-align: right;">8.5</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr>
+<td>400×400 图，ORB 检测加描述（649 个点）</td>
+<td style="text-align: right;">1.6</td>
+<td style="text-align: right;">1.6</td>
+</tr>
+<tr>
+<td>1024×1024 图，SIFT 检测加描述（1000 个点）</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">80</td>
+</tr>
+<tr>
+<td>1024×1024 图，ORB 检测加描述（1000 个点）</td>
+<td style="text-align: right;">7.6</td>
+<td style="text-align: right;">9.4</td>
+</tr>
+<tr>
+<td>400×400 图，参考实现的 Harris 响应图</td>
+<td style="text-align: right;">0.61</td>
+<td style="text-align: right;">0.62</td>
+</tr>
+<tr>
+<td>2000 对 2000 暴力匹配取两个最近邻：SIFT 描述子（128 维浮点，L2）</td>
+<td style="text-align: right;">2.7</td>
+<td style="text-align: right;">28</td>
+</tr>
+<tr>
+<td>2000 对 2000 暴力匹配取两个最近邻：ORB 描述子（32 字节，Hamming）</td>
+<td style="text-align: right;">1.5</td>
+<td style="text-align: right;">16</td>
+</tr>
+</tbody>
+</table></div>
+<p>单线程时，1024×1024 的图上 SIFT 比 ORB 慢约 8.5 倍；多线程时差距缩小到约 3.3 倍，因为 SIFT 能更充分地用上多核。每个描述子 SIFT 占 512 字节，ORB 占 32 字节，差 16 倍。计时每次运行都有 10% 到 25% 的波动，表里只有量级和相对快慢有意义，换一台机器要重测。</p>
 <hr />
 <h2 id="55-描述子匹配距离必须与数据类型配套">5.5 描述子匹配：距离必须与数据类型配套</h2>
 <p>匹配就是为图 A 的描述子寻找图 B 中距离最近的描述子。</p>
@@ -253,13 +873,18 @@ M = Σ_w [ Ix²   IxIy ]
 </tr>
 </tbody>
 </table></div>
-<p>对 SIFT 使用 Hamming，或对 ORB 使用 L2，代码未必立刻报错，但度量的含义已经错了。</p>
+<p>对 SIFT 使用 Hamming，或对 ORB 使用 L2，度量的含义就错了。原讲义说“代码未必立刻报错”，在 OpenCV 5.0 上实测两个方向不一样：</p>
+<ul>
+<li>SIFT 描述子配 <code>NORM_HAMMING</code>：<code>knnMatch</code> <strong>直接报错</strong>（断言要求 8 位输入）。</li>
+<li>ORB 描述子配 <code>NORM_L2</code>：<strong>不报错，正常返回结果</strong>。它把 32 个字节当成 32 维的 0 到 255 的数去算欧氏距离，同一个字节里不同的位被混在一起。12 对图上比值阈值 0.75 时，Hamming 得到 2794 个正确匹配，L2 只有 1440 个，少了将近一半，程序却一声不吭。</li>
+</ul>
+<p>所以真正危险的是第二种。</p>
 <h3 id="bfmatcher-与-flann">BFMatcher 与 FLANN</h3>
 <p><code>BFMatcher</code> 对每个查询描述子与所有候选逐一比较，简单、确定，数据量不大时很好用：</p>
 <div class="highlight"><pre><span></span><code><span class="n">bf</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">BFMatcher</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">NORM_L2</span><span class="p">,</span> <span class="n">crossCheck</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">knn</span> <span class="o">=</span> <span class="n">bf</span><span class="o">.</span><span class="n">knnMatch</span><span class="p">(</span><span class="n">des1</span><span class="p">,</span> <span class="n">des2</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </code></pre></div>
-<p>FLANN 用近似最近邻索引加速大规模搜索。SIFT 常用 KD-tree；二进制描述子需配置 LSH，不能照搬 SIFT 的 FLANN 参数。</p>
+<p>FLANN 用近似最近邻索引加速大规模搜索。SIFT 常用 KD-tree；二进制描述子需配置 LSH，不能照搬 SIFT 的 FLANN 参数。实测在 OpenCV 5.0 上，把 KD 树索引用在 ORB 描述子上会直接报错，换成 LSH 索引（<code>algorithm=6</code>）才能用。</p>
 <h3 id="lowe-比值测试">Lowe 比值测试</h3>
 <p>只取最近邻有个问题：重复窗格、砖墙、键盘按键会产生很多相似候选。Lowe 比值比较第一近邻 <code>d1</code> 和第二近邻 <code>d2</code>：</p>
 <div class="highlight"><pre><span></span><code>接受条件：d1 &lt; ratio * d2
@@ -273,7 +898,68 @@ M = Σ_w [ Ix²   IxIy ]
             <span class="n">good</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
 </code></pre></div>
 <p><code>0.75</code> 是常见起点，不是定律。阈值变小更严格，匹配更少但通常更纯；阈值变大召回更多，也引入更多误匹配。</p>
-<p><code>crossCheck=True</code> 要求 A 的最佳匹配是 B，且 B 的最佳匹配也是 A，属于互选策略；它与 <code>knnMatch + ratio test</code> 是不同过滤思路，通常不要机械地同时开启。</p>
+<p>这条曲线可以量出来。4 个场景各做三组变换（转 30 度；缩小到 0.7 倍；转 45 度并放大 1.3 倍），两张图各加标准差 5 的噪声，共 12 对图：</p>
+<figure><img src="../../05_特征点/figures/fig05_比值检验.svg" alt="图 5：左，SIFT 所有最近邻匹配的“最近距离除以次近距离”的分布，蓝色是正确的匹配，红色是错误的匹配，虚线是 0.75。中和右，SIFT 和 ORB 在不同比值阈值下，保留下来的匹配里正确的比例（蓝），以及所有正确匹配里被保住的比例（橙）；最右一个点是不做比值检验" loading="lazy"><figcaption>图 5：左，SIFT 所有最近邻匹配的“最近距离除以次近距离”的分布，蓝色是正确的匹配，红色是错误的匹配，虚线是 0.75。中和右，SIFT 和 ORB 在不同比值阈值下，保留下来的匹配里正确的比例（蓝），以及所有正确匹配里被保住的比例（橙）；最右一个点是不做比值检验</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>比值阈值</th>
+<th style="text-align: right;">0.5</th>
+<th style="text-align: right;">0.6</th>
+<th style="text-align: right;">0.7</th>
+<th style="text-align: right;">0.75</th>
+<th style="text-align: right;">0.8</th>
+<th style="text-align: right;">0.9</th>
+<th style="text-align: right;">不做检验</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SIFT：保留的匹配里正确的比例</td>
+<td style="text-align: right;">98.3%</td>
+<td style="text-align: right;">95.6%</td>
+<td style="text-align: right;">92.2%</td>
+<td style="text-align: right;">89.0%</td>
+<td style="text-align: right;">84.9%</td>
+<td style="text-align: right;">70.4%</td>
+<td style="text-align: right;">44.4%</td>
+</tr>
+<tr>
+<td>SIFT：正确匹配里被保住的比例</td>
+<td style="text-align: right;">67.6%</td>
+<td style="text-align: right;">78.1%</td>
+<td style="text-align: right;">85.9%</td>
+<td style="text-align: right;">88.9%</td>
+<td style="text-align: right;">91.5%</td>
+<td style="text-align: right;">96.7%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>ORB：保留的匹配里正确的比例</td>
+<td style="text-align: right;">98.2%</td>
+<td style="text-align: right;">97.3%</td>
+<td style="text-align: right;">96.1%</td>
+<td style="text-align: right;">94.5%</td>
+<td style="text-align: right;">91.8%</td>
+<td style="text-align: right;">80.8%</td>
+<td style="text-align: right;">56.7%</td>
+</tr>
+<tr>
+<td>ORB：正确匹配里被保住的比例</td>
+<td style="text-align: right;">26.4%</td>
+<td style="text-align: right;">38.8%</td>
+<td style="text-align: right;">53.0%</td>
+<td style="text-align: right;">59.9%</td>
+<td style="text-align: right;">67.5%</td>
+<td style="text-align: right;">83.2%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+</tbody>
+</table></div>
+<p>图 5 左栏是比值检验为什么有效：错误匹配的比值挤在 1 附近，最近邻和次近邻差不多远，说明“哪个都像”。SIFT 的 2100 个错误匹配里有 1420 个（67.6%）比值不小于 0.9，ORB 是 74.2%；正确匹配的比值分布很宽。</p>
+<p>两种描述子的曲线形状不一样：在 0.75 这个常用值上，SIFT 保住了 88.9% 的正确匹配，ORB 只保住 59.9%。可能的原因是 Hamming 距离只取整数，而 ORB 正确匹配的最近距离本身不小，比值天然偏大，这一点本章没有单独验证。<strong>照搬 SIFT 的 0.75 给 ORB，会扔掉四成的正确匹配</strong>。ORB 想保住八成以上的正确匹配，阈值要放到 0.9（保住 83.2%），代价是正确率从 94.5% 降到 80.8%。</p>
+<p><code>crossCheck=True</code> 要求 A 的最佳匹配是 B，且 B 的最佳匹配也是 A，属于互选策略；它与 <code>knnMatch + ratio test</code> 是不同过滤思路，通常不要机械地同时开启。实测在 OpenCV 5.0 上 <code>crossCheck=True</code> 时调 <code>knnMatch(k=2)</code> 会直接报错，只能用 <code>match</code>。同样 12 对图上，互选得到的正确率 SIFT 是 78.6%、ORB 是 87.6%，都低于比值阈值 0.75 的 89.0% 和 94.5%。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>同样的 12 对图、比值阈值都取 0.75。SIFT 保住了 88.9% 的正确匹配，ORB 保住了多少？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>也在 90% 左右，比值检验和描述子类型无关</span></button><button type="button" data-k="B"><b>B</b><span>约 60%</span></button><button type="button" data-k="C"><b>C</b><span>约 99%，因为二进制描述子更有区分度</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 59.9%。ORB 的 Hamming 距离是整数，正确匹配的最近距离本身不小，最近和次近之比天然偏大，0.75 对它来说太严。想保住八成以上的正确匹配要放到 0.9 左右，代价是正确率从 94.5% 降到 80.8%。阈值要按描述子分别标定。</p></div></div>
 <h3 id="几何验证">几何验证</h3>
 <p>描述子相似只说明局部纹理像，不能保证整幅图的几何关系一致。用于拼接时，还要把匹配点交给上一章的 RANSAC：</p>
 <div class="highlight"><pre><span></span><code><span class="n">src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([</span><span class="n">kp1</span><span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">queryIdx</span><span class="p">]</span><span class="o">.</span><span class="n">pt</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">good</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -292,7 +978,7 @@ M = Σ_w [ Ix²   IxIy ]
 <span class="n">kp1</span><span class="p">,</span> <span class="n">des1</span> <span class="o">=</span> <span class="n">sift</span><span class="o">.</span><span class="n">detectAndCompute</span><span class="p">(</span><span class="n">query_gray</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 <span class="n">kp2</span><span class="p">,</span> <span class="n">des2</span> <span class="o">=</span> <span class="n">sift</span><span class="o">.</span><span class="n">detectAndCompute</span><span class="p">(</span><span class="n">scene_gray</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
-<p>先检查 <code>des1</code>、<code>des2</code> 是否为 <code>None</code>。纯白图、严重模糊图可能没有关键点。</p>
+<p>先检查 <code>des1</code>、<code>des2</code> 是否为 <code>None</code>。纯白图、严重模糊图可能没有关键点。实测纯白图上 SIFT 和 ORB 的 <code>detectAndCompute</code> 返回的描述子都是 <code>None</code>，直接传给 <code>knnMatch</code> 会报错。</p>
 <h3 id="第二步knn-匹配与过滤">第二步：KNN 匹配与过滤</h3>
 <div class="highlight"><pre><span></span><code><span class="n">matcher</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">BFMatcher</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">NORM_L2</span><span class="p">)</span>
 <span class="n">knn</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">knnMatch</span><span class="p">(</span><span class="n">des1</span><span class="p">,</span> <span class="n">des2</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
@@ -301,7 +987,7 @@ M = Σ_w [ Ix²   IxIy ]
 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">good</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"可靠匹配不足，无法估计单应矩阵"</span><span class="p">)</span>
 </code></pre></div>
-<p>“四个”只是单应矩阵的理论下限，实际要更严格。4 个点若集中在一条边或一个小角落，模型仍非常脆弱。</p>
+<p>“四个”只是单应矩阵的理论下限，实际要更严格。4 个点若集中在一条边或一个小角落，模型仍非常脆弱。另外，第二张图的描述子少于两个时，<code>knnMatch</code> 返回的某些元素只有一个匹配，这里的列表推导式会在解包时报错，第 5.5 节先判断 <code>len(pair) == 2</code> 的写法更稳。</p>
 <h3 id="第三步ransac-与定位">第三步：RANSAC 与定位</h3>
 <div class="highlight"><pre><span></span><code><span class="n">src_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([</span><span class="n">kp1</span><span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">queryIdx</span><span class="p">]</span><span class="o">.</span><span class="n">pt</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">good</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 <span class="n">dst_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([</span><span class="n">kp2</span><span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">trainIdx</span><span class="p">]</span><span class="o">.</span><span class="n">pt</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">good</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -313,29 +999,276 @@ M = Σ_w [ Ix²   IxIy ]
 <span class="n">cv2</span><span class="o">.</span><span class="n">polylines</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">projected</span><span class="p">)],</span> <span class="kc">True</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
 </code></pre></div>
 <p>最后不要只看绿色四边形“画出来了”。检查四边形是否自交、面积是否离谱、角点是否跑到图像极远处，以及内点比例是否足够。可靠系统常把这些几何条件作为最终判定的一部分。</p>
+<p>把这段代码原样跑在合成图上，可以看到这些检查为什么必要：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>目标图</th>
+<th style="text-align: right;">通过比值检验的匹配</th>
+<th style="text-align: right;">RANSAC 内点</th>
+<th style="text-align: right;">内点比例</th>
+<th>返回了单应矩阵</th>
+<th>四边形是凸的</th>
+<th style="text-align: right;">四边形面积 / 模板面积</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模板转 25 度、缩小到 0.8 倍、加噪声</td>
+<td style="text-align: right;">201</td>
+<td style="text-align: right;">197</td>
+<td style="text-align: right;">0.98</td>
+<td>是</td>
+<td>是</td>
+<td style="text-align: right;">0.641</td>
+</tr>
+<tr>
+<td>另一个不相干的场景，比值阈值 0.75</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0.333</td>
+<td>是</td>
+<td>否</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr>
+<td>同上，比值阈值放宽到 0.95</td>
+<td style="text-align: right;">137</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0.095</td>
+<td>是</td>
+<td>否</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+</tbody>
+</table></div>
+<p>第一行的真实面积比是 0.8 的平方 0.64，四个角的投影误差最大 0.35 px。后两行模板根本不在场景里，<code>findHomography</code> 照样返回了矩阵。<strong>“返回了矩阵”不能作为“找到了”的判据</strong>。内点比例、凸性、面积这几项一查就能分出来。</p>
 <hr />
-<h2 id="57-常见坑与排查顺序">5.7 常见坑与排查顺序</h2>
+<h2 id="57-常见坑与排查顺序含常见错误表">5.7 常见坑与排查顺序（含常见错误表）</h2>
 <ol>
 <li><strong>彩色图直接计算导致类型或效果异常</strong>：特征检测通常先转灰度。</li>
 <li><strong>描述子为 <code>None</code> 仍继续匹配</strong>：先检查关键点数量和图像质量。</li>
-<li><strong>SIFT 与 ORB 距离度量混用</strong>：浮点用 L2，二进制用 Hamming。</li>
+<li><strong>SIFT 与 ORB 距离度量混用</strong>：浮点用 L2，二进制用 Hamming。ORB 配 L2 在 OpenCV 5.0 上不报错，正确匹配少一半。</li>
 <li><strong>只按距离排序取前 N 个</strong>：重复纹理中会保留大量歧义匹配，应加入比值测试。</li>
 <li><strong>把匹配多当成匹配好</strong>：内点比例和空间分布比原始数量更关键。</li>
 <li><strong>关键点全挤在纹理区</strong>：几何估计对远处区域会外推不稳。</li>
-<li><strong>Harris 阈值写死</strong>：不同图像响应尺度不同，常用 <code>response.max()</code> 的比例起步。</li>
+<li><strong>Harris 阈值写死</strong>：不同图像响应尺度不同，常用 <code>response.max()</code> 的比例起步。但整体亮度乘 <span class="arithmatex">\(a\)</span>，响应乘 <span class="arithmatex">\(a^4\)</span>；比例阈值又会被一个特别强的角挤掉其他点（第 5.2 节）。按个数取前 N 个通常更稳。</li>
 <li><strong>Harris 没做非极大值抑制</strong>：一个角点变成一团点，影响计数和后续处理。</li>
-<li><strong>比值阈值盲目固定为 0.75</strong>：应在误匹配与漏匹配之间根据数据调节。</li>
+<li><strong>比值阈值盲目固定为 0.75</strong>：应在误匹配与漏匹配之间根据数据调节。对 ORB，0.75 会扔掉约四成正确匹配。</li>
 <li><strong>用单应验证非平面场景</strong>：描述子可能匹配正确，但一个平面模型解释不了多层深度。</li>
 <li><strong>缩放可视化图后仍使用原关键点坐标</strong>：坐标必须按同一比例缩放。</li>
 <li><strong>忽略随机性</strong>：RANSAC 结果可能轻微变化，评估应看统计和几何约束。</li>
+<li><strong>在周期图案上直接用特征点对齐</strong>：误匹配恰好错整数个周期，RANSAC 也救不回来（第 5.8 节）。</li>
 </ol>
+<p>下面这张表补充做本章作业和匹配实验时最常见的实现错误。前三行的写法都能通过本章的验收脚本，要靠表里的办法自己查。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>验收通过了，但斜的直边上也有正响应</td>
+<td>行列式漏了 <span class="arithmatex">\(I_xI_y\)</span> 那一项，只算了 <span class="arithmatex">\(S_{xx}S_{yy}\)</span>。验收脚本只测轴向的方块，轴向的边上交叉项本来就是 0</td>
+<td>测一条 45 度的直边，正确实现在边的中段响应不大于 0。实测漏掉交叉项时，边中段的最大响应是方块顶点响应的 0.204 倍，为正</td>
+</tr>
+<tr>
+<td>边上的响应几乎为 0，而不是明显的负数</td>
+<td>迹没有平方，写成了 <span class="arithmatex">\(\det - k\,\mathrm{tr}\)</span></td>
+<td>看方块一条边中段的响应：正确实现约为顶点响应的 -0.18 倍，没平方时只有 <span class="arithmatex">\(-2.6\times10^{-7}\)</span> 倍</td>
+</tr>
+<tr>
+<td>方块四个角里只有左上角有响应</td>
+<td>Sobel 的输出深度用了 <code>-1</code>（和输入相同的 uint8），负的梯度被截成 0。验收只要求全局最大值在某一个角附近</td>
+<td>打印四个角的响应，应该一样大；再把图像灰度减半，最大响应应变成 0.0625 倍，截断时实测是 0.839 倍</td>
+</tr>
+<tr>
+<td>改了 <code>k</code> 或 <code>window_size</code>，输出完全不变</td>
+<td>函数里写死了 0.04 和 3，没用参数</td>
+<td>用两个不同的 <code>k</code> 调用，比较输出是否不同</td>
+</tr>
+<tr>
+<td>方块的四个角响应都不是正的，验收报“清晰方块角点应有正响应”</td>
+<td>没做窗口求和，直接用单个像素的 <span class="arithmatex">\(I_x^2\)</span>、<span class="arithmatex">\(I_y^2\)</span>、<span class="arithmatex">\(I_xI_y\)</span>。单个像素上行列式恒为 0</td>
+<td>打印某个角点处的 <span class="arithmatex">\(\det\)</span>，应明显大于 0</td>
+</tr>
+<tr>
+<td>和 <code>cornerHarris</code> 的结果差 256 倍或者差几十亿倍</td>
+<td>前者是 OpenCV 对 Sobel 和窗口的缩放方式不同，后者是给 <code>cornerHarris</code> 传了 uint8</td>
+<td>比较相对值；传 float32</td>
+</tr>
+<tr>
+<td>角点检出一大团</td>
+<td>只做了阈值，没做非极大值抑制</td>
+<td>数一数阈值后的像素数和局部极大的个数</td>
+</tr>
+<tr>
+<td>一张暗图上角点几乎全没了</td>
+<td>固定的绝对阈值，响应随亮度增益的四次方变化</td>
+<td>改成按个数或者按比例取点</td>
+</tr>
+<tr>
+<td>ORB 匹配质量差，但程序没报错</td>
+<td>用了 <code>NORM_L2</code></td>
+<td>检查描述子的 dtype，uint8 就该用 Hamming</td>
+</tr>
+<tr>
+<td><code>knnMatch</code> 报 <code>K == 1</code> 之类的断言错误</td>
+<td>同时开了 <code>crossCheck=True</code> 和 <code>k=2</code></td>
+<td>二选一</td>
+</tr>
+<tr>
+<td>匹配很多、RANSAC 也返回了矩阵，但结果是错的</td>
+<td>周期图案上对错了整数个周期，或者模板根本不在图里</td>
+<td>看误差是不是整数个周期；查内点比例和四边形的凸性、面积</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="58-重复纹理特征点在周期图案上会对错整数个周期">5.8 重复纹理：特征点在周期图案上会对错整数个周期</h2>
+<p>第 16 章第 8 节讲过，周期为 <span class="arithmatex">\(P\)</span> 的图案平移 <span class="arithmatex">\(P\)</span> 之后和原图一模一样，相位相关和普通互相关在这种图上都会对错整数个周期。特征点方法有同样的问题，而且原因更直接：一个周期里的角点和下一个周期里对应的角点，描述子几乎一样。</p>
+<p>实验条件和第 16 章图 6 的周期相同：x 方向周期 24 px，y 方向周期 16 px。从 420×420 的底图上裁两个 240×240 的视场，真实平移在 ±5 px 内取整数，各加标准差 3 的噪声，每种组合 100 次。匹配用比值阈值 0.75，然后有两种估计方式：只估平移（每个匹配给出一个位移，取支持者最多的那个），或者用 RANSAC 估相似变换（平移、旋转、缩放）。</p>
+<figure><img src="../../05_特征点/figures/fig06_周期图案.svg" alt="图 6：左，周期版图（这一张带十字对位标记）。中，周期版图上 SIFT 通过比值检验的匹配给出的位移减去真实位移，100 对图合计，点越大表示重合的匹配越多，网格线间隔是一个周期。右，三种图案上同一套流程 100 次对齐里失败的次数（只估平移，误差超过 1 px 算失败）" loading="lazy"><figcaption>图 6：左，周期版图（这一张带十字对位标记）。中，周期版图上 SIFT 通过比值检验的匹配给出的位移减去真实位移，100 对图合计，点越大表示重合的匹配越多，网格线间隔是一个周期。右，三种图案上同一套流程 100 次对齐里失败的次数（只估平移，误差超过 1 px 算失败）</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>图案</th>
+<th>检测器</th>
+<th style="text-align: right;">每对图保留的匹配</th>
+<th style="text-align: right;">其中位移正确的</th>
+<th style="text-align: right;">只估平移失败（共 100）</th>
+<th style="text-align: right;">估相似变换失败（共 100）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>非周期的多边形场景</td>
+<td>SIFT</td>
+<td style="text-align: right;">62.0</td>
+<td style="text-align: right;">51.2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>非周期的多边形场景</td>
+<td>ORB</td>
+<td style="text-align: right;">93.5</td>
+<td style="text-align: right;">90.4</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>周期版图</td>
+<td>SIFT</td>
+<td style="text-align: right;">49.0</td>
+<td style="text-align: right;">3.0</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">88</td>
+</tr>
+<tr>
+<td>周期版图</td>
+<td>ORB</td>
+<td style="text-align: right;">259.5</td>
+<td style="text-align: right;">6.8</td>
+<td style="text-align: right;">96</td>
+<td style="text-align: right;">97</td>
+</tr>
+<tr>
+<td>周期版图加一个对位标记</td>
+<td>SIFT</td>
+<td style="text-align: right;">96.0</td>
+<td style="text-align: right;">51.5</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr>
+<td>周期版图加一个对位标记</td>
+<td>ORB</td>
+<td style="text-align: right;">326.8</td>
+<td style="text-align: right;">122.0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">8</td>
+</tr>
+</tbody>
+</table></div>
+<p>三点读法：</p>
+<ol>
+<li><strong>错的匹配全部错在整数个周期上</strong>。周期版图上 SIFT 通过比值检验但位移错了的匹配共 4596 个，100% 落在整数个周期的 2 px 以内（图 6 中栏的网格点）。只估平移的 50 次失败，每一次的误差都是整数个周期。</li>
+<li><strong>比值检验在这里帮不上忙，甚至帮倒忙</strong>。比值检验的前提是“正确的匹配独一无二”，周期图案上正确的匹配和错一个周期的匹配一样好，比值接近 1，正确匹配也被扔掉了。SIFT 不做比值检验时只估平移的失败反而从 50 次降到 17 次，因为保留下来的正确匹配多了（每对图 13.7 个对 3.0 个）。但这不是对策，正确匹配只占 3.2%。</li>
+<li><strong>RANSAC 救不回来</strong>。错误的匹配彼此一致（都错同一个周期），在 RANSAC 看来它们就是一组好的内点。</li>
+</ol>
+<p>两种有效的对策和第 16 章完全对应：</p>
+<ul>
+<li><strong>加对位标记</strong>：非周期的十字标记让 SIFT 和 ORB 只估平移都是 0 次失败。估相似变换时还有 6 到 8 次失败，可能是标记上的正确匹配只有几十个，混在大量周期误匹配里，RANSAC 偶尔选中了错的那一组。</li>
+<li><strong>限制匹配范围</strong>：机台定位误差已知时，每个关键点只和第二张图里坐标差在范围内的点比较。范围取 ±7 px（小于 y 方向半个周期 8 px）时，SIFT 和 ORB 都是 0 次失败，匹配里位移正确的比例 81.5% 和 83%。范围放到 ±13 px，相邻周期的假位置会落进范围，ORB 有 23 次失败，全部是整数个周期的误差。</li>
+</ul>
+<p>这就是 <code>course.json</code> 里本章场景写“重复图案上要慎用”的原因。半导体版图大量是周期结构，特征点方法适合在有非周期结构（对位标记、芯片边缘、版图的不规则区域）的地方做粗对齐，周期区域内的精对齐交给第 16 章的方法并限制搜索范围。</p>
+<div class="quiz" data-answer="C"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>周期版图上，SIFT 加比值检验加 RANSAC 估相似变换，100 次失败了 88 次。下面哪种改法最可能把失败降到接近 0？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>把比值阈值从 0.75 收紧到 0.5</span></button><button type="button" data-k="B"><b>B</b><span>RANSAC 的阈值从 2 px 收紧到 0.5 px</span></button><button type="button" data-k="C"><b>C</b><span>只在已知位移范围（小于半个周期）内找最近邻</span></button></div><div class="quiz-exp" hidden><p><strong>C</strong>。实测只在 ±7 px 内找最近邻，SIFT 和 ORB 都是 0 次失败。A 和 B 都不对：错误的匹配全部错在整数个周期上，描述子和正确匹配一样好，彼此几何上又一致，收紧比值阈值只会把正确匹配也扔掉，收紧 RANSAC 阈值也分不开它们。</p></div></div>
+<hr />
+<h2 id="59-交互演示">5.9 交互演示</h2>
+<p>一张 48×48 的图里放一个楔形，张角拖到 180 度就是一条直边。算法和作业一致：Sobel 求梯度，窗口内汇总成结构张量，算 <span class="arithmatex">\(R = \det - k\,\mathrm{tr}^2\)</span>。左图可以点击或拖动来移动窗口，中图是窗口内每个像素的梯度和对应的椭圆，右图是特征值平面上 <span class="arithmatex">\(R &gt; 0\)</span> 的区域。按页面下方“按顺序试”的五步操作，每一步先预测再拖动。</p>
+<div class="embed"><iframe src="../../demos/Harris响应.html" height="951" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/Harris响应.html">打开交互演示：Harris 响应、两个特征值与 k</a></p>
+<p>五步对应本章的五个结论：直角、边和平坦处的特征值（第 5.1 节）；k 下调到比值上限超过当前比值时，带噪声的直边被当成角点（第 5.2 节）；钝角在张角拖大的过程中穿出 <span class="arithmatex">\(R &gt; 0\)</span> 的区域，k 越大穿出得越早；对比度减半时两个特征值变成四分之一、响应变成 0.0625 倍、比值不变（和第 5.2 节测的增益 0.5 一致）；方框窗越大峰值离顶点越远，换成高斯窗回来大半。页面里的具体数字在页面上读，本节不重复。</p>
+<hr />
+<h2 id="510-怎样评估和报告">5.10 怎样评估和报告</h2>
+<p>特征方法的评估分三层，每层回答不同的问题，不要混在一起报：</p>
+<ul>
+<li><strong>检测器的重复率</strong>：同一个物理点在变换后还能被检测到的比例。必须先裁到两张图的公共区域，再各取同样个数的点（第 5.2 节的警告框），写清取了多少个、容差多少像素。</li>
+<li><strong>匹配的正确率和找回率</strong>：用已知变换（合成数据）或者人工标注的对应点判断每个匹配是否正确。正确率是“保留的匹配里有多少是对的”，找回率是“能配上的点里配上了多少”。两个数要一起报，配一条随比值阈值变化的曲线（图 5）。</li>
+<li><strong>几何估计的结果</strong>：最终变换的误差（例如四个角的投影误差）、内点比例、失败次数。这是下游真正关心的。</li>
+</ul>
+<p>报告时写清：图像尺寸、变换的种类和范围、噪声水平、检测器和参数、比值阈值、容差、重复次数。耗时要写机器、线程数和 OpenCV 版本。本章每张表的表头或上一段都按这个格式写了条件。</p>
 <hr />
 <h2 id="练习连接">练习连接</h2>
 <h3 id="练习-5-1手写-harris">练习 5-1：手写 Harris</h3>
-<p>不要直接调用 <code>cornerHarris</code> 完成主体。按“灰度与浮点化 → Sobel 求 <code>Ix、Iy</code> → 计算 <code>Ix²、Iy²、IxIy</code> → 窗口求和 → <code>det-trace</code> 响应 → 阈值 → 非极大值抑制”实现。把自己的响应图与 OpenCV 结果并排看，重点解释窗口大小、<code>k</code> 和阈值变化带来的差异。</p>
+<p>对应本章的自动验收作业 <code>5-1_Harris响应.py</code>。不要直接调用 <code>cornerHarris</code> 完成主体。按“灰度与浮点化 → Sobel 求 <code>Ix、Iy</code> → 计算 <code>Ix²、Iy²、IxIy</code> → 窗口求和 → <code>det-trace</code> 响应 → 阈值 → 非极大值抑制”实现。把自己的响应图与 OpenCV 结果并排看，重点解释窗口大小、<code>k</code> 和阈值变化带来的差异。比较时注意第 5.2 节说的 256 倍和 255 的四次方倍。</p>
+<p>作业函数只要求返回响应图，阈值和非极大值抑制留给你在 Notebook 和实验记录里做。</p>
 <h3 id="练习-5-2sift-匹配">练习 5-2：SIFT 匹配</h3>
-<p>依次可视化原始最近邻、比值测试后匹配、RANSAC 内点。记录三个数量：关键点数、通过比值测试的匹配数、RANSAC 内点数。尝试旋转、缩放、调暗其中一张图，验证 SIFT 的三种鲁棒性来源，而不是只记结论。</p>
-<p>这一章也直接连接上一章的 <code>4-2_图像拼接.py</code>：特征点负责提出对应关系，RANSAC 与单应矩阵负责判断这些关系能否被统一几何模型解释。</p>
+<p>依次可视化原始最近邻、比值测试后匹配、RANSAC 内点。记录三个数量：关键点数、通过比值测试的匹配数、RANSAC 内点数。尝试旋转、缩放、调暗其中一张图，验证 SIFT 的三种鲁棒性来源，而不是只记结论。调暗时记得同时看关键点数，第 5.4 节的实测说明掉的主要是检测。</p>
+<p>这一章也直接连接上一章的图像拼接练习（题目在 <code>视觉算法学习计划.md</code> 的“题 4-2”）：特征点负责提出对应关系，RANSAC 与单应矩阵负责判断这些关系能否被统一几何模型解释。</p>
+<hr />
+<h2 id="511-破坏实验">5.11 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>在你的 Harris 实现里把 <code>- sxy * sxy</code> 删掉，跑一次验收。还能通过吗？再在一条 45 度的直边上看响应，解释为什么验收没抓到。</li>
+<li>把同一张图分别以原图和整体乘 0.5 送进你的 Harris，最大响应之比是多少？用固定阈值和“最大值的 1%”各检一次角点，点数怎么变？</li>
+<li>用 SIFT 匹配一对图，比值阈值从 0.5 扫到 0.95，画出正确率和保住的正确匹配比例两条曲线（用已知变换生成第二张图判断对错）。在你的图上，0.75 是不是一个好的工作点？</li>
+<li>把 ORB 的匹配距离从 <code>NORM_HAMMING</code> 换成 <code>NORM_L2</code>，正确匹配少了多少？程序有没有报错？</li>
+<li>在一张周期图案（例如方格纸、键盘照片）上做特征对齐，看失败时的误差是不是整数个周期。再试试只在小范围内匹配。</li>
+<li>把方框窗从 5 加到 15，用 <code>cornerSubPix</code> 修正前后，测角点到真实位置的距离。</li>
+</ol>
+<hr />
+<h2 id="512-扩展深挖档">5.12 扩展（深挖档）</h2>
+<ul>
+<li>用自己拍的一对照片（带旋转和缩放）复现图 4 的一列：用手动标出的 4 对以上的点算一个参考单应，再按投影误差判断每个匹配是否正确。</li>
+<li>实现一个最简单的多尺度 Harris：在 3 到 4 个高斯平滑尺度上各算一次响应，取跨尺度的极大值。复现图 3 的缩放一栏，看能补回多少。</li>
+<li>比较 <code>cv2.goodFeaturesToTrack</code> 的 Shi-Tomasi 和 Harris 两种分数在噪声下的重复率，按第 5.10 节的格式报告。</li>
+<li>用 FLANN（SIFT 用 KD 树，ORB 用 LSH）替换暴力匹配，在 2000 对 2000 以上的规模上比较耗时和正确率的变化。</li>
+<li>在周期版图上加上不同大小的对位标记，找出“标记多大以后只估平移不再失败”。</li>
+</ul>
+<hr />
+<h2 id="513-和后续章节的关系">5.13 和后续章节的关系</h2>
+<ul>
+<li>第 4 章的单应和 RANSAC 是本章第 5.5、5.6 节几何验证的基础，图像拼接练习直接用到本章的匹配。</li>
+<li>第 6 章的稀疏光流用 <code>goodFeaturesToTrack</code> 选“跟踪谁”，第 6.2 节的孔径问题就是本章第 5.1 节的边缘小块。</li>
+<li>第 7 章的 PnP 和对极几何需要本章提供的 2D 对应点，离群匹配同样要用 RANSAC 过滤。</li>
+<li>第 16 章第 3 节把特征点列为对齐的三类方法之一，第 8 节讲周期图案上的失败。本章第 5.8 节是同一个现象在特征点方法上的表现，对策（对位标记、限制搜索范围）也相同。</li>
+</ul>
+<hr />
+<h2 id="自测问题">自测问题</h2>
+<ol>
+<li>平坦、边缘、角点三种小块，结构张量的两个特征值分别是什么样？哪个方向定不住？</li>
+<li>k 从 0.04 提到 0.1，“算角点”的特征值之比上限从多少变成多少？最先丢掉的是哪类顶点？</li>
+<li>为什么 Harris 对整体亮度变化敏感？响应和亮度增益是什么关系，阈值该怎么取？</li>
+<li>统计重复率时，为什么一定要先裁到公共区域再取点？</li>
+<li>SIFT 默认参数下，图像调暗之后匹配变差，主要是检测还是描述的问题？怎么补救？</li>
+<li>ORB 用比值阈值 0.75 合适吗？用 L2 距离会怎样？</li>
+<li>周期图案上，比值检验和 RANSAC 为什么都救不了特征点对齐？有哪些对策？</li>
+</ol>
 <hr />
 <h2 id="动手前的检查清单">动手前的检查清单</h2>
 <ul>
@@ -355,7 +1288,7 @@ M = Σ_w [ Ix²   IxIy ]
 <p>确认完了，打开 <code>05_特征点/</code>：先亲手算出“角点为什么是角点”，再让 SIFT 把两张图连接起来。</p></article><nav class="prev-next"><a href="04.html">← 第 4 章 几何变换</a><a href="06.html">第 6 章 光流与运动 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#51-从整张图变成少数可靠地标">5.1 从“整张图”变成“少数可靠地标”</a></li><li><a href="#52-harris-角点看小窗口往哪里移动都会变">5.2 Harris 角点：看小窗口往哪里移动都会变</a></li><li class="sub"><a href="#直觉">直觉</a></li><li class="sub"><a href="#opencv-api">OpenCV API</a></li><li class="sub"><a href="#harris-的能力边界">Harris 的能力边界</a></li><li><a href="#53-sift在位置尺度方向上建立统一坐标系">5.3 SIFT：在位置、尺度、方向上建立统一坐标系</a></li><li class="sub"><a href="#第一步建立尺度空间">第一步：建立尺度空间</a></li><li class="sub"><a href="#第二步dog-找候选极值">第二步：DoG 找候选极值</a></li><li class="sub"><a href="#第三步精确定位并剔除坏点">第三步：精确定位并剔除坏点</a></li><li class="sub"><a href="#第四步分配主方向">第四步：分配主方向</a></li><li class="sub"><a href="#第五步构造-128-维描述子">第五步：构造 128 维描述子</a></li><li class="sub"><a href="#opencv-使用">OpenCV 使用</a></li><li><a href="#54-orb用二进制比较换取速度">5.4 ORB：用二进制比较换取速度</a></li><li><a href="#55-描述子匹配距离必须与数据类型配套">5.5 描述子匹配：距离必须与数据类型配套</a></li><li class="sub"><a href="#bfmatcher-与-flann">BFMatcher 与 FLANN</a></li><li class="sub"><a href="#lowe-比值测试">Lowe 比值测试</a></li><li class="sub"><a href="#几何验证">几何验证</a></li><li><a href="#56-逐步例子判断书封面是否出现在场景中">5.6 逐步例子：判断书封面是否出现在场景中</a></li><li class="sub"><a href="#第一步检测与描述">第一步：检测与描述</a></li><li class="sub"><a href="#第二步knn-匹配与过滤">第二步：KNN 匹配与过滤</a></li><li class="sub"><a href="#第三步ransac-与定位">第三步：RANSAC 与定位</a></li><li><a href="#57-常见坑与排查顺序">5.7 常见坑与排查顺序</a></li><li><a href="#练习连接">练习连接</a></li><li class="sub"><a href="#练习-5-1手写-harris">练习 5-1：手写 Harris</a></li><li class="sub"><a href="#练习-5-2sift-匹配">练习 5-2：SIFT 匹配</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#51-从整张图变成少数可靠地标">5.1 从“整张图”变成“少数可靠地标”</a></li><li class="sub"><a href="#实测小块能不能在第二张图里找回来">实测：小块能不能在第二张图里找回来</a></li><li><a href="#52-harris-角点看小窗口往哪里移动都会变">5.2 Harris 角点：看小窗口往哪里移动都会变</a></li><li class="sub"><a href="#直觉">直觉</a></li><li class="sub"><a href="#k-到底在管什么">k 到底在管什么</a></li><li class="sub"><a href="#k-和噪声k-只管得住边上的假角点">k 和噪声：k 只管得住“边上的”假角点</a></li><li class="sub"><a href="#窗口大小方框窗越大峰值离顶点越远">窗口大小：方框窗越大，峰值离顶点越远</a></li><li class="sub"><a href="#opencv-api">OpenCV API</a></li><li class="sub"><a href="#harris-的能力边界">Harris 的能力边界</a></li><li><a href="#53-sift在位置尺度方向上建立统一坐标系">5.3 SIFT：在位置、尺度、方向上建立统一坐标系</a></li><li class="sub"><a href="#第一步建立尺度空间">第一步：建立尺度空间</a></li><li class="sub"><a href="#第二步dog-找候选极值">第二步：DoG 找候选极值</a></li><li class="sub"><a href="#第三步精确定位并剔除坏点">第三步：精确定位并剔除坏点</a></li><li class="sub"><a href="#第四步分配主方向">第四步：分配主方向</a></li><li class="sub"><a href="#第五步构造-128-维描述子">第五步：构造 128 维描述子</a></li><li class="sub"><a href="#opencv-使用">OpenCV 使用</a></li><li><a href="#54-orb用二进制比较换取速度">5.4 ORB：用二进制比较换取速度</a></li><li class="sub"><a href="#实测siftorb-和一个没有尺度和方向的对照">实测：SIFT、ORB 和一个没有尺度和方向的对照</a></li><li><a href="#55-描述子匹配距离必须与数据类型配套">5.5 描述子匹配：距离必须与数据类型配套</a></li><li class="sub"><a href="#bfmatcher-与-flann">BFMatcher 与 FLANN</a></li><li class="sub"><a href="#lowe-比值测试">Lowe 比值测试</a></li><li class="sub"><a href="#几何验证">几何验证</a></li><li><a href="#56-逐步例子判断书封面是否出现在场景中">5.6 逐步例子：判断书封面是否出现在场景中</a></li><li class="sub"><a href="#第一步检测与描述">第一步：检测与描述</a></li><li class="sub"><a href="#第二步knn-匹配与过滤">第二步：KNN 匹配与过滤</a></li><li class="sub"><a href="#第三步ransac-与定位">第三步：RANSAC 与定位</a></li><li><a href="#57-常见坑与排查顺序含常见错误表">5.7 常见坑与排查顺序（含常见错误表）</a></li><li><a href="#58-重复纹理特征点在周期图案上会对错整数个周期">5.8 重复纹理：特征点在周期图案上会对错整数个周期</a></li><li><a href="#59-交互演示">5.9 交互演示</a></li><li><a href="#510-怎样评估和报告">5.10 怎样评估和报告</a></li><li><a href="#练习连接">练习连接</a></li><li class="sub"><a href="#练习-5-1手写-harris">练习 5-1：手写 Harris</a></li><li class="sub"><a href="#练习-5-2sift-匹配">练习 5-2：SIFT 匹配</a></li><li><a href="#511-破坏实验">5.11 破坏实验</a></li><li><a href="#512-扩展深挖档">5.12 扩展（深挖档）</a></li><li><a href="#513-和后续章节的关系">5.13 和后续章节的关系</a></li><li><a href="#自测问题">自测问题</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

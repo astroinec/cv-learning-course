@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>演示页检查</title></head>
+<body>
+<pre id="out">RUNNING</pre>
+<script>
+// 把每个演示页装进 860 px 宽的 iframe（讲义正文里嵌入框的宽度），量实际高度、横向溢出，
+// 记录加载时和逐个点击“载入”类按钮时的脚本报错。用无界面 Chrome 的 --dump-dom 读结果。
+const WIDTH = 860;
+const HOOK = '<script>window.__errs=[];window.addEventListener("error",e=>__errs.push(String(e.message)));' +
+             'window.addEventListener("unhandledrejection",e=>__errs.push("promise: "+e.reason));<\/script>';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function check(file) {
+  const res = { file };
+  try {
+    let html = await (await fetch("../demos/" + encodeURIComponent(file))).text();
+    res.external = (html.match(/(?:src|href)\s*=\s*["'](?:https?:)?\/\/[^"']+/g) || []).length;
+    html = html.replace(/<head[^>]*>/i, m => m + HOOK);
+    if (!html.includes("__errs")) html = HOOK + html;
+    const f = document.createElement("iframe");
+    f.style.cssText = `width:${WIDTH}px;height:120px;border:0;display:block`;  // 高度取得很小，scrollHeight 才是内容的真实高度
+    document.body.appendChild(f);
+    await new Promise(r => { f.onload = r; f.srcdoc = html; });
+    await sleep(350);
+    const d = f.contentDocument, w = f.contentWindow;
+    const buttons = [...d.querySelectorAll("button")];
+    res.buttons = buttons.length;
+    res.loaders = buttons.filter(b => /载入/.test(b.textContent)).length;
+    for (const b of buttons) { try { b.click(); } catch (e) { w.__errs.push("click: " + e.message); } await sleep(40); }
+    for (const el of d.querySelectorAll("input[type=range]")) {
+      try { el.value = el.max; el.dispatchEvent(new w.Event("input", { bubbles: true })); el.dispatchEvent(new w.Event("change", { bubbles: true })); } catch (e) { w.__errs.push("range: " + e.message); }
+    }
+    for (const el of d.querySelectorAll("select")) {
+      try { el.selectedIndex = el.options.length - 1; el.dispatchEvent(new w.Event("change", { bubbles: true })); el.dispatchEvent(new w.Event("input", { bubbles: true })); } catch (e) { w.__errs.push("select: " + e.message); }
+    }
+    await sleep(350);
+    res.height = Math.max(d.documentElement.scrollHeight, d.body.scrollHeight);
+    res.overflowX = Math.max(d.documentElement.scrollWidth, d.body.scrollWidth) - WIDTH;
+    res.canvases = d.querySelectorAll("canvas").length;
+    res.blankCanvas = [...d.querySelectorAll("canvas")].filter(c => {
+      try { const g = c.getContext("2d"); if (!g || !c.width || !c.height) return false;
+            const px = g.getImageData(0, 0, c.width, c.height).data; let first = -1;
+            for (let i = 0; i < px.length; i += 4 * 37) { const v = px[i] * 65536 + px[i + 1] * 256 + px[i + 2] + px[i + 3] * 16777216; if (first < 0) first = v; else if (v !== first) return false; }
+            return true; } catch (e) { return false; }
+    }).length;
+    res.errors = w.__errs.slice(0, 4);
+    f.remove();
+  } catch (e) { res.fatal = String(e); }
+  return res;
+}
+
+(async () => {
+  const files = new URLSearchParams(location.search).get("files").split("|");
+  const out = [];
+  for (const file of files) out.push(await check(file));
+  document.getElementById("out").textContent = "RESULT" + JSON.stringify(out) + "ENDRESULT";
+})();
+</script>
+</body>
+</html>

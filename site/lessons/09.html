@@ -58,10 +58,51 @@
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 9 章 <span class="tag P3">P3</span> <span class="badge">原版讲义</span></div><h1>CNN 核心</h1><p class="scene"><b>用在哪：</b>分类、检测、分割骨干网络的共同基础</p><div class="meta-row"><span class="chip"><b>速通</b> 2 小时</span><span class="chip"><b>标准</b> 10 小时</span><span class="chip"><b>深挖</b> 12 小时</span><span class="chip">前置：<a href="../lessons/02.html">第 2 章 卷积与边缘</a>、<a href="../lessons/08.html">第 8 章 神经网络基础</a></span></div><div class="meta-row"><span class="chip mono">验收：python 09_CNN核心/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="09"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
+<div class="lesson-head"><div class="crumbs">第 9 章 <span class="tag P3">P3</span> <span class="badge ok">已升级</span></div><h1>CNN 核心</h1><p class="scene"><b>用在哪：</b>分类、检测、分割骨干网络的共同基础</p><div class="meta-row"><span class="chip"><b>速通</b> 2 小时</span><span class="chip"><b>标准</b> 10 小时</span><span class="chip"><b>深挖</b> 12 小时</span><span class="chip">前置：<a href="../lessons/02.html">第 2 章 卷积与边缘</a>、<a href="../lessons/08.html">第 8 章 神经网络基础</a></span></div><div class="meta-row"><span class="chip mono">验收：python 09_CNN核心/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="09"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章新增小节里的数字都来自代码生成的合成数据和随机初始化的小网络，在一台 Apple 芯片的 Mac 上用 CPU 实测，记录在 <a href="../../09_CNN核心/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch09.py</code> 生成。输出尺寸和残差块调用本章作业的参考实现。本机没有 CIFAR-10，讲义里没有任何 CIFAR-10 或 ImageNet 上的精度数字，原讲义里关于 CIFAR-10 训练的内容是留给你在自己机器上做的。耗时只有 9.2 节的一组，是机器上还有别的任务在跑时测的一次结果，只写两位有效数字，配图脚本默认沿用这一次的值，设置 <code>CH09_RETIME=1</code> 才重测。任何“在某块显卡上要多久、占多少显存”的数字本章都没有，9.9 节只讲怎样在自己机器上量。换成真实图像、训练过的网络或别的 PyTorch 版本（本机是 2.15.0），数值会变，结论的方向要自己再测一遍。</p>
+</div>
+<!-- -->
+
+<blockquote>
 <p>配套练习：<code>DL-3 卷积核可视化</code> | <code>DL-4 CIFAR-10 从零训练</code><br />
 本章目标：不把 CNN 当成一串层名。你将能手算每层张量 shape、参数量和感受野，理解池化、BatchNorm 与残差连接的作用，并在 Apple Silicon 的 MPS 上跑通一套可检查的训练流程。</p>
 </blockquote>
+<p>自动验收的作业是 <a href="../../09_CNN核心/作业_卷积shape与残差块.py"><code>作业_卷积shape与残差块.py</code></a>（输出尺寸公式和一个残差块的 <code>forward</code>）。上面写的 DL-3 和 DL-4 是扩展练习，章节目录里没有现成的文件，题目在 <a href="../../视觉算法学习计划.md"><code>视觉算法学习计划.md</code></a> 的“第 2 天：CNN 核心理解”一节（题 DL-3、题 DL-4），需要自己新建文件完成。原讲义面向 Apple Silicon 的 MPS；用 NVIDIA 显卡时设备怎么选、显存怎么看，见 9.9 节新增的小节。</p>
+<hr />
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：分类、检测、分割骨干网络的共同基础。第 10 章的迁移学习、第 11 章的检测、第 12 章的分割、第 19 章的 PatchCore，用的都是卷积骨干网络。看懂一个骨干每层输出多大、一个位置能看多大范围、BN 在训练和推理时差在哪、网络加深后为什么要有捷径，是用好它们的前提。</p>
+<p><strong>优先级</strong>：P3，已有基础或用得少。前置是第 2 章（手写相关运算，卷积层算的其实是相关）和第 8 章（反向传播、训练循环）。如果你已经训练过 CNN，走速通档，把 6 张图和 5 道小测过一遍，确认没有盲区就往下走；后面哪一章用到再回来升档。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">2 小时</td>
+<td>不跑代码。看图 1 到图 6 和每张图下面的表，读 9.2 节的三个公式（输出尺寸、参数量、乘加次数）和 9.4 节的感受野递推，把 9.4 节末尾演示的前 3 步试一遍，答完 5 道小测</td>
+<td>能手算一层卷积的输出尺寸和三层网络的感受野；能讲清展平为什么把位置绑死、BN 两种模式差在哪、残差连接解决的是什么</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">10 小时</td>
+<td>读完全章，跑 Notebook，完成 <code>作业_卷积shape与残差块.py</code> 并验收通过，按 9.10 节做两项自检，做 9.13 节前三个破坏实验，填实验记录；按 9.9 节在自己机器上确认显卡可用，量一次训练时的显存峰值</td>
+<td>验收 PASS，两项自检通过；实验记录里有一组手算和实际输出尺寸的对照、一个边界失败案例；自测问题都能答</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">12 小时</td>
+<td>再做 9.13 节其余的破坏实验，从 9.14 节的扩展里选一个（题 DL-3，或题 DL-4 的一组对照）</td>
+<td>在自己机器上跑出结果，报告里写清参数量、批大小、种子数，以及训练损失和验证指标各自的变化</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。本章的作业很短（一个公式、一个 <code>forward</code>），时间主要花在 9.5 和 9.7 节。题 DL-4 的 CIFAR-10 训练不在标准档里，放到深挖档，或者留到第 10 章之后和迁移学习一起做。</p>
+</div>
 <hr />
 <h2 id="91-为什么图像更适合卷积而不是全连接">9.1 为什么图像更适合卷积，而不是全连接</h2>
 <p>一张 <code>224×224×3</code> 的 RGB 图像有 150528 个数。若第一层全连接到 4096 个神经元，仅权重就有：</p>
@@ -79,6 +120,51 @@
 输出 Y: [N, C_out, H_out, W_out]
 </code></pre></div>
 <p><code>N</code> 是 batch，<code>C</code> 是通道。不要把 OpenCV/NumPy 常见的 <code>HWC</code> 直接当成模型输入。</p>
+<h3 id="实测换个位置还认不认得">实测：换个位置还认不认得</h3>
+<p>上面说卷积有平移等变性，又说它不是天然的平移不变。差别可以用一个小实验量出来：16×16 的噪声图上放一个 5 px 大小的图案（横线、竖线、3×3 方块、斜线四类）。训练时图案只出现在左半边，测试时分两组，一组仍在左半边，一组挪到右半边。三种网络各训练 400 步（Adam，学习率 0.01，批 32），3 个种子，每组测试 1000 张，随机猜是 25%。</p>
+<figure><img src="../../09_CNN核心/figures/fig01_位置泛化.svg" alt="图 1：左，四类图案的样例，上排是训练用的（图案在左半边），下排是测试用的（图案在右半边）。中，三种网络在两组测试图上的准确率，灰色是图案在左半边，蓝色是图案在右半边，黑点是 3 个种子各自的结果，红色虚线是随机猜。右，三种网络的参数量，纵轴是对数" loading="lazy"><figcaption>图 1：左，四类图案的样例，上排是训练用的（图案在左半边），下排是测试用的（图案在右半边）。中，三种网络在两组测试图上的准确率，灰色是图案在左半边，蓝色是图案在右半边，黑点是 3 个种子各自的结果，红色虚线是随机猜。右，三种网络的参数量，纵轴是对数</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>网络（16×16 输入，训练 400 步，3 个种子的平均）</th>
+<th style="text-align: right;">参数量</th>
+<th style="text-align: right;">图案在左半边（见过）</th>
+<th style="text-align: right;">图案在右半边（没见过）</th>
+<th>把输入换成 24×24</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全连接，256-64-4</td>
+<td style="text-align: right;">16708</td>
+<td style="text-align: right;">99.4%</td>
+<td style="text-align: right;">25.0%</td>
+<td>报错</td>
+</tr>
+<tr>
+<td>两层 3×3 卷积，展平后接全连接</td>
+<td style="text-align: right;">8860</td>
+<td style="text-align: right;">99.2%</td>
+<td style="text-align: right;">22.0%</td>
+<td>报错</td>
+</tr>
+<tr>
+<td>两层 3×3 卷积，全局平均池化后接全连接</td>
+<td style="text-align: right;">700</td>
+<td style="text-align: right;">99.4%</td>
+<td style="text-align: right;">99.2%</td>
+<td>能跑</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>全连接网络换个位置就退回随机水平</strong>（25.0%）。它给每个像素位置一套独立的权重，右半边的权重在训练里从来没有被图案激活过。</li>
+<li><strong>有卷积层也不够</strong>。卷积后展平再接全连接，没见过的位置上只有 22.0%（3 个种子是 17.3%、24.3%、24.3%），和全连接一样。卷积层的输出确实跟着图案一起移到了右边，但展平之后的全连接层仍然是每个位置一套权重，把位置重新绑死了。</li>
+<li><strong>卷积加全局平均池化才换了位置还认得</strong>：99.2%，参数只有 700 个，是全连接的 23.9 分之一。全局平均把“在哪里”丢掉，只留下“有没有”。</li>
+<li>只有全局池化的网络能直接接受 24×24 的输入，另外两种在全连接层报矩阵形状对不上。这就是 9.3 节说的“允许可变输入尺寸”。</li>
+</ol>
+<p>所以原文那句“分类末端的池化、数据增强等才让最终预测对小位移更稳定”，池化这一半在这里量出来了。数据增强那一半（让训练集里各个位置都出现）本章没有测。全局池化的代价是位置信息没了，分类可以这样做，检测和分割不行，它们靠的是保留空间分辨率的特征图（第 11、12 章）。</p>
+<div class="quiz" data-answer="C"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一个网络是“两层 3×3 卷积，展平，全连接”。训练时图案只出现在图像左半边，训练准确率 99%。把图案挪到右半边测试，准确率最接近哪个？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>仍在 99% 左右，因为卷积是平移等变的</span></button><button type="button" data-k="B"><b>B</b><span>60% 左右，卷积层能帮上一部分</span></button><button type="button" data-k="C"><b>C</b><span>和随机猜差不多</span></button></div><div class="quiz-exp" hidden><p><strong>C</strong>。实测 22.0%，随机猜是 25%，和纯全连接网络的 25.0% 一样。卷积层的输出确实随图案平移了，但展平后的全连接层对每个位置用不同的权重，没见过的位置上权重没有学过。把展平换成全局平均池化，同样的卷积层在没见过的位置上是 99.2%，参数还从 8860 个降到 700 个。</p></div></div>
 <hr />
 <h2 id="92-三项基本功shape参数量计算量">9.2 三项基本功：shape、参数量、计算量</h2>
 <h3 id="输出-shape-怎么算">输出 shape 怎么算</h3>
@@ -104,6 +190,231 @@ W_out 同理
 <div class="highlight"><pre><span></span><code>MACs ≈ H_out × W_out × C_out × C_in/groups × K_h × K_w
 </code></pre></div>
 <p>同一个卷积核虽然只保存一份参数，却要在所有位置重复计算。因此高分辨率前几层可能参数不多但耗时很大。比较模型时要同时看参数量、MACs、激活张量大小和真实设备延迟。</p>
+<h3 id="实测一公式和-pytorch-逐个比">实测一：公式和 PyTorch 逐个比</h3>
+<p>把输入边长 1 到 40、核 1 到 7、步长 1 到 4、填充 0 到 3、膨胀 1 到 3 组合起来，共 11520 种，逐个比较本章作业的参考实现和 <code>torch.nn.functional.conv2d</code> 的实际输出：11520 种全部一致。其中 948 种是核的覆盖范围 <span class="arithmatex">\(D(K-1)+1\)</span> 比补边后的输入还大，PyTorch 报错（<code>Kernel size can't be greater than actual input size</code>），参考实现也拒绝。</p>
+<p>两个和作业直接有关的细节：</p>
+<ul>
+<li><strong>向下取整要对负数也成立</strong>。输入 2、核 3、步长 2、无填充时，分子是 -1，正确的做法是拒绝。如果写成先做浮点除法再 <code>int()</code>，<code>int(-0.5)</code> 是 0，加 1 之后返回 1，一个放不下的卷积被算成了“输出 1 个像素”。上面的组合里，这种写法在 223 种本该拒绝的情况下返回了正数。</li>
+<li><strong>验收脚本的三个算例都能整除</strong>（32 到 32、31 到 16、15 到 15），所以向上取整、四舍五入、向零取整的写法都能通过验收（实测如此）。要自己多试两个：输入 32、核 3、步长 2、无填充应得 15（向上取整会得 16）；输入 32、核 3、步长 3、无填充应得 10（四舍五入会得 11）。</li>
+</ul>
+<h3 id="实测二向下取整丢掉了什么">实测二：向下取整丢掉了什么</h3>
+<p>公式里除以步长有余数时，多出来的那几行几列放不下一个完整的窗口，直接被丢掉。把核换成全 1，对输出的总和求梯度，梯度为 0 的输入像素就是没有被任何窗口读到的像素。</p>
+<figure><img src="../../09_CNN核心/figures/fig02_取整与计算量.svg" alt="图 2：左三栏，每个输入像素被多少个窗口读到（格子里的数字），红色的 0 是没有被任何窗口读到的像素，三栏分别是 2×2 池化步长 2 作用在 7×7 的输入上、3×3 卷积步长 2 无填充作用在 8×8 上、1×1 卷积步长 2 作用在 8×8 上。最右，分组卷积和深度可分离卷积相对普通 3×3 卷积的参数量、乘加次数和 CPU 耗时（批 1 和批 16 各一组），普通 3×3 记为 1，纵轴是对数" loading="lazy"><figcaption>图 2：左三栏，每个输入像素被多少个窗口读到（格子里的数字），红色的 0 是没有被任何窗口读到的像素，三栏分别是 2×2 池化步长 2 作用在 7×7 的输入上、3×3 卷积步长 2 无填充作用在 8×8 上、1×1 卷积步长 2 作用在 8×8 上。最右，分组卷积和深度可分离卷积相对普通 3×3 卷积的参数量、乘加次数和 CPU 耗时（批 1 和批 16 各一组），普通 3×3 记为 1，纵轴是对数</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层和输入（正方形输入，单层）</th>
+<th style="text-align: right;">输出边长</th>
+<th style="text-align: right;">除以步长的余数</th>
+<th style="text-align: right;">没被读到的像素</th>
+<th style="text-align: right;">占全部像素</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2×2 池化，步长 2，输入 7×7</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">26.5%</td>
+</tr>
+<tr>
+<td>2×2 池化，步长 2，输入 33×33</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">65</td>
+<td style="text-align: right;">6.0%</td>
+</tr>
+<tr>
+<td>3×3 卷积，步长 2，无填充，输入 8×8</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">23.4%</td>
+</tr>
+<tr>
+<td>3×3 卷积，步长 2，无填充，输入 32×32</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">63</td>
+<td style="text-align: right;">6.2%</td>
+</tr>
+<tr>
+<td>3×3 卷积，步长 2，填充 1，输入 32×32</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>3×3 卷积，步长 2，填充 1，输入 31×31</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>3×3 卷积，步长 3，无填充，输入 32×32</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">124</td>
+<td style="text-align: right;">12.1%</td>
+</tr>
+<tr>
+<td>1×1 卷积，步长 2，输入 32×32</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">768</td>
+<td style="text-align: right;">75.0%</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>余数是几，最下面和最右边就丢几行几列</strong>。7×7 的图过一次 2×2 池化，最后一行和最后一列共 13 个像素完全不起作用。图越小，丢掉的比例越大。</li>
+<li><strong>有填充时丢的可能是补边</strong>。输入 32、3×3、步长 2、填充 1，余数也是 1，但没有真实像素被丢：被丢掉的是右边和下边补的那一圈零。也就是说偶数输入配步长 2 时，实际只有左边和上边补了边。输入 31 和 32 的输出都是 16。</li>
+<li><strong>步长比核大时，中间的像素被跳过</strong>。1×1 卷积配步长 2 只读四分之一的位置，75.0% 的输入位置不参与计算。9.7 节的投影捷径 <code>1×1, stride=2</code> 正是这种情况。</li>
+</ol>
+<p>第 12 章 12.3 节的 U-Net“尺寸差 1 个像素”，根源就是这里的向下取整。</p>
+<h3 id="实测三参数量乘加次数和耗时">实测三：参数量、乘加次数和耗时</h3>
+<p>同一个位置换成不同的卷积（输入和输出都是 64 通道、56×56，不带偏置）。参数量和乘加次数由脚本按上面的公式数出来；耗时是在一台 Mac 的 CPU 上（2 线程）测的一次结果，每个数是 3 轮、每轮 30 次前向的中位数里最小的一轮，测的时候机器上还有别的任务，只能看量级和明显的倍数关系。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>卷积（64 到 64 通道，56×56）</th>
+<th style="text-align: right;">参数量</th>
+<th style="text-align: right;">乘加次数（百万）</th>
+<th style="text-align: right;">CPU 耗时，批 1（ms）</th>
+<th style="text-align: right;">CPU 耗时，批 16（ms）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>普通 3×3</td>
+<td style="text-align: right;">36864</td>
+<td style="text-align: right;">115.61</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">26</td>
+</tr>
+<tr>
+<td>分组 3×3，4 组</td>
+<td style="text-align: right;">9216</td>
+<td style="text-align: right;">28.9</td>
+<td style="text-align: right;">0.56</td>
+<td style="text-align: right;">19</td>
+</tr>
+<tr>
+<td>逐通道 3×3（组数等于通道数）</td>
+<td style="text-align: right;">576</td>
+<td style="text-align: right;">1.81</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">3.1</td>
+</tr>
+<tr>
+<td>深度可分离（逐通道 3×3 加 1×1）</td>
+<td style="text-align: right;">4672</td>
+<td style="text-align: right;">14.65</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">24</td>
+</tr>
+<tr>
+<td>1×1</td>
+<td style="text-align: right;">4096</td>
+<td style="text-align: right;">12.85</td>
+<td style="text-align: right;">0.066</td>
+<td style="text-align: right;">26</td>
+</tr>
+<tr>
+<td>两层 3×3</td>
+<td style="text-align: right;">73728</td>
+<td style="text-align: right;">231.21</td>
+<td style="text-align: right;">1.7</td>
+<td style="text-align: right;">53</td>
+</tr>
+<tr>
+<td>一层 5×5</td>
+<td style="text-align: right;">102400</td>
+<td style="text-align: right;">321.13</td>
+<td style="text-align: right;">2.1</td>
+<td style="text-align: right;">38</td>
+</tr>
+</tbody>
+</table></div>
+<p>和普通 3×3 相比，各项少到了几分之一：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>卷积</th>
+<th style="text-align: right;">参数量</th>
+<th style="text-align: right;">乘加次数</th>
+<th style="text-align: right;">耗时，批 1</th>
+<th style="text-align: right;">耗时，批 16</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分组 3×3，4 组</td>
+<td style="text-align: right;">4.0</td>
+<td style="text-align: right;">4.0</td>
+<td style="text-align: right;">1.4</td>
+<td style="text-align: right;">1.4</td>
+</tr>
+<tr>
+<td>逐通道 3×3</td>
+<td style="text-align: right;">64.0</td>
+<td style="text-align: right;">63.9</td>
+<td style="text-align: right;">3.6</td>
+<td style="text-align: right;">8.4</td>
+</tr>
+<tr>
+<td>深度可分离</td>
+<td style="text-align: right;">7.9</td>
+<td style="text-align: right;">7.9</td>
+<td style="text-align: right;">2.5</td>
+<td style="text-align: right;">1.1</td>
+</tr>
+<tr>
+<td>1×1</td>
+<td style="text-align: right;">9.0</td>
+<td style="text-align: right;">9.0</td>
+<td style="text-align: right;">12.0</td>
+<td style="text-align: right;">1.0</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>同一个位置上，参数量和乘加次数按同一个比例变</strong>，因为输出的高宽没有变。两层 3×3 的参数是 73728，一层 5×5 是 102400，就是 9.4 节会用到的 <span class="arithmatex">\(18C^2\)</span> 对 <span class="arithmatex">\(25C^2\)</span>。</li>
+<li><strong>耗时没有跟着乘加次数按比例少</strong>。分组卷积的乘加次数少到 4.0 分之一，耗时只少到 1.4 分之一。深度可分离卷积的乘加次数少到 7.9 分之一，批 1 时耗时少到 2.5 分之一，批 16 时只有 1.1 分之一。</li>
+<li><strong>批大小不同，结论可能不同</strong>。1×1 卷积在批 1 时比普通 3×3 快一个数量级（12 倍），批 16 时这一次测到两者用时相同（都是 26 ms）。原因没有查证，可能和这个 PyTorch 版本在 CPU 上对不同形状的输入走了不同的计算路径有关。这一条只能说明一件事：耗时要在目标设备、目标批大小上实测，不能从乘加次数推。</li>
+</ol>
+<p><strong>参数少的层可以更慢</strong>。把网络开头和靠后的两层单独拿出来（批 1）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th style="text-align: right;">参数量</th>
+<th style="text-align: right;">乘加次数（百万）</th>
+<th style="text-align: right;">输出元素个数</th>
+<th style="text-align: right;">CPU 耗时（ms）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3 到 64 通道的 3×3，输入 224×224</td>
+<td style="text-align: right;">1728</td>
+<td style="text-align: right;">86.7</td>
+<td style="text-align: right;">3211264</td>
+<td style="text-align: right;">1.1</td>
+</tr>
+<tr>
+<td>256 到 256 通道的 3×3，输入 14×14</td>
+<td style="text-align: right;">589824</td>
+<td style="text-align: right;">115.6</td>
+<td style="text-align: right;">50176</td>
+<td style="text-align: right;">0.56</td>
+</tr>
+</tbody>
+</table></div>
+<p>后一层的参数是前一层的 341 倍，乘加次数也更多，耗时却只有前一层的一半左右。前一层要写出 64 倍的输出元素。这就是上面“高分辨率前几层可能参数不多但耗时很大”的一个实例，也说明乘加次数之外还要看激活张量的大小。</p>
 <hr />
 <h2 id="93-paddingstride-与-pooling如何改变空间信息">9.3 padding、stride 与 pooling：如何改变空间信息</h2>
 <h3 id="padding边界也值得被看见">Padding：边界也值得被看见</h3>
@@ -118,6 +429,157 @@ W_out 同理
 <li><strong>Global Average Pooling</strong> 把每个通道的整张特征图平均成一个数，输出 <code>[N,C,1,1]</code>，常替代大规模全连接层，减少参数并允许可变输入尺寸。</li>
 </ul>
 <p>池化层通常没有可训练参数，但仍改变信息。现代网络常用 stride 2 卷积代替部分池化，让下采样规则也能学习。选择时不要问“谁一定更好”，而要问任务是否需要保留位置、弱信号和小目标。</p>
+<h3 id="实测边上的像素被读到几次">实测：边上的像素被读到几次</h3>
+<p>8×8 的输入过一层 3×3、步长 1 的卷积，数一数每个输入像素被多少个窗口读到：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>3×3 卷积，步长 1，输入 8×8</th>
+<th style="text-align: right;">角上的像素</th>
+<th style="text-align: right;">边上的像素</th>
+<th style="text-align: right;">内部的像素</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无填充</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr>
+<td>填充 1</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">9</td>
+</tr>
+</tbody>
+</table></div>
+<p>不补边时角上的像素只参与 1 个窗口，内部是 9 个。补一圈之后是 4 个和 9 个，差距变小，但没有消失。上面说的“边缘像素参与卷积的次数也少”就是这张表。</p>
+<h3 id="实测步长和补边怎样破坏平移等变">实测：步长和补边怎样破坏平移等变</h3>
+<p>9.1 节说“输入平移，特征图也相应平移”。这句话只在步长为 1、并且离边界足够远时精确成立。</p>
+<p><strong>步长</strong>。取 8 张 64×64 的首尾相接的随机纹理，沿 x 方向循环平移 t 个像素，网络是三层 3×3 卷积加 ReLU（8 通道，随机初始化，没有训练，循环填充所以没有边界问题），5 组随机权重取平均。比较四种做法：不下采样；每层用步长 2 的卷积；每层卷积后接 2×2 最大池化；每层卷积后接 2×2 平均池化。后三种的总步长都是 8。“等变误差”是把平移前的输出循环平移整数格去对平移后的输出，取对得最好的那一格，算差的范数除以输出的范数。</p>
+<figure><img src="../../09_CNN核心/figures/fig03_平移等变.svg" alt="图 3：左，等变误差随输入平移量的变化，四条线是四种下采样方式。中，对每个通道做全局平均之后，平移前后特征向量的相对变化，图例同左。右，步长 1 的 4 层卷积在真实平移（不是循环平移）下，输出每一列的相对误差随离左边界的列数的变化，三条线是三种补边方式，橙色阴影是最外 4 列" loading="lazy"><figcaption>图 3：左，等变误差随输入平移量的变化，四条线是四种下采样方式。中，对每个通道做全局平均之后，平移前后特征向量的相对变化，图例同左。右，步长 1 的 4 层卷积在真实平移（不是循环平移）下，输出每一列的相对误差随离左边界的列数的变化，三条线是三种补边方式，橙色阴影是最外 4 列</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>输入平移（px）</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">7</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">16</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>步长 2 的卷积：等变误差</td>
+<td style="text-align: right;">0.418</td>
+<td style="text-align: right;">0.562</td>
+<td style="text-align: right;">0.747</td>
+<td style="text-align: right;">0.426</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>2×2 最大池化：等变误差</td>
+<td style="text-align: right;">0.223</td>
+<td style="text-align: right;">0.291</td>
+<td style="text-align: right;">0.347</td>
+<td style="text-align: right;">0.225</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>2×2 平均池化：等变误差</td>
+<td style="text-align: right;">0.095</td>
+<td style="text-align: right;">0.171</td>
+<td style="text-align: right;">0.294</td>
+<td style="text-align: right;">0.094</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>步长 2 的卷积：全局平均后的相对变化</td>
+<td style="text-align: right;">7.13%</td>
+<td style="text-align: right;">8.68%</td>
+<td style="text-align: right;">10.08%</td>
+<td style="text-align: right;">6.87%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>2×2 最大池化：全局平均后的相对变化</td>
+<td style="text-align: right;">2.44%</td>
+<td style="text-align: right;">3.06%</td>
+<td style="text-align: right;">2.64%</td>
+<td style="text-align: right;">2.69%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>2×2 平均池化：全局平均后的相对变化</td>
+<td style="text-align: right;">0.44%</td>
+<td style="text-align: right;">0.48%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.43%</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table></div>
+<p>不下采样的网络，等变误差在所有平移量下都不超过 2e-07，全局平均后的变化也只有浮点舍入的量级。表里写 0 的格子，实测值都在 1e-07 的量级以下。</p>
+<ol>
+<li><strong>有下采样时，只有平移量是总步长的整数倍，输出才是精确的平移</strong>。平移 8 px 和 16 px 时误差为 0，其余都不是：步长 2 的卷积平移 1 px，误差就有 0.418。输出特征图每一格对应输入的 8 px，输入挪 1 px，输出没有“挪八分之一格”这种操作，只能变成另一组数。</li>
+<li><strong>全局平均之后，三种下采样差一个数量级</strong>。平移 1 到 7 px 的平均变化：步长 2 的卷积 8.79%，最大池化 2.96%，平均池化 0.39%。平均池化先做了一次平滑再抽样，最稳。平均池化在平移 4 px 时变化也是 0，可以这样解释：最后一次平均池化和全局平均合在一起仍然是求平均，真正起作用的只有前两次，等效的总步长是 4。</li>
+<li>上面说“现代网络常用 stride 2 卷积代替部分池化”。在这组随机权重的实验里，步长 2 的卷积恰好是对平移最敏感的一种。这是没有训练的网络，训练会不会缩小这个差距，本章没有测，9.13 节的破坏实验让你在自己的网络上测一次。</li>
+</ol>
+<p><strong>补边</strong>。循环平移是理想情况。真实的平移是相机或工件动了，边上进来的是新内容。从一张大纹理上裁两块 48×48，第二块比第一块向右错开 3 px，过一个 4 层 3×3、步长 1 的网络（5 组随机权重），把两个输出按 3 列对齐后逐列比较：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>离左边界的列数（4 层 3×3，步长 1）</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>补零</td>
+<td style="text-align: right;">0.331</td>
+<td style="text-align: right;">0.183</td>
+<td style="text-align: right;">0.1</td>
+<td style="text-align: right;">0.033</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>镜像</td>
+<td style="text-align: right;">0.196</td>
+<td style="text-align: right;">0.132</td>
+<td style="text-align: right;">0.079</td>
+<td style="text-align: right;">0.031</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>复制边缘</td>
+<td style="text-align: right;">0.178</td>
+<td style="text-align: right;">0.105</td>
+<td style="text-align: right;">0.059</td>
+<td style="text-align: right;">0.023</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table></div>
+<p>三种补法受影响的都是最外 4 列，再往里误差是 0（镜像和复制边缘是 2e-07，浮点舍入）。4 层 3×3 的理论感受野是 9，一个位置往左看 4 列，所以离边界不到 4 列的位置都看到了补出来的内容。补零的误差最大。这和上面“尺寸保持与边界假设是两件事”是同一个意思：补边保住了尺寸，换来的是边界附近一圈不等变的输出，圈的宽度随层数增加。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一个网络由三层步长 2 的 3×3 卷积组成（循环填充，不考虑边界）。把输入向右平移 1 px，输出特征图会怎样？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>整体向右平移八分之一格，数值基本不变</span></button><button type="button" data-k="B"><b>B</b><span>变成另一组数，和原输出怎么对齐都有 0.4 左右的相对误差</span></button><button type="button" data-k="C"><b>C</b><span>完全不变，因为下采样把 1 px 的位移吃掉了</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测等变误差 0.418，对每个通道做全局平均之后特征向量也变了 7.13%。要平移 8 px（总步长的整数倍），输出才是精确的平移，误差为 0。C 是常见的想当然：下采样没有把位移吃掉，反而让输出对亚格位移敏感。同样的三层换成“卷积后接 2×2 平均池化”，全局平均后的变化只有 0.44%。</p></div></div>
 <hr />
 <h2 id="94-感受野一个高层神经元到底看了多大范围">9.4 感受野：一个高层神经元到底看了多大范围</h2>
 <p><strong>理论感受野</strong>是某层一个位置在原图上可能依赖的区域。逐层计算时维护两个量：</p>
@@ -137,6 +599,141 @@ j_new = j_old × s
 </code></pre></div>
 <p>最后一个特征点理论上看原图 <code>8×8</code> 的区域。连续两个 <code>3×3</code> 卷积得到 <code>5×5</code> 感受野，却比一个 <code>5×5</code> 卷积参数更少，并多一次非线性：若通道数均为 <code>C</code>，前者权重约 <code>18C²</code>，后者为 <code>25C²</code>。这是 VGG 喜欢堆小卷积核的重要原因。</p>
 <p>理论感受野不等于<strong>有效感受野</strong>。虽然路径上能连接到较远像素，实际梯度贡献通常集中在中心附近。网络太浅、下采样设计不当，都会让模型缺少全局上下文；而过快扩大感受野，又会损害局部细节。</p>
+<h3 id="实测公式和梯度对得上吗">实测：公式和梯度对得上吗</h3>
+<p>理论感受野可以直接量：把每层的核换成全 1、去掉非线性，对中心位置的输出求输入的梯度，梯度非零的区域就是它实际依赖的输入范围。7 种结构（上面的例子、两层 3×3、一层 5×5、三层步长 2 的 3×3、膨胀 2 再膨胀 4 的两层 3×3、“7×7 步长 2 接 3×3 步长 2 再接两层 3×3”、十层 3×3），梯度非零区域的边长和递推公式的结果 7 种全部一致。上面的例子逐层是 r=3、j=1，r=4、j=2，r=8、j=2，和手算相同。</p>
+<h3 id="实测有效感受野有多大">实测：有效感受野有多大</h3>
+<p>把 n 层 3×3 卷积叠起来（8 通道，步长 1，PyTorch 默认初始化，层间加 ReLU，没有训练），对最后一层中心位置的输出求输入的梯度，把梯度的平方在 40 组随机权重和随机输入上取平均再归一化，当作“每个输入像素对这个输出的影响有多大”。</p>
+<figure><img src="../../09_CNN核心/figures/fig04_感受野.svg" alt="图 4：左，5 层 3×3 时归一化的梯度能量图，整幅图就是 11×11 的理论感受野，虚线方块包住 95% 的梯度能量。中，20 层 3×3 时的梯度能量图，整幅图是 41×41 的理论感受野，虚线方块是 17×17。右，理论感受野边长（灰）、实测的 95% 能量方块边长（蓝）和按路径条数算出的 95% 方块边长（橙色叉）随层数的变化" loading="lazy"><figcaption>图 4：左，5 层 3×3 时归一化的梯度能量图，整幅图就是 11×11 的理论感受野，虚线方块包住 95% 的梯度能量。中，20 层 3×3 时的梯度能量图，整幅图是 41×41 的理论感受野，虚线方块是 17×17。右，理论感受野边长（灰）、实测的 95% 能量方块边长（蓝）和按路径条数算出的 95% 方块边长（橙色叉）随层数的变化</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>3×3 卷积的层数 n（步长 1，40 组随机权重）</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">15</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">30</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>理论感受野边长</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">61</td>
+</tr>
+<tr>
+<td>包住 95% 梯度能量的中心方块边长</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">21</td>
+</tr>
+<tr>
+<td>这个方块占理论感受野面积的比例</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">67%</td>
+<td style="text-align: right;">38%</td>
+<td style="text-align: right;">23%</td>
+<td style="text-align: right;">17%</td>
+<td style="text-align: right;">12%</td>
+</tr>
+<tr>
+<td>梯度能量沿一个方向的标准差（px）</td>
+<td style="text-align: right;">1.22</td>
+<td style="text-align: right;">1.38</td>
+<td style="text-align: right;">1.86</td>
+<td style="text-align: right;">2.63</td>
+<td style="text-align: right;">3.29</td>
+<td style="text-align: right;">3.73</td>
+<td style="text-align: right;">4.6</td>
+</tr>
+<tr>
+<td>按路径条数算的标准差（px）</td>
+<td style="text-align: right;">1.15</td>
+<td style="text-align: right;">1.41</td>
+<td style="text-align: right;">1.83</td>
+<td style="text-align: right;">2.58</td>
+<td style="text-align: right;">3.16</td>
+<td style="text-align: right;">3.65</td>
+<td style="text-align: right;">4.47</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>层数越多，真正起作用的那一块占理论感受野的比例越小</strong>。20 层时理论感受野是 41×41，95% 的梯度能量集中在中间 17×17，只占面积的 17%；30 层时只占 12%。10 层时，理论感受野最外面一圈像素合起来只占梯度能量的 0.0071%。</li>
+<li><strong>理论感受野随层数线性增长，有效的那一块按根号增长</strong>。从 5 层到 20 层，理论感受野变成 3.73 倍，梯度能量的标准差只变成 2.01 倍。</li>
+<li><strong>原因是路径条数</strong>。中心的像素可以经过很多条路径到达输出，角上的像素只有一条。各条路径的权重独立时，梯度平方的期望正比于路径条数，等于把 3×3 的全 1 核自己和自己卷积 n 次，结果接近高斯分布，标准差是 <span class="arithmatex">\(\sqrt{2n/3}\)</span> 个像素。表里最后一行是脚本按这个自卷积直接算的，和实测对得上，图 4 右栏里橙色叉和蓝线重合。</li>
+<li><strong>下采样比加层有效得多</strong>。同样十层 3×3，把第 4 层和第 7 层改成步长 2，理论感受野从 21 变成 45，95% 能量的方块从 13×13 变成 29×29。</li>
+</ol>
+<p>这是随机初始化的网络。训练会改变有效感受野，变成什么样本章没有测。能确定的是：理论感受野只是上限，“理论上看得到”不等于“用到了”。上面原文说的“实际梯度贡献通常集中在中心附近”，量出来就是这张表。</p>
+<h3 id="一个真实的骨干resnet-18">一个真实的骨干：ResNet-18</h3>
+<p>按 torchvision 的 ResNet-18 主干逐层套递推公式（7×7 步长 2，3×3 池化步长 2，然后四个阶段各四层 3×3，后三个阶段的第一层步长 2），再用梯度法核对一遍，五行都一致：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段的输出</th>
+<th style="text-align: right;">输出边长（输入 224）</th>
+<th style="text-align: right;">间隔 j</th>
+<th style="text-align: right;">理论感受野 r</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一层卷积加池化</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr>
+<td>layer1</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">43</td>
+</tr>
+<tr>
+<td>layer2</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">99</td>
+</tr>
+<tr>
+<td>layer3</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">211</td>
+</tr>
+<tr>
+<td>layer4</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">435</td>
+</tr>
+</tbody>
+</table></div>
+<p>layer4 的理论感受野是 435，比 224 的输入还大，每个位置理论上都能看到整幅图。第 19 章 3.1 节说“layer3 的一个位置对应输入的 16×16 像素”，说的是间隔 j=16；它理论上能看到的范围是 211。这两个数不要混：间隔决定定位能有多细，感受野决定能用到多大范围的上下文。第 10 章 10.5 节的 Grad-CAM 取的是 layer4 最后一个卷积的特征图，按这张表它在 224 的输入下是 7×7，一格对应输入的 32 px，也是这里的 j。</p>
+<h3 id="交互演示卷积尺寸与感受野计算器">交互演示：卷积尺寸与感受野计算器</h3>
+<p>演示页把这一节和 9.2 节的公式做成了计算器：逐层加卷积和池化，改核、步长、填充、膨胀、输出通道和分组，每层的输出尺寸、理论感受野 r、间隔 j、参数量和乘加次数会跟着变；向下取整丢掉的行列、没有用到的补边、尺寸放不下的层会在表格下面的提示里列出来。页面下方有五步引导，每步带“载入”按钮：</p>
+<ul>
+<li>第 1 步是上面的例子，逐层的 r 和 j 是 3 和 1、4 和 2、8 和 2；把池化的步长改成 1，最后的 r 变成 6。</li>
+<li>第 2 步比较两层 3×3 和一层 5×5（64 通道）：感受野都是 5，参数量是 73728 对 102400。</li>
+<li>第 3 步比较普通 3×3 和深度可分离卷积：参数量 36864 对 4672，乘加次数 115.61 M 对 14.65 M；把深度可分离的第一层分组改成 4，是 13312 个参数、41.75 M。</li>
+<li>第 4 步对应 9.2 节的向下取整：输入 32、3×3、步长 2、无填充，输出 15，提示里写着最下面一行和最右一列共 63 个像素没被读到；换成填充 1，输出 16，提示变成右边和下边的补边没有用到；把输入拖到 31，两种情况的输出还是 15 和 16，提示消失。</li>
+<li>第 5 步是 ResNet-18 的主干：224 的输入最后剩 7×7，最后一层 r=435、j=32。演示页只有主路上的卷积和池化，没有捷径、BN 和全连接，所以参数量是 10.99 百万、乘加次数是 1.79 G，比完整的 ResNet-18（9.9 节，11689512 个参数、1.81 G）略少。右下的条形图里，最后四层（layer4）占了参数量的 75.1%，只占乘加次数的 22.6%；到 layer1 为止的前 6 层只占参数量的 1.4%，却占乘加次数的 32.3%。把输入边长拖到 64，最后的输出只剩 2×2，拖到 32 只剩 1×1。</li>
+</ul>
+<div class="embed"><iframe src="../../demos/卷积尺寸与感受野.html" height="1334" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/卷积尺寸与感受野.html">打开交互演示：卷积尺寸与感受野计算器</a></p>
+<div class="quiz" data-answer="C"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>20 层 3×3 卷积叠在一起（步长 1，随机初始化），最后一层一个位置的理论感受野是 41×41。按梯度量，95% 的影响来自多大的一块？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>接近整个 41×41</span></button><button type="button" data-k="B"><b>B</b><span>中间 29×29 左右，约一半面积</span></button><button type="button" data-k="C"><b>C</b><span>中间 17×17，只占面积的 17%</span></button></div><div class="quiz-exp" hidden><p><strong>C</strong>。实测 95% 的梯度能量集中在中间 17×17，占 41×41 面积的 17%。中心像素到输出的路径条数远多于边上的像素，影响大小近似高斯分布，宽度按层数的平方根增长：从 5 层到 20 层，理论感受野变成 3.73 倍，梯度能量的标准差只变成 2.01 倍。想让有效的范围变大，下采样比加层有效：十层里把两层改成步长 2，95% 方块从 13×13 变成 29×29。</p></div></div>
 <hr />
 <h2 id="95-batchnorm稳定的尺度而不是魔法加速器">9.5 BatchNorm：稳定的尺度，而不是魔法加速器</h2>
 <p>对一个 mini-batch 中某通道的激活，BatchNorm 先统计均值和方差，再标准化并用可学习参数恢复表达能力：</p>
@@ -152,6 +749,161 @@ y = γ × x_hat + β
 <li><code>model.eval()</code>：使用训练期间累积的 running mean/var，不再依赖当前 batch。</li>
 </ul>
 <p>这解释了两个常见现象：忘记 <code>eval()</code> 会让同一图片的预测受同批其他图片影响；batch 太小时，统计量抖动，BN 可能不稳定。显存只够 batch 1～4 时，可考虑冻结 BN 统计，或使用 GroupNorm。还要注意 <code>Conv → BN</code> 后卷积的 bias 通常可以关闭，因为 BN 的 <code>β</code> 已能完成平移。</p>
+<h3 id="实测同一张图换一批同伴">实测：同一张图，换一批同伴</h3>
+<p>一层 3×3 卷积后面接 <code>BatchNorm2d</code>。数据是 16×16 的噪声图，每张图有自己的亮度和对比度（真实图像也是这样）。先用批 256 跑 300 步让 running 统计收敛，把推理模式的输出当基准；再把同一张图和随机抽的 B-1 张图拼成一批，用训练模式前向 100 次。</p>
+<figure><img src="../../09_CNN核心/figures/fig05_BN两种模式.svg" alt="图 5：左，同一张图放进不同大小的批里，训练模式的输出和推理模式输出的相对差，虚线是和根号批大小成反比的参考线，两个轴都是对数。中，新建的 BN 层在训练模式下前向若干次之后，同一批数据在推理模式下输出的均方根除以训练模式下的，橙色虚线是按 running_var 的指数平均推算的值。右，在固定的 16 张图上过拟合时，训练模式（橙）和推理模式（蓝）在这 16 张图上的准确率随训练步数的变化，5 个种子的平均" loading="lazy"><figcaption>图 5：左，同一张图放进不同大小的批里，训练模式的输出和推理模式输出的相对差，虚线是和根号批大小成反比的参考线，两个轴都是对数。中，新建的 BN 层在训练模式下前向若干次之后，同一批数据在推理模式下输出的均方根除以训练模式下的，橙色虚线是按 running_var 的指数平均推算的值。右，在固定的 16 张图上过拟合时，训练模式（橙）和推理模式（蓝）在这 16 张图上的准确率随训练步数的变化，5 个种子的平均</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>批大小（同一张图，换 100 批同伴）</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">16</th>
+<th style="text-align: right;">32</th>
+<th style="text-align: right;">64</th>
+<th style="text-align: right;">128</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>训练模式输出和推理模式输出的相对差</td>
+<td style="text-align: right;">1.029</td>
+<td style="text-align: right;">0.633</td>
+<td style="text-align: right;">0.426</td>
+<td style="text-align: right;">0.265</td>
+<td style="text-align: right;">0.226</td>
+<td style="text-align: right;">0.138</td>
+<td style="text-align: right;">0.098</td>
+<td style="text-align: right;">0.067</td>
+</tr>
+<tr>
+<td>相对差乘以根号批大小</td>
+<td style="text-align: right;">1.03</td>
+<td style="text-align: right;">0.9</td>
+<td style="text-align: right;">0.85</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">0.9</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">0.76</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>训练模式下，同一张图的输出取决于同批的其他图</strong>。批 8 时和推理模式差 0.265，批 2 时差 0.633，批 128 时仍差 0.067。推理模式下换同伴，输出的波动是 0；换成 GroupNorm，波动也是 0。</li>
+<li><strong>差距大致和根号批大小成反比</strong>（第二行在 0.75 到 1.03 之间）。这里每张图有 256 个像素，但抖动并没有因为像素多而变小：一批的均值和方差主要取决于抽到了哪几张图，起作用的是图的张数。</li>
+<li><strong>批 1 时，训练模式的 BN 等于按单张图归一化</strong>。相对差是 1.029，输出和推理模式完全是两回事。把输入整体乘以 3，训练模式的输出最大只变了 5e-05，推理模式的输出变成 3.0 倍。也就是说这张图的对比度信息在训练模式下被抹掉了。</li>
+<li><strong>特征只剩一个值时更极端</strong>。<code>BatchNorm1d</code> 在批 2 时，每个特征只有两个值，减均值除标准差之后只能是 +1 和 -1，实测输出就是 1.0 和 -1.0，原来的数值大小全部丢失。批 1 时直接报错：<code>ValueError: Expected more than 1 value per channel when training</code>。全局池化后面接 BN、最后一个批又只剩 1 张图时会碰到它。</li>
+<li>训练时标准化用的是有偏方差，记进 <code>running_var</code> 的是无偏方差。一个通道只有 2 个值时，后者是前者的 2.0 倍。值多了以后这个差别可以忽略。</li>
+</ol>
+<h3 id="实测running-统计要多少步才跟上">实测：running 统计要多少步才跟上</h3>
+<p><code>running_mean</code> 和 <code>running_var</code> 是指数滑动平均，PyTorch 默认 <code>momentum=0.1</code>：</p>
+<div class="arithmatex">\[
+\text{running} \leftarrow 0.9 \times \text{running} + 0.1 \times \text{batch}
+\]</div>
+<p>新建的 BN 层 <code>running_var</code> 初值是 1，前向 k 次之后初值还占 <span class="arithmatex">\(0.9^k\)</span> 的权重。同一层卷积和数据（收敛后各通道 <code>running_var</code> 的平均是 0.41），用批 64 在训练模式下前向 k 次，再比较同一批数据在两种模式下的输出：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练模式下前向的次数 k（批 64）</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">30</th>
+<th style="text-align: right;">50</th>
+<th style="text-align: right;">100</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>初值还占的权重</td>
+<td style="text-align: right;">90.0%</td>
+<td style="text-align: right;">81.0%</td>
+<td style="text-align: right;">59.0%</td>
+<td style="text-align: right;">34.9%</td>
+<td style="text-align: right;">12.2%</td>
+<td style="text-align: right;">4.2%</td>
+<td style="text-align: right;">0.5%</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td><code>running_var</code> 除以收敛后的值</td>
+<td style="text-align: right;">2.55</td>
+<td style="text-align: right;">2.39</td>
+<td style="text-align: right;">2.01</td>
+<td style="text-align: right;">1.6</td>
+<td style="text-align: right;">1.19</td>
+<td style="text-align: right;">1.07</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">1.01</td>
+</tr>
+<tr>
+<td>推理模式输出的均方根除以训练模式的</td>
+<td style="text-align: right;">0.66</td>
+<td style="text-align: right;">0.68</td>
+<td style="text-align: right;">0.71</td>
+<td style="text-align: right;">0.77</td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">1.0</td>
+</tr>
+</tbody>
+</table></div>
+<p>前向 10 次之后，<code>running_var</code> 还是收敛值的 1.6 倍，推理模式的输出只有训练模式的 0.77 倍，要 30 到 50 次才跟上。这里偏小是因为真实方差（0.41）比初值 1 小，真实方差比 1 大时就会偏大。</p>
+<h3 id="实测小样本过拟合时推理模式来得晚">实测：小样本过拟合时，推理模式来得晚</h3>
+<p>9.9 节建议正式训练前先做“小样本过拟合测试”。带 BN 的网络做这个测试时，用哪种模式算准确率，结果不一样。固定 16 张 12×12 的四类图案图，网络是一层卷积加 BN、2 个作业里的残差块、全局平均池化、全连接，SGD（学习率 0.05，动量 0.9）每步都用这 16 张，5 个种子取平均：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练步数（固定 16 张图，5 个种子）</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">30</th>
+<th style="text-align: right;">40</th>
+<th style="text-align: right;">60</th>
+<th style="text-align: right;">80</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>训练模式下这 16 张图的准确率</td>
+<td style="text-align: right;">55.0%</td>
+<td style="text-align: right;">81.2%</td>
+<td style="text-align: right;">91.2%</td>
+<td style="text-align: right;">98.8%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>推理模式下这 16 张图的准确率</td>
+<td style="text-align: right;">36.2%</td>
+<td style="text-align: right;">58.8%</td>
+<td style="text-align: right;">63.7%</td>
+<td style="text-align: right;">77.5%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>5 个种子里推理模式更低的个数</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table></div>
+<p>训练 40 步时，训练模式已经是 98.8%，同样这 16 张图切到推理模式只有 77.5%。权重在快速变化，running 统计按 0.9 的速度跟在后面。9.7 节那组 200 步的训练里也有同样的现象：24 次带 BN 的训练里，推理模式的测试准确率和训练模式的差，中位数只有 1.0 个百分点，但有 2 次低了 10 个百分点以上，最多的一次低 43.9 个百分点。</p>
+<p>所以做小样本过拟合测试时，用训练模式的准确率（或者训练损失）判断“网络能不能拟合”。推理模式的数字要等 running 统计跟上再看；按上一张表，权重不再变化之后还需要几十次训练模式的前向。</p>
+<h3 id="实测卷积的偏置接-bn-是多余的">实测：卷积的偏置接 BN 是多余的</h3>
+<p>上面说 <code>Conv → BN</code> 后卷积的 bias 通常可以关闭。带偏置的卷积接训练模式的 BN，实测偏置的梯度范数是权重梯度范数的 3e-07 倍；把偏置整体加 5，输出的最大变化是 2e-06。BN 减掉了每个通道的均值，偏置加多少都被减掉。<code>BatchNorm2d(8)</code> 的可训练参数是 16 个（γ、β 各 8 个），另有 17 个不参与训练的状态量（<code>running_mean</code>、<code>running_var</code> 各 8 个，加 1 个计数），保存和加载模型时它们跟着 <code>state_dict</code> 走。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>批大小是 1，模型在训练模式。把输入图像的所有像素乘以 3，<code>Conv → BatchNorm2d</code> 的输出会怎样？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>也变成 3 倍</span></button><button type="button" data-k="B"><b>B</b><span>几乎不变</span></button><button type="button" data-k="C"><b>C</b><span>报错</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测输出的最大变化只有 5e-05。批 1 时 BN 用的均值和方差就是这一张图自己的，输入放大 3 倍，均值和标准差也放大 3 倍，除完和原来一样。换到推理模式，用的是 running 统计，输出才变成 3.0 倍。C 说的报错发生在每个通道只有一个值的时候，例如 <code>BatchNorm1d</code> 的批 1。这道题想说明的是：批很小时训练模式和推理模式算的不是同一个函数，批 1 时两者输出的相对差是 1.029。</p></div></div>
 <hr />
 <h2 id="96-从-lenet-到-efficientnet架构是在解决什么问题">9.6 从 LeNet 到 EfficientNet：架构是在解决什么问题</h2>
 <div class="table-wrap"><table>
@@ -192,6 +944,61 @@ y = γ × x_hat + β
 </table></div>
 <p>LeNet 适合手写数字的小图；AlexNet 借助 GPU 和 ReLU 在 ImageNet 上显示深度学习的规模优势；VGG 结构规整、特征通用，但参数和计算量大；ResNet 让几十到上百层网络可靠训练，成为大量视觉任务的 backbone；EfficientNet 不再只盲目加层，而是协调网络深度 <code>d</code>、宽度 <code>w</code> 和输入分辨率 <code>r</code>。</p>
 <p>架构演进不是“新版完全淘汰旧版”。教学或小数据基线中，小型 VGG 风格 CNN 很容易读懂；迁移学习里 ResNet 仍是稳健起点；端侧部署则更关心深度可分离卷积、内存访问和实际延迟。</p>
+<h3 id="数一数这些结构的参数和计算量在哪">数一数：这些结构的参数和计算量在哪</h3>
+<p>表里的结构（LeNet-5 除外，它不在 torchvision 里）都可以直接从 torchvision 拿到定义，数参数量和一次前向的乘加次数。下面是随机初始化的模型，只数个数，输入 3×224×224、批 1，乘加次数只算卷积和全连接；不涉及精度。MobileNetV2 不在上面的表里，加上它是因为它是深度可分离卷积的代表。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>结构（torchvision 定义，输入 224×224）</th>
+<th style="text-align: right;">参数量（百万）</th>
+<th style="text-align: right;">全连接层占参数的比例</th>
+<th style="text-align: right;">乘加次数（十亿）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AlexNet</td>
+<td style="text-align: right;">61.1</td>
+<td style="text-align: right;">96.0%</td>
+<td style="text-align: right;">0.71</td>
+</tr>
+<tr>
+<td>VGG-16</td>
+<td style="text-align: right;">138.4</td>
+<td style="text-align: right;">89.4%</td>
+<td style="text-align: right;">15.47</td>
+</tr>
+<tr>
+<td>ResNet-18</td>
+<td style="text-align: right;">11.7</td>
+<td style="text-align: right;">4.4%</td>
+<td style="text-align: right;">1.81</td>
+</tr>
+<tr>
+<td>ResNet-50</td>
+<td style="text-align: right;">25.6</td>
+<td style="text-align: right;">8.0%</td>
+<td style="text-align: right;">4.09</td>
+</tr>
+<tr>
+<td>MobileNetV2</td>
+<td style="text-align: right;">3.5</td>
+<td style="text-align: right;">36.5%</td>
+<td style="text-align: right;">0.3</td>
+</tr>
+<tr>
+<td>EfficientNet-B0</td>
+<td style="text-align: right;">5.3</td>
+<td style="text-align: right;">24.2%</td>
+<td style="text-align: right;">0.39</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>AlexNet 和 VGG 的参数九成在全连接层</strong>（96.0% 和 89.4%）。它们把最后的特征图展平后接大的全连接层，这正是 9.1 节图 1 里“卷积加展平”的做法。表里从 ResNet 开始的四个结构都用全局平均池化，全连接层只剩最后的分类层。</li>
+<li><strong>参数量和计算量不是一回事</strong>。AlexNet 的参数是 ResNet-50 的 2.4 倍，ResNet-50 的乘加次数却是 AlexNet 的 5.8 倍。VGG-16 的乘加次数是 ResNet-18 的 8.5 倍。</li>
+<li>这张表只说明“大小”，不说明“好坏”。各结构在 ImageNet 上的精度请查 torchvision 文档，本章没有测。</li>
+</ul>
 <hr />
 <h2 id="97-resnet让网络至少学会什么也不改">9.7 ResNet：让网络至少学会“什么也不改”</h2>
 <p>普通层直接学习目标映射 <code>H(x)</code>。残差块改为学习：</p>
@@ -220,6 +1027,152 @@ y = ReLU(F(x) + x)
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
 </code></pre></div>
 <p>调试残差块时，先分别打印 <code>z.shape</code> 与 <code>self.skip(x).shape</code>；报错常常不是残差思想有问题，而是 stride 或通道没对齐。</p>
+<h3 id="更正外层的-relu-也在恒等路径上">更正：外层的 ReLU 也在恒等路径上</h3>
+<p>上面写 <code>y = ReLU(F(x) + x)</code>，接着写 <code>∂y/∂x = ∂F/∂x + 1</code>。后一个式子漏了外层 ReLU 的导数，按前一个式子应该是</p>
+<div class="arithmatex">\[
+\frac{\partial y}{\partial x} = \mathbb{1}[F(x) + x &gt; 0] \cdot \left( \frac{\partial F}{\partial x} + 1 \right)
+\]</div>
+<p>相加之后的 ReLU 没有打开的位置，恒等路径上的梯度同样是 0。作业里的残差块随机初始化时（输入非负，5 组平均），输出为 0 的位置占 37.5%，这些位置上“+1”那一项并不存在。结论的方向不变（下面的实测支持“恒等路径能把梯度带过去”），但恒等路径不是一条完全畅通的直路。把 ReLU 挪到残差分支里面、让恒等路径上什么都不经过的做法，见 9.14 节。</p>
+<h3 id="实测初始化时梯度随深度怎么变">实测：初始化时，梯度随深度怎么变</h3>
+<p>网络是一层 3×3 卷积、若干个块（每块两层 3×3 卷积，8 通道）、全局平均池化、全连接。带 BN 的两种网络层和参数完全相同，普通网络用的是把作业里残差块的“加上输入”去掉之后的块。输入 64 张 12×12 的四类图案图，只做一次反向传播，记第一个块第一层卷积的权重梯度范数，3 组随机初始化取几何平均。</p>
+<figure><img src="../../09_CNN核心/figures/fig06_普通与残差.svg" alt="图 6：左，初始化时第一个块的梯度范数随块数的变化，四条线是有无 BN 和有无捷径的四种组合（无 BN 的两条用 PyTorch 默认初始化），两个轴都是对数。中，16 个块时普通网络（红）和残差网络（蓝）的训练损失曲线，各 3 个种子，10 步滑动平均，灰色虚线是随机猜的损失。右，训练 200 步后最后 20 步的训练损失随块数的变化，圆点是各个种子，线是平均" loading="lazy"><figcaption>图 6：左，初始化时第一个块的梯度范数随块数的变化，四条线是有无 BN 和有无捷径的四种组合（无 BN 的两条用 PyTorch 默认初始化），两个轴都是对数。中，16 个块时普通网络（红）和残差网络（蓝）的训练损失曲线，各 3 个种子，10 步滑动平均，灰色虚线是随机猜的损失。右，训练 200 步后最后 20 步的训练损失随块数的变化，圆点是各个种子，线是平均</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>块数（卷积层数）</th>
+<th style="text-align: right;">1（3）</th>
+<th style="text-align: right;">2（5）</th>
+<th style="text-align: right;">4（9）</th>
+<th style="text-align: right;">8（17）</th>
+<th style="text-align: right;">16（33）</th>
+<th style="text-align: right;">32（65）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>普通，无 BN，默认初始化</td>
+<td style="text-align: right;">0.0072</td>
+<td style="text-align: right;">0.00042</td>
+<td style="text-align: right;">1.4e-05</td>
+<td style="text-align: right;">1.3e-08</td>
+<td style="text-align: right;">8.1e-15</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>普通，无 BN，He 初始化</td>
+<td style="text-align: right;">0.052</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">0.014</td>
+<td style="text-align: right;">0.0042</td>
+<td style="text-align: right;">0.0021</td>
+<td style="text-align: right;">0.00057</td>
+</tr>
+<tr>
+<td>残差，无 BN，默认初始化</td>
+<td style="text-align: right;">0.0094</td>
+<td style="text-align: right;">0.0073</td>
+<td style="text-align: right;">0.0068</td>
+<td style="text-align: right;">0.0071</td>
+<td style="text-align: right;">0.0083</td>
+<td style="text-align: right;">0.01</td>
+</tr>
+<tr>
+<td>普通，带 BN</td>
+<td style="text-align: right;">0.14</td>
+<td style="text-align: right;">0.12</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">0.72</td>
+<td style="text-align: right;">5.8</td>
+<td style="text-align: right;">880</td>
+</tr>
+<tr>
+<td>残差，带 BN</td>
+<td style="text-align: right;">0.16</td>
+<td style="text-align: right;">0.19</td>
+<td style="text-align: right;">0.3</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">2.0</td>
+</tr>
+<tr>
+<td>普通，带 BN：第一个块除以最后一个块</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.8</td>
+<td style="text-align: right;">3.1</td>
+<td style="text-align: right;">23</td>
+<td style="text-align: right;">2300</td>
+</tr>
+<tr>
+<td>残差，带 BN：第一个块除以最后一个块</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">1.8</td>
+<td style="text-align: right;">1.2</td>
+<td style="text-align: right;">2.1</td>
+<td style="text-align: right;">4.3</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>没有 BN、用默认初始化的普通网络，梯度随深度指数消失</strong>。16 个块时第一个块的梯度范数是 8.1e-15，32 个块时在 float32 下直接下溢成 0。<code>Conv2d</code> 的默认初始化不是 He 初始化，实测权重标准差是 He 的 0.407 倍（理论值 <span class="arithmatex">\(1/\sqrt{6}\)</span>，0.408），每过一层信号就缩小一截。第 8 章 8.4 节在全连接网络上测到的是同一件事。换成 He 初始化，梯度从 0.052 降到 0.00057，下降慢得多。</li>
+<li><strong>加上捷径，不用 BN 也不消失</strong>。残差网络无 BN 时，第一个块的梯度从 1 个块到 32 个块都在 0.0068 到 0.01 之间。这是“恒等分支能传递梯度”最直接的证据。</li>
+<li><strong>带 BN 的普通网络，梯度不是消失，而是越往前越大</strong>。32 个块时第一个块的梯度范数是 880，是最后一个块的 2300 倍。一种解释是 BN 把每层的输出拉回同样的尺度，前向不再衰减，反向却每过一层放大一点；本章只量了结果，没有验证这个解释。同样深度的残差网络是 2.0，前后只差 4.3 倍。</li>
+<li>所以“网络深了梯度就消失”只适用于没有归一化层的情况。带 BN 的普通深网络在这组实验里的现象是各层梯度大小相差上千倍。这可能是它难训练的原因之一，本章没有单独验证。</li>
+</ol>
+<h3 id="实测能不能训练起来">实测：能不能训练起来</h3>
+<p>同样的两种带 BN 的网络，在四类图案的小任务上训练 200 步（每步新生成 32 张 12×12 的图，SGD 学习率 0.05、动量 0.9，3 个种子，测试用另外 512 张）。训练损失取最后 20 步的平均，随机猜的损失是 ln 4，即 1.386。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>块数（训练 200 步，3 个种子的平均）</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">16</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>普通，带 BN：训练损失</td>
+<td style="text-align: right;">0.037</td>
+<td style="text-align: right;">0.043</td>
+<td style="text-align: right;">0.329</td>
+<td style="text-align: right;">0.463</td>
+</tr>
+<tr>
+<td>残差，带 BN：训练损失</td>
+<td style="text-align: right;">0.047</td>
+<td style="text-align: right;">0.045</td>
+<td style="text-align: right;">0.031</td>
+<td style="text-align: right;">0.054</td>
+</tr>
+<tr>
+<td>普通，带 BN：测试准确率（推理模式）</td>
+<td style="text-align: right;">98.3%</td>
+<td style="text-align: right;">97.4%</td>
+<td style="text-align: right;">67.3%</td>
+<td style="text-align: right;">75.1%</td>
+</tr>
+<tr>
+<td>残差，带 BN：测试准确率（推理模式）</td>
+<td style="text-align: right;">97.9%</td>
+<td style="text-align: right;">88.2%</td>
+<td style="text-align: right;">98.2%</td>
+<td style="text-align: right;">98.1%</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>普通网络越深，训练损失越高</strong>：1 个块 0.037，16 个块 0.463，3 个种子分别是 0.453、0.5、0.438，都没有降下去。残差网络 16 个块是 0.054（0.048、0.013、0.101），普通网络是它的 8.6 倍。注意变差的是训练损失，这就是上面说的退化问题，不是过拟合。</li>
+<li><strong>1 个块和 4 个块时两者没有差别</strong>。捷径的好处要到网络深了才显出来。</li>
+<li>残差网络 4 个块那一格是 88.2%，是被一个种子拉低的：它的推理模式准确率只有 67.0%，同一个模型在训练模式下是 97.5%，训练损失 0.061 也正常。这是 9.5 节说的 running 统计没跟上，不是没训练好。普通网络 8 个块里也有一个种子是这样（训练模式 96.5%，推理模式 52.5%）。所以这张表里先看训练损失那两行。</li>
+<li><strong>去掉 BN，1 个块也训练不动</strong>。同样的设置下把 BN 去掉（1 个块，默认初始化），3 个种子的训练损失是 1.393、1.388、1.15，两个还停在随机猜的水平；换成 He 初始化是 0.499、1.119、0.264，好一些但很不稳定。</li>
+</ol>
+<p>这组实验只训练了 200 步，网络只有 8 个通道，任务也很简单。训练更久普通网络能追上多少，没有测。它能说明的是：在同样的步数和学习率下，深的普通网络训练损失明显更高，加上捷径之后这个差别消失。</p>
+<h3 id="投影捷径丢掉了多少输入">投影捷径丢掉了多少输入</h3>
+<p>上面的代码在通道或步长变化时用 <code>nn.Conv2d(c_in, c_out, 1, stride, bias=False)</code> 做投影捷径。按 9.2 节图 2 第三栏的数法，1×1 卷积配步长 2 只读四分之一的位置，75.0% 的输入位置不经过捷径。torchvision 的 ResNet 用的也是这种捷径。主路上的 3×3 步长 2 卷积读到了所有位置，所以信息没有全丢，但捷径这一支确实是隔一个取一个。9.14 节有一个改法可以试。</p>
+<div class="quiz" data-answer="C"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一个带 BN 的普通网络（不加捷径），堆到 32 个块、65 层卷积。刚初始化时，第一个块的权重梯度和最后一个块的比，是什么关系？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>小很多，梯度传到前面已经消失了</span></button><button type="button" data-k="B"><b>B</b><span>差不多大，BN 把各层的尺度都拉平了</span></button><button type="button" data-k="C"><b>C</b><span>大很多，在 2000 倍以上</span></button></div><div class="quiz-exp" hidden><p><strong>C</strong>。实测第一个块的梯度范数是最后一个块的 2300 倍。A 描述的是没有 BN 的情况：默认初始化的普通网络 16 个块时第一个块的梯度只有 8.1e-15。BN 让前向的尺度不再衰减，但反向传播时梯度逐层放大，所以带 BN 的普通深网络是前面层的梯度过大。同样深度的残差网络前后只差 4.3 倍，训练 16 个块时它的训练损失是 0.054，普通网络是 0.463。</p></div></div>
 <hr />
 <h2 id="98-卷积核与特征图可视化网络学到了什么">9.8 卷积核与特征图可视化：网络学到了什么</h2>
 <p>第一层卷积核通常形如 <code>[C_out,3,k,k]</code>。把每个核按自身最小、最大值归一化到 <code>[0,1]</code> 后画出，常会看到方向边缘、颜色对比和频率不同的纹理。这与第 2 天的 Sobel 核相呼应：Sobel 是人工指定的方向梯度，CNN 则从任务损失中学出一组更丰富的滤波器。</p>
@@ -231,6 +1184,89 @@ y = ReLU(F(x) + x)
 </code></pre></div>
 <p>更高层的核无法直接当 RGB 小图理解，因为其输入通道已经是抽象特征。此时更适合用 forward hook 保存特征图，观察某张输入激活了哪些通道；或者寻找能最大激活某通道的样本。通常低层偏边缘和纹理，中层组合成角、重复部件，高层更接近类别相关语义。</p>
 <p>可视化要避免三种误读：随机初始化的漂亮纹理没有语义；逐张图各自归一化会夸大微弱噪声；“某通道像眼睛”只是线索，不是严格因果解释。DL-3 应同时对比训练前后、正确与错误样本，并记录层名、张量 shape 和归一化方法。</p>
+<h3 id="实测像不像-sobel要先有基线">实测：像不像 Sobel，要先有基线</h3>
+<p>下面的数字是题 DL-3 的一部分结果。建议先自己把 ResNet-18 第一层的 64 个核画出来，再回来对照。</p>
+<p>9.10 节建议把学到的第一层核和 Sobel 做余弦相似度。做之前要知道随机的核能得多少分。做法：把核减去均值，和 Sobel x、Sobel y 分别算余弦的绝对值，取较大的一个。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>3×3 的随机核（128000 个标准正态随机核）</th>
+<th style="text-align: right;">和 Sobel 的余弦绝对值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>中位数</td>
+<td style="text-align: right;">0.4</td>
+</tr>
+<tr>
+<td>95% 分位</td>
+<td style="text-align: right;">0.73</td>
+</tr>
+<tr>
+<td>超过 0.7 的比例</td>
+<td style="text-align: right;">7.2%</td>
+</tr>
+<tr>
+<td>64 个随机核里最大的那一个（中位数）</td>
+<td style="text-align: right;">0.83</td>
+</tr>
+</tbody>
+</table></div>
+<p>3×3 的核减去均值后只有 8 个自由度，随便一个随机核和 Sobel 的余弦就有 0.4；一层 64 个随机核里，最像的那个通常能到 0.83。所以在 3×3 的核上看到“某个核和 Sobel 的余弦是 0.8”，说明不了它学到了 Sobel。</p>
+<p>核大一些才有区分度。ResNet-18 第一层是 64 个 7×7×3 的核，先对 RGB 三个通道取平均，再和 7×7 的 Sobel 比；对照是同样形状的随机初始化（3 个种子）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>64 个 7×7×3 的核</th>
+<th style="text-align: right;">ImageNet 预训练</th>
+<th style="text-align: right;">随机初始化（3 个种子）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>和 7×7 Sobel 的余弦绝对值：中位数</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">0.1 到 0.15</td>
+</tr>
+<tr>
+<td>余弦绝对值超过 0.5 的核数</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">0、0、0</td>
+</tr>
+<tr>
+<td>余弦绝对值超过 0.3 的核数</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">3、5、5</td>
+</tr>
+<tr>
+<td>亮度分量占能量的比例：中位数</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">0.32</td>
+</tr>
+<tr>
+<td>亮度分量占 90% 以上的核数（接近灰度核）</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>亮度分量不到 10% 的核数（接近纯颜色对比）</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>范数不到最大核 5% 的核数</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table></div>
+<p>“亮度分量”指三个通道的平均，它占的能量在三个通道完全相同时是 1，随机核的期望是三分之一。</p>
+<ol>
+<li><strong>预训练的第一层确实有一批方向边缘核</strong>：64 个里有 16 个和 Sobel 的余弦超过 0.5，随机初始化一个都没有（最大 0.38 到 0.44）。但不是全部，余弦的中位数只有 0.37，其余的核是别的方向、别的频率，或者是颜色核。</li>
+<li><strong>核明显分成两类</strong>：21 个几乎是灰度的（亮度分量占 90% 以上），12 个几乎没有亮度分量、只有颜色对比。随机初始化时这两类都是 0 个。上面说的“方向边缘、颜色对比”可以这样数出来。</li>
+<li><strong>有 8 个核几乎是 0</strong>，范数不到最大核的 5%，最小的只有最大核的 2e-08。上面那段可视化代码是按每个核各自的最小、最大值归一化的，这 8 个核会被拉到和别的核一样的对比度，画出来像有内容的纹理。这正是上面说的“各自归一化会夸大微弱噪声”。画的时候加一张整层统一归一化的图，或者把每个核的范数一起打印出来。</li>
+</ol>
 <hr />
 <h2 id="99-在-apple-silicon-mps-上训练-cifar-10">9.9 在 Apple Silicon / MPS 上训练 CIFAR-10</h2>
 <p>先建立一个能在 CPU 与 MPS 间切换的最小闭环：</p>
@@ -261,6 +1297,131 @@ y = ReLU(F(x) + x)
 <li>保存验证集最佳 <code>state_dict</code>，同时记录随机种子、学习率、batch size 和数据变换。</li>
 </ol>
 <p>正式训练前一定做“小样本过拟合测试”：固定 16～32 张图，关闭强增强，让模型把训练准确率推到接近 100%。如果做不到，优先检查标签、输出 shape、参数是否更新、学习率和 loss，而不是先换更大的网络。</p>
+<h3 id="用-nvidia-显卡时确认可用看显存定批大小">用 NVIDIA 显卡时：确认可用、看显存、定批大小</h3>
+<p>上面的代码只在 MPS 和 CPU 之间选。用 NVIDIA 显卡时把设备那一行换成三选一，代码在三种机器上都能跑：</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mps"</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_name</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span>
+</code></pre></div>
+<p>本章的实验都是在没有 CUDA 的机器上用 CPU 跑的，下面只写通用的做法，没有任何显卡上的数字，表格留给你自己填。</p>
+<p><strong>第一步：确认显卡可用</strong>。<code>torch.cuda.is_available()</code> 返回 <code>False</code> 时先不要训练，否则会不知不觉在 CPU 上跑。常见原因是装的是不带 CUDA 的 PyTorch，或者显卡驱动有问题。在终端运行 <code>nvidia-smi</code>，能看到显卡型号和驱动版本说明驱动正常；再按 PyTorch 官网的安装选择器重装带 CUDA 的版本。</p>
+<p><strong>第二步：知道显存花在哪</strong>。训练时的显存大致分三块：</p>
+<ul>
+<li><strong>参数、梯度和优化器状态</strong>，和批大小无关。参数量这样数：<code>sum(p.numel() for p in model.parameters())</code>，float32 每个参数 4 字节。</li>
+<li><strong>激活</strong>，也就是每一层的输出。反向传播要用到它们，所以训练时都得留着。它和批大小成正比，也和输入的像素数成正比。</li>
+<li><strong>框架自己的开销</strong>，包括显存分配器预留的缓存。</li>
+</ul>
+<p>前两块可以不用显卡就数出来。以 ResNet-18 的结构为例（随机初始化，float32，激活只数卷积、BN、池化、全连接的输出）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>ResNet-18，输入 224×224</th>
+<th style="text-align: right;">批 1</th>
+<th style="text-align: right;">批 2</th>
+<th style="text-align: right;">批 8</th>
+<th style="text-align: right;">批 32</th>
+<th style="text-align: right;">批 64</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>各层输出的元素个数（百万）</td>
+<td style="text-align: right;">5.2</td>
+<td style="text-align: right;">10.3</td>
+<td style="text-align: right;">41.4</td>
+<td style="text-align: right;">165.4</td>
+<td style="text-align: right;">330.9</td>
+</tr>
+<tr>
+<td>折合 MiB</td>
+<td style="text-align: right;">19.7</td>
+<td style="text-align: right;">39.4</td>
+<td style="text-align: right;">157.8</td>
+<td style="text-align: right;">631.1</td>
+<td style="text-align: right;">1262.1</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>ResNet-18，批 1</th>
+<th style="text-align: right;">输入 112×112</th>
+<th style="text-align: right;">输入 224×224</th>
+<th style="text-align: right;">输入 448×448</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>各层输出的元素个数（百万）</td>
+<td style="text-align: right;">1.3</td>
+<td style="text-align: right;">5.2</td>
+<td style="text-align: right;">20.7</td>
+</tr>
+<tr>
+<td>折合 MiB</td>
+<td style="text-align: right;">5.0</td>
+<td style="text-align: right;">19.7</td>
+<td style="text-align: right;">78.9</td>
+</tr>
+</tbody>
+</table></div>
+<p>参数是 11689512 个，折合 44.6 MiB，不随批大小变。激活随批大小成正比（批 2 正好是批 1 的 2.0 倍），批 3 起就超过了参数；输入边长加倍，激活变成 4.0 倍。这些是数出来的张量大小，不是在任何显卡上量到的显存，实际占用还要加上梯度、优化器状态和框架的开销，只会更多。它说明的是规律：<strong>显存不够时，起作用的是批大小和输入分辨率，不是参数量</strong>。</p>
+<p><strong>第三步：在自己的机器上量</strong>。</p>
+<div class="highlight"><pre><span></span><code><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">()</span>
+<span class="c1"># 这里跑一个完整的训练步：前向、loss.backward()、optimizer.step()</span>
+<span class="n">peak</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">max_memory_allocated</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="mi">20</span>      <span class="c1"># 这个进程里张量占用的峰值，MiB</span>
+<span class="n">reserved</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">memory_reserved</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="mi">20</span>       <span class="c1"># 分配器向显卡要走的总量，MiB</span>
+<span class="n">free</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">mem_get_info</span><span class="p">()</span>               <span class="c1"># 整块显卡当前空闲和总量，字节</span>
+</code></pre></div>
+<p><code>nvidia-smi</code>（或者 Windows 任务管理器里的 GPU 页）看到的是整块显卡上所有进程的占用，通常比 <code>max_memory_allocated</code> 大，因为它包含分配器预留的缓存和别的程序。定批大小时按下面的顺序做，把结果填进实验记录：</p>
+<ol>
+<li>用一个小的批（例如 8）跑一步，记下峰值；批加倍再跑一步，再记一次。</li>
+<li>两次的差除以批的差，是每多一张图要多少显存；用它外推能放下的最大批，留出余量，不要顶满。</li>
+<li>换了模型、输入分辨率或者打开了混合精度，都要重新量。</li>
+</ol>
+<p><strong>批不够大时怎么办</strong>，各有代价：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>办法</th>
+<th>原理</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>减小批</td>
+<td>激活和批大小成正比</td>
+<td>带 BN 的网络批太小时统计量抖动（9.5 节），必要时冻结 BN 或换 GroupNorm</td>
+</tr>
+<tr>
+<td>降低输入分辨率，或者切成小块训练</td>
+<td>激活和像素数成正比</td>
+<td>小目标更小，第 11 章会遇到</td>
+</tr>
+<tr>
+<td>验证时用 <code>torch.no_grad()</code></td>
+<td>不保留反向传播要用的中间结果</td>
+<td>没有代价，验证时本来就该这样</td>
+</tr>
+<tr>
+<td>梯度累积：几个小批各自 <code>backward()</code>，累积之后再 <code>optimizer.step()</code></td>
+<td>用小批的显存得到大批的梯度</td>
+<td>BN 看到的仍然是小批</td>
+</tr>
+<tr>
+<td>混合精度：<code>torch.autocast</code> 配合梯度缩放</td>
+<td>一部分张量用 16 位浮点</td>
+<td>多一层数值问题要排查，原文建议教学阶段先用 float32</td>
+</tr>
+</tbody>
+</table></div>
+<p>显存不够时 PyTorch 抛出的是 <code>torch.cuda.OutOfMemoryError</code>。出现之后先减小批再重跑；如果在交互环境里，删掉不用的张量再调用 <code>torch.cuda.empty_cache()</code>，否则已经占住的显存不会还回去。</p>
 <hr />
 <h2 id="910-与-dl-3dl-4-的连接">9.10 与 DL-3、DL-4 的连接</h2>
 <h3 id="dl-3从看图升级为可比较实验">DL-3：从“看图”升级为可比较实验</h3>
@@ -269,8 +1430,17 @@ y = ReLU(F(x) + x)
 <h3 id="dl-4每次改动都要能解释">DL-4：每次改动都要能解释</h3>
 <p>先做一个小型基线：两到三个 <code>Conv-BN-ReLU</code> 模块，逐步下采样，最后全局平均池化加线性分类器。然后一次只改一个因素：有无 BN、MaxPool 与 stride 卷积、普通块与残差块。记录参数量、最好验证准确率、训练/验证 loss 曲线和单轮耗时。</p>
 <p>实验结论不能只写“ResNet 更好”。应回答：训练误差是否更低，说明优化更容易？验证提升是否只是参数更多？加入 BN 后是否允许更大学习率？若训练准确率上升而验证下降，那是过拟合，不是架构一定更强。</p>
+<h3 id="作业卷积输出尺寸与残差块自动验收">作业：卷积输出尺寸与残差块（自动验收）</h3>
+<p><code>作业_卷积shape与残差块.py</code> 里有两个 TODO：<code>conv_output_size</code> 按 9.2 节的公式算单个方向的输出长度，要带膨胀、向下取整、拒绝非正的输出；<code>BasicResidualBlock.forward</code> 按文档字符串的顺序把已经定义好的四层接起来，加上输入，再过 ReLU。完成后运行 <code>python tests/check_progress.py</code>。</p>
+<p>验收脚本查得很松：尺寸只查三个都能整除的算例，残差块只查输出的 shape、数值有限、梯度能传回输入。实测下来，向上取整或四舍五入的尺寸函数、去掉了捷径和最后的 ReLU 的块，都能得到 2/2 PASS。所以通过验收之后再做两项自检：</p>
+<ol>
+<li><strong>尺寸</strong>：输入 32、核 3、步长 2、无填充应得 15；输入 32、核 3、步长 3、无填充应得 10；输入 2、核 3、步长 2、无填充应该拒绝（参考实现抛出 <code>ValueError</code>）。有空的话像 9.2 节那样，用一批随机的参数组合和 <code>torch.nn.functional.conv2d</code> 的实际输出逐个比。</li>
+<li><strong>残差块</strong>：把第二个 BN 的 γ 置 0（<code>nn.init.zeros_(block.bn2.weight)</code>），切到推理模式，这时残差分支的输出是 0，整个块的输出应该和 <code>torch.relu(x)</code> 完全相同。参考实现的最大差是 0；去掉捷径的块差 3.35。再看一眼输出里有没有负数：正确的块没有，漏了最后的 ReLU 的块有 41.3% 是负数。</li>
+</ol>
+<h3 id="给题-dl-4-的两个数">给题 DL-4 的两个数</h3>
+<p><code>视觉算法学习计划.md</code> 里题 DL-4 推荐的起点结构是三个 Conv-BN-ReLU-MaxPool 块，展平后接两层全连接（上面的基线用的是全局平均池化加线性分类器，两种都可以当起点）。只数个数：推荐结构的总参数是 620810 个，其中第一个全连接层 524544 个，占 84.5%；乘加次数里卷积占 95.1%（10.32 百万对 0.53 百万）。把展平加两层全连接换成全局平均池化加一层 128 到 10 的全连接，总参数降到 94986 个。“展平还是全局池化”值得作为 DL-4 的一个对照因素，9.1 节图 1 说明了它们在位置泛化上的差别，在 CIFAR-10 上差多少要你自己测。</p>
 <hr />
-<h2 id="911-常见坑与排查顺序">9.11 常见坑与排查顺序</h2>
+<h2 id="911-常见坑与排查顺序常见错误">9.11 常见坑与排查顺序（常见错误）</h2>
 <ol>
 <li><strong>NCHW/HWC 混淆</strong>：进入模型前检查 <code>x.shape</code>，彩色图通道应在第 1 维。</li>
 <li><strong>shape 手算错误</strong>：尤其是 stride 2 和无 padding；用一个假 batch 逐层打印验证。</li>
@@ -284,6 +1454,157 @@ y = ReLU(F(x) + x)
 <li><strong>一开始就跑完整数据</strong>：先过拟合极小样本；这个测试失败时，长时间训练没有意义。</li>
 </ol>
 <p>推荐排查顺序：先确认一个 batch 的输入、标签和输出 shape；再确认 loss 有限且参数梯度非零；然后做小样本过拟合；最后才扩大数据、加增强和比较架构。</p>
+<p>把上面的条目和本章实测到的情况合起来，按现象查。前六行是做作业时最容易遇到的。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>尺寸函数验收通过，换个输入就和 PyTorch 差 1</td>
+<td>用了向上取整或四舍五入。验收的三个算例都能整除，查不出来</td>
+<td>输入 32、核 3、步长 2、无填充应得 15；步长 3 应得 10</td>
+</tr>
+<tr>
+<td>本该报错的组合返回了 1</td>
+<td>写成 <code>int(x / stride) + 1</code>，负数向零取整；或者没有拒绝非正的输出</td>
+<td>输入 2、核 3、步长 2、无填充，应该抛出异常</td>
+</tr>
+<tr>
+<td>带膨胀时算出来偏大</td>
+<td>公式里漏了膨胀，核的覆盖范围是 <span class="arithmatex">\(D(K-1)+1\)</span> 而不是 <span class="arithmatex">\(K\)</span></td>
+<td>输入 15、核 3、填充 2、膨胀 2 应得 15</td>
+</tr>
+<tr>
+<td>残差块验收通过，堆深之后训练损失降不下去</td>
+<td><code>forward</code> 里没有加上输入。验收只查 shape 和梯度</td>
+<td>9.10 节的自检：γ 置 0 后输出应等于 <code>torch.relu(x)</code></td>
+</tr>
+<tr>
+<td>残差块的输出里有负数</td>
+<td>相加之后漏了 ReLU</td>
+<td><code>(y &lt; 0).any()</code> 应为 <code>False</code></td>
+</tr>
+<tr>
+<td>相加时报 shape 不一致</td>
+<td>通道数或步长变了，捷径没有用投影对齐</td>
+<td>分别打印残差分支和捷径的 shape</td>
+</tr>
+<tr>
+<td><code>Kernel size can't be greater than actual input size</code></td>
+<td>下采样次数太多，特征图已经比核小</td>
+<td>用假输入逐层打印 shape，或者在演示页里把结构搭一遍</td>
+</tr>
+<tr>
+<td>换一个输入尺寸就报矩阵形状错误</td>
+<td>展平后的全连接层把输入维度写死了</td>
+<td>换成全局平均池化，或者用假输入算出展平后的维度</td>
+</tr>
+<tr>
+<td>图案换个位置就认不出来</td>
+<td>展平后接全连接，每个位置一套权重（图 1）</td>
+<td>把验证图平移之后再测一次</td>
+</tr>
+<tr>
+<td>输入平移 1 px，预测就变</td>
+<td>步长 2 的下采样只对总步长整数倍的平移等变（图 3）</td>
+<td>把验证图循环平移 1 px，比较输出</td>
+</tr>
+<tr>
+<td>训练时准确率高，切到 <code>eval()</code> 掉很多</td>
+<td>训练步数少，running 统计还没跟上；或者训练时批太小</td>
+<td>看训练了多少步；对比训练模式和推理模式的输出</td>
+</tr>
+<tr>
+<td>同一张图单独推理和放进一批里推理结果不同</td>
+<td>忘了 <code>eval()</code>，BN 还在用当前批的统计</td>
+<td>推理前打印 <code>model.training</code></td>
+</tr>
+<tr>
+<td>批 1 训练时报 <code>Expected more than 1 value per channel</code></td>
+<td>训练模式的 BN 在每个通道只拿到一个值</td>
+<td><code>DataLoader</code> 设 <code>drop_last=True</code>，或者换 GroupNorm</td>
+</tr>
+<tr>
+<td>10 类分类，损失降到 1.46 左右就不动</td>
+<td><code>CrossEntropyLoss</code> 前多做了一次 softmax，这时损失的下限是 1.461，不是 0</td>
+<td>初始损失应接近 2.303；检查模型最后一层有没有 softmax</td>
+</tr>
+<tr>
+<td>分组卷积一创建就报错</td>
+<td>分组数必须同时整除输入通道和输出通道</td>
+<td>打印两个通道数</td>
+</tr>
+<tr>
+<td>参数少的模型反而慢</td>
+<td>耗时还取决于输出元素的个数、具体实现和批大小（9.2 节）</td>
+<td>在目标设备上用目标批大小实测</td>
+</tr>
+<tr>
+<td>显存不够</td>
+<td>激活和批大小、输入像素数成正比（9.9 节）</td>
+<td>按 9.9 节量峰值，先减批或降分辨率</td>
+</tr>
+</tbody>
+</table></div>
+<p>损失停在 1.46 那一行可以这样理解：多做一次 softmax 之后，网络最理想的输出是一个 one-hot 概率向量，<code>CrossEntropyLoss</code> 再对它做一次 log-softmax，10 类时得到 1.461。一个本来很有把握的输出（logits 是 8 和九个 0），正确用法的损失是 0.003，多做一次 softmax 是 1.464。上面第 4 条说它“影响数值稳定性”，更直接的后果是损失只能在 2.303 和 1.461 之间变化，梯度也被压小。</p>
+<hr />
+<h2 id="912-怎样评估一个网络结构">9.12 怎样评估一个网络结构</h2>
+<p>本章的实验反复在回答两个问题：这个结构有多大、多慢；它训练得起来吗。两个问题要分开评估。</p>
+<p><strong>结构本身（不用训练）</strong></p>
+<ul>
+<li>用一个假输入逐层打印 shape，和手算或者演示页对一遍。</li>
+<li>报告参数量、一次前向的乘加次数、激活元素个数（9.9 节），三个数说的是三件事。</li>
+<li>延迟要在目标设备上、用目标批大小实测：先预热几次，取多次的中位数，写明设备、批大小和线程数。9.2 节里同一个层在批 1 和批 16 下的结论就不一样。</li>
+</ul>
+<p><strong>训练</strong></p>
+<ul>
+<li>先做小样本过拟合，用训练损失或训练模式的准确率判断能不能拟合（9.5 节）。</li>
+<li>训练损失和验证指标分开看。训练损失更低说明优化更容易（9.7 节的残差对普通），训练损失差不多而验证更好才是泛化的差别。</li>
+<li>一次只改一个因素，并且让参数量可比。9.7 节的两种网络层和参数完全相同，只差一个加法。</li>
+<li>至少跑 3 个种子，报告每个种子的数，不只报平均。9.7 节里普通网络 8 个块时 3 个种子的训练损失是 0.141、0.414、0.433，只跑一个种子可能得出相反的结论。</li>
+<li>带 BN 的模型，评估前确认 running 统计已经跟上，并且写明评估用的是哪种模式。</li>
+<li>需要位置稳定的任务，加一项平移测试：把验证图平移 1 px，看预测变不变（图 3）。</li>
+<li>报告里写清条件：输入尺寸、批大小、优化器和学习率、步数或轮数、种子数。没有跑过的精度不写。</li>
+</ul>
+<hr />
+<h2 id="913-破坏实验">9.13 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>Notebook 里把 <code>stride</code> 改成 2、<code>padding</code> 改成 0，先用公式预测输出尺寸，以及有几行几列没有被读到，再运行。然后把图像边长从 32 改成 31（<code>formula</code> 那一行里的 32 也要跟着改），输出尺寸变不变？</li>
+<li>在自己的作业文件旁边另存一份，把 <code>BasicResidualBlock.forward</code> 里“加上输入”去掉，运行验收，预测它是 PASS 还是 FAIL。再做 9.10 节的 γ 置 0 自检，看哪一个能查出来。</li>
+<li>用你的残差块搭一个小网络，固定 16 张图训练 30 步，分别在 <code>model.train()</code> 和 <code>model.eval()</code> 下算这 16 张图的准确率，先预测哪个高。再训练到 100 步重复一次，和图 5 右栏对照。</li>
+<li>在 <code>CrossEntropyLoss</code> 前面多加一个 softmax，训练一个 10 类的小网络，预测损失会停在多少。和 9.11 节的 1.461 对照。</li>
+<li>搭一个三层步长 2 的小 CNN（随机初始化即可），把输入循环平移 1 px，比较全局平均之后的特征变化了百分之几。把步长 2 的卷积换成步长 1 的卷积加 2×2 平均池化，再测一次，和图 3 对照。</li>
+<li>叠 10 层 3×3 卷积，对最后一层中心位置的输出求输入的梯度，把梯度的平方画成图，量一量 95% 的能量在多大的方块里。再把其中两层改成步长 2，预测方块会变大多少。</li>
+</ol>
+<hr />
+<h2 id="914-扩展深挖档">9.14 扩展（深挖档）</h2>
+<p>这一节的内容本章都没有测过，结论要你自己得出。</p>
+<ul>
+<li><strong>题 DL-3</strong>（题目在 <code>视觉算法学习计划.md</code>）。画出 ResNet-18 第一层的 64 个核，分别用整层统一归一化和逐核归一化各画一张，找出 9.8 节说的那 8 个范数极小的核，看它们在两张图里各是什么样子。再数一数灰度核和颜色核各有多少，和 9.8 节的表对照。</li>
+<li><strong>题 DL-4</strong>。在自己的机器上训练 CIFAR-10，记录参数量、显存峰值（9.9 节）、每轮耗时和训练、验证曲线。然后一次改一个因素：有无 BN、MaxPool 换成步长 2 的卷积、展平加全连接换成全局平均池化、普通块换成残差块。每一组回答 9.12 节的问题：训练损失变了还是只有验证指标变了。</li>
+<li><strong>恒等路径上不放 ReLU</strong>。查一下 pre-activation ResNet（He 等人 2016 年的论文 Identity Mappings in Deep Residual Networks）怎样调整 BN、ReLU 和卷积的顺序，按它改写作业里的块，重做图 6 左栏的梯度实验，看 9.7 节那 37.5% 被关掉的位置还在不在。</li>
+<li><strong>残差分支从零开始</strong>。torchvision 的 ResNet 构造函数有一个 <code>zero_init_residual</code> 参数，作用是把每个块最后一个 BN 的 γ 初始化为 0，这样刚初始化时每个块都是恒等映射。在 16 个块的残差网络上试一次，看初始梯度和前 50 步的损失曲线怎么变。</li>
+<li><strong>抗混叠下采样</strong>。图 3 里平均池化比步长 2 的卷积稳。查一下 anti-aliased CNN（常被叫作 BlurPool，Zhang 2019 年的论文 Making Convolutional Networks Shift-Invariant Again）的做法：下采样之前先做一次固定的小模糊。在破坏实验 5 的网络上实现并重测。</li>
+<li><strong>捷径先平均再投影</strong>。把 9.7 节的投影捷径从“1×1 步长 2”改成“2×2 平均池化后接 1×1 步长 1”，这样捷径不再丢掉四分之三的位置。在 DL-4 的残差网络上比较两种捷径。</li>
+<li><strong>小批换 GroupNorm</strong>。把残差块里的 BN 换成 GroupNorm，用批 2 训练，和 BN 批 2、BN 批 32 比较训练损失和推理模式的准确率。</li>
+<li><strong>训练之后的有效感受野</strong>。在 DL-4 训练好的网络上重做 9.4 节的梯度实验，看 95% 能量的方块比随机初始化时大了还是小了。这方面的原始论文是 Luo 等人 2016 年的 Understanding the Effective Receptive Field in Deep Convolutional Neural Networks。</li>
+</ul>
+<hr />
+<h2 id="915-和后续章节的关系">9.15 和后续章节的关系</h2>
+<ul>
+<li><strong>第 2 章</strong>是前置。它的 2.1 节讲了手写相关运算，并且实测了 PyTorch 的 <code>conv2d</code> 算的是不翻核的相关。本章的卷积核由训练得到，翻不翻只是权重怎么排，所以不再区分；9.8 节把学到的第一层核和那一章的 Sobel 核做了比较。</li>
+<li><strong>第 8 章</strong>是前置。8.4 节讲梯度消失和梯度爆炸，并在全连接网络上测了初始化尺度；本章 9.7 节是同一件事在卷积网络上的版本，多了 BN 和捷径两个变量。8.7 节的训练循环本章原样沿用。</li>
+<li><strong>第 10 章</strong>直接用预训练的 ResNet-18。10.3 节提醒冻结参数不等于冻结 BatchNorm 的运行均值和方差，原因就是本章 9.5 节的两种模式。10.5 节的 Grad-CAM 用最后一层卷积的特征图，它的分辨率和每一格对应多少像素见 9.4 节 ResNet-18 那张表。</li>
+<li><strong>第 11 章</strong>的小目标漏检和本章的步长、间隔直接有关：目标比最后一层的间隔还小时，在特征图上不到一格。</li>
+<li><strong>第 12 章</strong> 12.3 节 U-Net 拼接时“尺寸差 1 个像素”，来自 9.2 节的向下取整；12.4 节的转置卷积是本章步长卷积的反方向。</li>
+<li><strong>第 19 章</strong>的 PatchCore 取 ResNet 中间层的特征。它 3.1 节关于各层分辨率的讨论，用的就是 9.4 节的间隔；它 4.1 节测到的“记忆库也怕半个像素”，和本章图 3 的平移敏感是同一类现象。</li>
+</ul>
 <hr />
 <h2 id="动手前的检查清单">动手前的检查清单</h2>
 <ul>
@@ -300,10 +1621,23 @@ y = ReLU(F(x) + x)
 <li>[ ] DL-3 会比较训练前后和不同层，而不是只保存一张“好看的图”。</li>
 <li>[ ] DL-4 会固定数据划分，一次只改变一个因素，并保存验证集最佳权重。</li>
 </ul>
-<p>确认完了，打开 <code>09_CNN核心/</code>，先完成 DL-3 的可视化，再用 DL-4 把 shape、BN、残差与训练曲线串成一个完整实验。</p></article><nav class="prev-next"><a href="08.html">← 第 8 章 神经网络基础</a><a href="10.html">第 10 章 迁移学习与模型分析 →</a></nav>
+<p>确认完了，打开 <code>09_CNN核心/</code>，先完成 DL-3 的可视化，再用 DL-4 把 shape、BN、残差与训练曲线串成一个完整实验。</p>
+<p>动手的顺序：先完成自动验收的 <code>作业_卷积shape与残差块.py</code> 并做 9.10 节的两项自检；DL-3 和 DL-4 是扩展练习，题目在 <code>视觉算法学习计划.md</code>。</p>
+<hr />
+<h2 id="自测问题">自测问题</h2>
+<p>速通档答小测，标准档把下面的问题答一遍。</p>
+<ol>
+<li>输入边长 31 和 32，各自经过一层 3×3、步长 2、填充 1 的卷积，输出边长是多少？哪一个的补边没有全部用到？</li>
+<li>一个“卷积、展平、全连接”的网络在训练集上 99%，把图案挪到没见过的位置就只有随机水平。卷积不是平移等变的吗，问题出在哪一层？</li>
+<li>深度可分离卷积的乘加次数是普通 3×3 的 7.9 分之一。为什么不能据此说它快 7.9 倍？怎样才能得到可信的结论？</li>
+<li>理论感受野和有效感受野差在哪？想让一个位置真正用到更大范围的信息，加层数和加下采样哪个更有效，为什么？</li>
+<li>训练 30 步之后切到 <code>eval()</code>，准确率比训练模式低很多。可能的原因有哪些，各自怎么验证？</li>
+<li>“网络太深梯度就消失”在什么条件下成立？带 BN 的普通深网络在本章的实验里出了什么问题？加上捷径之后变了什么？</li>
+<li>怎样在自己的机器上估计一个模型能用多大的批？批不够大时有哪些办法，各自的代价是什么？</li>
+</ol></article><nav class="prev-next"><a href="08.html">← 第 8 章 神经网络基础</a><a href="10.html">第 10 章 迁移学习与模型分析 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#91-为什么图像更适合卷积而不是全连接">9.1 为什么图像更适合卷积，而不是全连接</a></li><li><a href="#92-三项基本功shape参数量计算量">9.2 三项基本功：shape、参数量、计算量</a></li><li class="sub"><a href="#输出-shape-怎么算">输出 shape 怎么算</a></li><li class="sub"><a href="#参数量怎么算">参数量怎么算</a></li><li class="sub"><a href="#参数少不等于计算少">参数少不等于计算少</a></li><li><a href="#93-paddingstride-与-pooling如何改变空间信息">9.3 padding、stride 与 pooling：如何改变空间信息</a></li><li class="sub"><a href="#padding边界也值得被看见">Padding：边界也值得被看见</a></li><li class="sub"><a href="#stride跳着看">Stride：跳着看</a></li><li class="sub"><a href="#pooling固定规则的局部汇总">Pooling：固定规则的局部汇总</a></li><li><a href="#94-感受野一个高层神经元到底看了多大范围">9.4 感受野：一个高层神经元到底看了多大范围</a></li><li><a href="#95-batchnorm稳定的尺度而不是魔法加速器">9.5 BatchNorm：稳定的尺度，而不是魔法加速器</a></li><li><a href="#96-从-lenet-到-efficientnet架构是在解决什么问题">9.6 从 LeNet 到 EfficientNet：架构是在解决什么问题</a></li><li><a href="#97-resnet让网络至少学会什么也不改">9.7 ResNet：让网络至少学会“什么也不改”</a></li><li><a href="#98-卷积核与特征图可视化网络学到了什么">9.8 卷积核与特征图可视化：网络学到了什么</a></li><li><a href="#99-在-apple-silicon-mps-上训练-cifar-10">9.9 在 Apple Silicon / MPS 上训练 CIFAR-10</a></li><li><a href="#910-与-dl-3dl-4-的连接">9.10 与 DL-3、DL-4 的连接</a></li><li class="sub"><a href="#dl-3从看图升级为可比较实验">DL-3：从“看图”升级为可比较实验</a></li><li class="sub"><a href="#dl-4每次改动都要能解释">DL-4：每次改动都要能解释</a></li><li><a href="#911-常见坑与排查顺序">9.11 常见坑与排查顺序</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#91-为什么图像更适合卷积而不是全连接">9.1 为什么图像更适合卷积，而不是全连接</a></li><li class="sub"><a href="#实测换个位置还认不认得">实测：换个位置还认不认得</a></li><li><a href="#92-三项基本功shape参数量计算量">9.2 三项基本功：shape、参数量、计算量</a></li><li class="sub"><a href="#输出-shape-怎么算">输出 shape 怎么算</a></li><li class="sub"><a href="#参数量怎么算">参数量怎么算</a></li><li class="sub"><a href="#参数少不等于计算少">参数少不等于计算少</a></li><li class="sub"><a href="#实测一公式和-pytorch-逐个比">实测一：公式和 PyTorch 逐个比</a></li><li class="sub"><a href="#实测二向下取整丢掉了什么">实测二：向下取整丢掉了什么</a></li><li class="sub"><a href="#实测三参数量乘加次数和耗时">实测三：参数量、乘加次数和耗时</a></li><li><a href="#93-paddingstride-与-pooling如何改变空间信息">9.3 padding、stride 与 pooling：如何改变空间信息</a></li><li class="sub"><a href="#padding边界也值得被看见">Padding：边界也值得被看见</a></li><li class="sub"><a href="#stride跳着看">Stride：跳着看</a></li><li class="sub"><a href="#pooling固定规则的局部汇总">Pooling：固定规则的局部汇总</a></li><li class="sub"><a href="#实测边上的像素被读到几次">实测：边上的像素被读到几次</a></li><li class="sub"><a href="#实测步长和补边怎样破坏平移等变">实测：步长和补边怎样破坏平移等变</a></li><li><a href="#94-感受野一个高层神经元到底看了多大范围">9.4 感受野：一个高层神经元到底看了多大范围</a></li><li class="sub"><a href="#实测公式和梯度对得上吗">实测：公式和梯度对得上吗</a></li><li class="sub"><a href="#实测有效感受野有多大">实测：有效感受野有多大</a></li><li class="sub"><a href="#一个真实的骨干resnet-18">一个真实的骨干：ResNet-18</a></li><li class="sub"><a href="#交互演示卷积尺寸与感受野计算器">交互演示：卷积尺寸与感受野计算器</a></li><li><a href="#95-batchnorm稳定的尺度而不是魔法加速器">9.5 BatchNorm：稳定的尺度，而不是魔法加速器</a></li><li class="sub"><a href="#实测同一张图换一批同伴">实测：同一张图，换一批同伴</a></li><li class="sub"><a href="#实测running-统计要多少步才跟上">实测：running 统计要多少步才跟上</a></li><li class="sub"><a href="#实测小样本过拟合时推理模式来得晚">实测：小样本过拟合时，推理模式来得晚</a></li><li class="sub"><a href="#实测卷积的偏置接-bn-是多余的">实测：卷积的偏置接 BN 是多余的</a></li><li><a href="#96-从-lenet-到-efficientnet架构是在解决什么问题">9.6 从 LeNet 到 EfficientNet：架构是在解决什么问题</a></li><li class="sub"><a href="#数一数这些结构的参数和计算量在哪">数一数：这些结构的参数和计算量在哪</a></li><li><a href="#97-resnet让网络至少学会什么也不改">9.7 ResNet：让网络至少学会“什么也不改”</a></li><li class="sub"><a href="#更正外层的-relu-也在恒等路径上">更正：外层的 ReLU 也在恒等路径上</a></li><li class="sub"><a href="#实测初始化时梯度随深度怎么变">实测：初始化时，梯度随深度怎么变</a></li><li class="sub"><a href="#实测能不能训练起来">实测：能不能训练起来</a></li><li class="sub"><a href="#投影捷径丢掉了多少输入">投影捷径丢掉了多少输入</a></li><li><a href="#98-卷积核与特征图可视化网络学到了什么">9.8 卷积核与特征图可视化：网络学到了什么</a></li><li class="sub"><a href="#实测像不像-sobel要先有基线">实测：像不像 Sobel，要先有基线</a></li><li><a href="#99-在-apple-silicon-mps-上训练-cifar-10">9.9 在 Apple Silicon / MPS 上训练 CIFAR-10</a></li><li class="sub"><a href="#用-nvidia-显卡时确认可用看显存定批大小">用 NVIDIA 显卡时：确认可用、看显存、定批大小</a></li><li><a href="#910-与-dl-3dl-4-的连接">9.10 与 DL-3、DL-4 的连接</a></li><li class="sub"><a href="#dl-3从看图升级为可比较实验">DL-3：从“看图”升级为可比较实验</a></li><li class="sub"><a href="#dl-4每次改动都要能解释">DL-4：每次改动都要能解释</a></li><li class="sub"><a href="#作业卷积输出尺寸与残差块自动验收">作业：卷积输出尺寸与残差块（自动验收）</a></li><li class="sub"><a href="#给题-dl-4-的两个数">给题 DL-4 的两个数</a></li><li><a href="#911-常见坑与排查顺序常见错误">9.11 常见坑与排查顺序（常见错误）</a></li><li><a href="#912-怎样评估一个网络结构">9.12 怎样评估一个网络结构</a></li><li><a href="#913-破坏实验">9.13 破坏实验</a></li><li><a href="#914-扩展深挖档">9.14 扩展（深挖档）</a></li><li><a href="#915-和后续章节的关系">9.15 和后续章节的关系</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

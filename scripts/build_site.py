@@ -107,6 +107,7 @@ def render_tutorial(text: str, chapter_dir: str, lesson_of: dict[str, str]):
         stash.append(block)
         return f"\n\nSTASH{len(stash) - 1}BLOCK\n\n"
 
+    text = re.sub(r"(^>.*\n)\n(?=>)", r"\1\n<!-- -->\n\n", text, flags=re.M)  # 相邻的两个引用块之间加分隔，否则会被并成一个
     text = QUIZ_RE.sub(lambda mm: keep(render_quiz(mm.group(1), where)), text)
     text = EMBED_RE.sub(lambda mm: keep(
         f'<div class="embed"><iframe src="{html.escape(fix_url(mm.group(1), chapter_dir, lesson_of))}" '

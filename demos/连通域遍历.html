@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>连通域的三种遍历：递归、显式栈、队列</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .two { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 12px; }
+  .two .panel { margin-bottom: 12px; min-width: 0; }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+  figcaption i { font-style: normal; display: inline-block; width: 11px; height: 11px; vertical-align: -1px; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 640px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>连通域的三种遍历：递归、显式栈、队列（第 15 章）</h1>
+  <div class="sub">在一张 N × N 的小图上数连通域。三种写法访问到的像素完全相同，区别只在“还没处理完、必须先记住”的像素有多少、记在哪里。邻居顺序和讲义里的实验一致：上、下、左、右，8 连通再加四个对角。所有计算在浏览器里完成。</div>
+
+  <div class="panel controls">
+    <label>前景形状<div class="seg" id="shape"><button data-v="solid" class="on">实心块</button><button data-v="snake">蛇形</button><button data-v="diag">斜线和方块</button></div></label>
+    <label>写法<div class="seg" id="method"><button data-v="rec" class="on">递归</button><button data-v="stack">显式栈</button><button data-v="queue">队列</button></div></label>
+    <label>连通性<div class="seg" id="conn"><button data-v="4" class="on">4 连通</button><button data-v="8">8 连通</button></div></label>
+    <label>边长 N<b id="nV"></b><input type="range" id="n" min="8" max="48" step="1" value="32"></label>
+    <label>调用栈最多容纳的层数（只影响递归）<b id="limitV"></b><input type="range" id="limit" min="100" max="2400" step="50" value="1000"></label>
+    <label>执行进度<b id="progV"></b><input type="range" id="prog" min="0" max="1000" step="1" value="1000"></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>前景像素</span><b id="kFg"></b></div>
+    <div class="kpi"><span>数出的连通域</span><b id="kCount"></b></div>
+    <div class="kpi"><span id="kPeakName">峰值</span><b id="kPeak"></b></div>
+    <div class="kpi" id="kStateBox"><span>结果</span><b id="kState"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>访问顺序<i style="background:#2f6fed"></i>早<i style="background:#1a9c4b"></i>晚<i style="background:#e8710a"></i>此刻被记住<i style="background:#c9cdd4"></i>还没访问</figcaption><canvas id="c1" height="300"></canvas></figure>
+    <figure class="panel"><figcaption id="cap2">被记住的像素个数随执行过程的变化</figcaption><canvas id="c2" height="300"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>实心块、递归、N = 32、调用栈最多 1000 层。峰值深度是多少，和前景像素数是什么关系？再把 N 拖到 31。<button data-preset='{"shape":"solid","method":"rec","conn":4,"n":32,"limit":1000}'>载入</button></li>
+      <li>同一张图换成显式栈。还会溢出吗？栈里最多同时有多少个像素，占前景的几成？<button data-preset='{"shape":"solid","method":"stack","conn":4,"n":32,"limit":1000}'>载入</button></li>
+      <li>再换成队列，峰值变成多少？切到 8 连通再看一次，然后拖动“执行进度”，看橙色的那一圈像素怎样往外推。<button data-preset='{"shape":"solid","method":"queue","conn":4,"n":32,"limit":1000}'>载入</button></li>
+      <li>蛇形、递归。前景只有实心块的一半左右，峰值深度是多少？把调用栈上限降到 500 层，再换成队列。<button data-preset='{"shape":"snake","method":"rec","conn":4,"n":32,"limit":1000}'>载入</button></li>
+      <li>斜线和方块、队列。4 连通和 8 连通各数出几个连通域？多出来的那些是谁？<button data-preset='{"shape":"diag","method":"queue","conn":4,"n":32,"limit":1000}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ---- 计算部分：不依赖页面，可以单独拿出来用 node 核对 ----
+const DY = [-1, 1, 0, 0, -1, -1, 1, 1], DX = [0, 0, -1, 1, -1, 1, -1, 1];
+
+function makeShape(kind, N) {
+  const img = new Uint8Array(N * N);
+  if (kind === "solid") { img.fill(1); return img; }
+  if (kind === "snake") {  // 和 tests/test_main.cpp 里的蛇形相同：偶数行整行是前景，奇数行只在一端留一个像素把上下两行接起来
+    for (let y = 0; y < N; y += 2) for (let x = 0; x < N; x++) img[y * N + x] = 1;
+    for (let y = 1; y < N; y += 4) img[y * N + N - 1] = 1;
+    for (let y = 3; y < N; y += 4) img[y * N] = 1;
+    return img;
+  }
+  // 一条 45 度的 1 像素细线，加两个互不相连的方块
+  const L = Math.floor(N / 2);
+  for (let i = 0; i < L; i++) img[(1 + i) * N + 1 + i] = 1;
+  const s = Math.max(2, Math.floor(N / 6));
+  for (let y = 1; y < 1 + s; y++) for (let x = N - 1 - s; x < N - 1; x++) img[y * N + x] = 1;
+  for (let y = N - 1 - s; y < N - 1; y++) for (let x = 1; x < 1 + s; x++) img[y * N + x] = 1;
+  return img;
+}
+
+// 返回：连通域个数、前景像素数、容器峰值、溢出发生在第几个像素（-1 表示没有溢出）、
+// 每个像素进入和离开容器的时刻（以“已经标记了多少个像素”为时钟）、每标记一个像素之后容器里的个数。
+function simulate(img, N, method, conn, limit) {
+  const total = N * N;
+  const enter = new Int32Array(total).fill(-1), leave = new Int32Array(total).fill(-1);
+  const hist = new Int32Array(total);
+  let step = 0, count = 0, peak = 0, overflowAt = -1, fg = 0;
+  for (let i = 0; i < total; i++) fg += img[i];
+  if (method === "rec") {
+    const frame = new Int32Array(total), next = new Int8Array(total);
+    let depth = 0;
+    const call = idx => {  // 相当于进入一次 fill(y, x)
+      enter[idx] = step; frame[depth] = idx; next[depth] = 0; depth++;
+      hist[step++] = depth; if (depth > peak) peak = depth;
+      return depth <= limit;
+    };
+    scan: for (let s = 0; s < total; s++) {
+      if (!img[s] || enter[s] >= 0) continue;
+      count++;
+      if (!call(s)) { overflowAt = step - 1; break scan; }
+      while (depth > 0) {
+        const idx = frame[depth - 1], k = next[depth - 1];
+        if (k === conn) { leave[idx] = step; depth--; continue; }  // 函数返回
+        next[depth - 1] = k + 1;
+        const y = Math.floor(idx / N) + DY[k], x = idx % N + DX[k];
+        if (y < 0 || y >= N || x < 0 || x >= N) continue;
+        const nb = y * N + x;
+        if (!img[nb] || enter[nb] >= 0) continue;
+        if (!call(nb)) { overflowAt = step - 1; break scan; }
+      }
+    }
+  } else {
+    const box = new Int32Array(total);
+    let head = 0, tail = 0;  // 队列从 head 取，显式栈从 tail 取；入队或入栈时就标记，同一个像素不会进两次
+    const push = idx => { enter[idx] = step; box[tail++] = idx; const size = tail - head; hist[step++] = size; if (size > peak) peak = size; };
+    for (let s = 0; s < total; s++) {
+      if (!img[s] || enter[s] >= 0) continue;
+      count++;
+      head = tail = 0;
+      push(s);
+      while (tail > head) {
+        const idx = method === "queue" ? box[head++] : box[--tail];
+        leave[idx] = step;
+        const cy = Math.floor(idx / N), cx = idx % N;
+        for (let k = 0; k < conn; k++) {
+          const y = cy + DY[k], x = cx + DX[k];
+          if (y < 0 || y >= N || x < 0 || x >= N) continue;
+          const nb = y * N + x;
+          if (img[nb] && enter[nb] < 0) push(nb);
+        }
+      }
+    }
+  }
+  return { count, fg, peak, overflowAt, enter, leave, hist, steps: step };
+}
+// ---- 以下是界面 ----
+
+const state = { shape: "solid", method: "rec", conn: 4, n: 32, limit: 1000, prog: 1000 };
+const $ = id => document.getElementById(id);
+const NAMES = { rec: "递归深度的峰值", stack: "栈里像素数的峰值", queue: "队列里像素数的峰值" };
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function mix(t) { const a = [47, 111, 237], b = [26, 156, 75]; return "rgb(" + a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",") + ")"; }
+
+function render() {
+  const N = state.n, img = makeShape(state.shape, N);
+  const res = simulate(img, N, state.method, state.conn, state.limit);
+  const t = Math.round(res.steps * state.prog / 1000);  // 已经标记了 t 个像素
+  const overflow = res.overflowAt >= 0;
+
+  $("nV").textContent = N + " × " + N; $("limitV").textContent = state.limit + " 层"; $("progV").textContent = t + " / " + res.steps;
+  $("kFg").textContent = res.fg; $("kCount").textContent = overflow ? "没数完" : res.count;
+  $("kPeakName").textContent = NAMES[state.method]; $("kPeak").textContent = overflow ? "超过 " + state.limit : res.peak;
+  $("kState").textContent = overflow ? "栈溢出" : "跑完";
+  $("kStateBox").className = "kpi " + (overflow ? "bad" : "ok");
+  $("cap2").textContent = (state.method === "rec" ? "递归深度" : state.method === "stack" ? "栈里的像素个数" : "队列里的像素个数") + "随执行过程的变化" + (state.method === "rec" ? "，红线是调用栈上限" : "");
+
+  let [ctx, w, h] = setup($("c1"));
+  const cell = Math.max(2, Math.floor(Math.min(w, h) / N)), ox = Math.floor((w - cell * N) / 2), oy = Math.floor((h - cell * N) / 2), gap = cell >= 6 ? 1 : 0;
+  ctx.fillStyle = "#f6f7f9"; ctx.fillRect(ox, oy, cell * N, cell * N);
+  for (let i = 0; i < N * N; i++) {
+    if (!img[i]) continue;
+    const e = res.enter[i], l = res.leave[i];
+    if (e < 0 || e >= t) ctx.fillStyle = "#c9cdd4";
+    else if (overflow && e === res.overflowAt) ctx.fillStyle = "#d6362f";
+    else if (l < 0 || l > t - 1 && !(l === t && t === res.steps)) ctx.fillStyle = "#e8710a";
+    else ctx.fillStyle = mix(res.steps > 1 ? e / (res.steps - 1) : 0);
+    ctx.fillRect(ox + (i % N) * cell, oy + Math.floor(i / N) * cell, cell - gap, cell - gap);
+  }
+
+  [ctx, w, h] = setup($("c2"));
+  const L = 44, R = 10, T = 10, B = 24, top = (state.method === "rec" && state.limit <= res.peak * 3 ? Math.max(res.peak, state.limit) : Math.max(res.peak, 1)) * 1.08;
+  const sx = v => L + v / Math.max(1, res.steps) * (w - L - R), sy = v => h - B - v / top * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) { const v = top * i / 4; ctx.beginPath(); ctx.moveTo(L, sy(v)); ctx.lineTo(w - R, sy(v)); ctx.stroke(); ctx.fillText(Math.round(v), L - 5, sy(v) + 4); }
+  ctx.textAlign = "center"; ctx.fillText("已经标记的像素个数（共 " + res.steps + "）", (L + w - R) / 2, h - 6);
+  if (state.method === "rec" && state.limit <= top) { ctx.strokeStyle = "#d6362f"; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(L, sy(state.limit)); ctx.lineTo(w - R, sy(state.limit)); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.strokeStyle = "#2f6fed"; ctx.lineWidth = 1.6; ctx.beginPath();
+  for (let i = 0; i < res.steps; i++) { const X = sx(i + 1), Y = sy(res.hist[i]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+  ctx.stroke();
+  ctx.strokeStyle = "#e8710a"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(t), T); ctx.lineTo(sx(t), h - B); ctx.stroke();
+}
+
+function syncControls() {
+  for (const id of ["shape", "method", "conn"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(state[id])));
+  for (const id of ["n", "limit", "prog"]) $(id).value = state[id];
+}
+for (const id of ["shape", "method", "conn"]) $(id).addEventListener("click", e => { if (e.target.dataset.v) { state[id] = id === "conn" ? +e.target.dataset.v : e.target.dataset.v; state.prog = 1000; syncControls(); render(); } });
+for (const id of ["n", "limit", "prog"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; if (id !== "prog") { state.prog = 1000; $("prog").value = 1000; } render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset), { prog: 1000 }); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+</script>
+</body>
+</html>

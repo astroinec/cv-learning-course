@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IoU 与 NMS：拖动框、调阈值</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; min-width: 0; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 22px; align-items: end; }
+  .controls .wide { grid-column: 1 / -1; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1 1 auto; font: inherit; font-size: 12.5px; padding: 5px 6px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .main { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; touch-action: none; cursor: grab; }
+  .tbl { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; }
+  tr.sel td { background: #eef4ff; }
+  tbody tr { cursor: pointer; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: baseline; }
+  .keep { color: var(--green); } .gone { color: var(--red); } .low { color: var(--muted); }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .main { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>IoU 与 NMS：拖动框、调阈值（第 11 章）</h1>
+  <div class="sub">框的坐标是左上右下 (x1, y1, x2, y2)，单位是像素，拖动时吸附到整数。NMS 和作业里的规则相同：按分数从高到低，只删同类别且 IoU 严格大于阈值的框。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label class="wide">场景<div class="seg" id="scene"><button data-v="big" class="on">两个 100 px 的框</button><button data-v="small">两个 10 px 的框</button><button data-v="dup">一个目标的重复框</button><button data-v="dense">相邻的同类目标</button><button data-v="cls">两个类别</button></div></label>
+    <label>NMS 阈值<b id="nmsV"></b><input type="range" id="nms" min="0.05" max="0.95" step="0.05" value="0.5"></label>
+    <label>置信度阈值<b id="confV"></b><input type="range" id="conf" min="0" max="0.9" step="0.05" value="0"></label>
+    <label>NMS 的做法<div class="seg" id="mode"><button data-v="aware" class="on">按类别</button><button data-v="agnostic">不分类别</button></div></label>
+    <label>面积怎么算<div class="seg" id="inc"><button data-v="0" class="on">x2 - x1（不加 1）</button><button data-v="1">x2 - x1 + 1（加 1）</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" id="kIouBox"><span id="kIouL">选中的框和另一个框的 IoU</span><b id="kIou"></b></div>
+    <div class="kpi"><span>交集面积</span><b id="kInter"></b></div>
+    <div class="kpi"><span>并集面积</span><b id="kUnion"></b></div>
+    <div class="kpi" id="kKeepBox"><span>NMS 之后保留</span><b id="kKeep"></b></div>
+  </div>
+
+  <div class="main">
+    <figure class="panel">
+      <figcaption>拖框的内部移动，拖右下角的小方块改大小<i style="background:var(--blue)"></i>类别 0<i style="background:var(--orange)"></i>类别 1，实线是保留的框，虚线是被删的框，灰底是真目标，绿色是选中两框的交集</figcaption>
+      <canvas id="cv" height="330"></canvas>
+    </figure>
+    <div class="panel">
+      <div class="tbl">
+        <table>
+          <thead><tr><th>框</th><th>分数</th><th>和选中框的 IoU</th><th>结果</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="note" id="note"></div>
+    </div>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>两个 100 px 的框，一个比另一个向右下偏 2 px，IoU 是 0.92。把 1 号框继续往右下拖，偏到多少 px 时 IoU 掉到 0.5 以下？<button data-preset='{"scene":"big","nms":0.5,"conf":0,"mode":"aware","inc":0}'>载入</button></li>
+      <li>换成两个 10 px 的框，同样偏 2 px，IoU 只有 0.47。再把“面积怎么算”切到加 1，IoU 变成多少，过没过 0.5？<button data-preset='{"scene":"small","nms":0.5,"conf":0,"mode":"aware","inc":0}'>载入</button></li>
+      <li>一个目标有 5 个重复框，NMS 阈值 0.5 时只留下分数最高的那个。把阈值慢慢拖到 0.8、0.9，各留下几个？<button data-preset='{"scene":"dup","nms":0.5,"conf":0,"mode":"aware","inc":0}'>载入</button></li>
+      <li>三个相邻的同类目标，相邻两个的 IoU 是 0.4。NMS 阈值 0.3 时中间的目标整个被删。拖到 0.5 恢复成 3 个；再拖到 0.8，重复框又回来了。<button data-preset='{"scene":"dense","nms":0.3,"conf":0,"mode":"aware","inc":0}'>载入</button></li>
+      <li>左边是两个重叠的真目标（类别不同），右边是一个目标被报成了两类。按类别做留下 4 个框，右边多一个误报；切到不分类别只剩 2 个，右边干净了，左边却丢了一个真目标。<button data-preset='{"scene":"cls","nms":0.5,"conf":0,"mode":"aware","inc":0}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ---------- 计算部分（不依赖页面，可以用 node 单独执行核对） ----------
+const SCENES = {
+  big:   { viewW: 190, viewH: 130, gt: [], boxes: [[20, 12, 120, 112, 0, 0.90], [22, 14, 122, 114, 0, 0.80]] },
+  small: { viewW: 38,  viewH: 26,  gt: [], boxes: [[8, 6, 18, 16, 0, 0.90], [10, 8, 20, 18, 0, 0.80]] },
+  dup:   { viewW: 170, viewH: 116, gt: [[50, 26, 110, 86, 0]], boxes: [[50, 26, 110, 86, 0, 0.92], [53, 24, 112, 87, 0, 0.81], [45, 30, 106, 91, 0, 0.74], [57, 32, 118, 90, 0, 0.66], [42, 21, 101, 80, 0, 0.58]] },
+  dense: { viewW: 150, viewH: 102, gt: [[30, 30, 70, 70, 0], [47, 30, 87, 70, 0], [64, 30, 104, 70, 0]],
+           boxes: [[30, 30, 70, 70, 0, 0.90], [33, 34, 74, 73, 0, 0.70], [47, 31, 87, 71, 0, 0.85], [44, 27, 84, 66, 0, 0.62], [64, 30, 104, 70, 0, 0.88], [67, 33, 107, 74, 0, 0.66]] },
+  cls:   { viewW: 200, viewH: 110, gt: [[20, 28, 68, 76, 0], [32, 28, 80, 76, 1], [120, 28, 168, 76, 0]],
+           boxes: [[20, 28, 68, 76, 0, 0.90], [32, 29, 80, 77, 1, 0.84], [120, 28, 168, 76, 0, 0.88], [122, 30, 170, 77, 1, 0.55]] }
+};
+function boxArea(b, inc) { return Math.max(b[2] - b[0] + inc, 0) * Math.max(b[3] - b[1] + inc, 0); }
+function interArea(a, b, inc) {
+  const w = Math.min(a[2], b[2]) - Math.max(a[0], b[0]) + inc, h = Math.min(a[3], b[3]) - Math.max(a[1], b[1]) + inc;
+  return Math.max(w, 0) * Math.max(h, 0);
+}
+function iou(a, b, inc) { const i = interArea(a, b, inc), u = boxArea(a, inc) + boxArea(b, inc) - i; return u > 0 ? i / u : 0; }
+// 返回每个框的结果：{keep:true} / {low:true} / {by:k, iou:v}
+function nms(boxes, thr, conf, agnostic, inc) {
+  const res = boxes.map(() => null);
+  const order = boxes.map((_, i) => i).filter(i => boxes[i][5] >= conf).sort((p, q) => boxes[q][5] - boxes[p][5] || p - q);
+  boxes.forEach((b, i) => { if (b[5] < conf) res[i] = { low: true }; });
+  for (const i of order) {
+    if (res[i]) continue;
+    res[i] = { keep: true };
+    for (const j of order) {
+      if (res[j] || (!agnostic && boxes[j][4] !== boxes[i][4])) continue;
+      const v = iou(boxes[i], boxes[j], inc);
+      if (v > thr) res[j] = { by: i, iou: v };
+    }
+  }
+  return res;
+}
+// 保留的框里，每个真目标是否被一个同类别、IoU 不低于 0.5 的框命中（一对一，按分数从高到低）
+function found(boxes, res, gt, inc) {
+  const used = gt.map(() => false);
+  const kept = boxes.map((_, i) => i).filter(i => res[i].keep).sort((p, q) => boxes[q][5] - boxes[p][5] || p - q);
+  for (const i of kept) {
+    let best = -1, bv = 0.5;
+    gt.forEach((g, k) => { if (!used[k] && g[4] === boxes[i][4]) { const v = iou(boxes[i], g, inc); if (v >= bv) { bv = v; best = k; } } });
+    if (best >= 0) used[best] = true;
+  }
+  return used;
+}
+if (typeof module !== "undefined") module.exports = { SCENES, iou, interArea, boxArea, nms, found };
+
+// ---------- 页面部分 ----------
+if (typeof document !== "undefined") {
+const state = { scene: "big", nms: 0.5, conf: 0, mode: "aware", inc: 0, sel: 1 };
+let boxes = [], view = null, drag = null;
+const $ = id => document.getElementById(id);
+const COLORS = ["#2f6fed", "#e8710a"];
+function loadScene() { boxes = SCENES[state.scene].boxes.map(b => b.slice()); state.sel = Math.min(1, boxes.length - 1); }
+
+function partner() {
+  let best = -1, bv = -1;
+  boxes.forEach((b, i) => { if (i !== state.sel) { const v = iou(boxes[state.sel], b, state.inc); if (v > bv) { bv = v; best = i; } } });
+  return best;
+}
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+
+function render() {
+  const sc = SCENES[state.scene], res = nms(boxes, state.nms, state.conf, state.mode === "agnostic", state.inc);
+  const p = partner(), a = boxes[state.sel], b = boxes[p];
+  const inter = interArea(a, b, state.inc), uni = boxArea(a, state.inc) + boxArea(b, state.inc) - inter, v = uni > 0 ? inter / uni : 0;
+  $("nmsV").textContent = state.nms.toFixed(2); $("confV").textContent = state.conf.toFixed(2);
+  $("kIouL").textContent = "选中的 " + state.sel + " 号框和 " + p + " 号框的 IoU";
+  $("kIou").textContent = v.toFixed(3); $("kInter").textContent = inter.toFixed(0); $("kUnion").textContent = uni.toFixed(0);
+  $("kIouBox").className = "kpi " + (v >= 0.5 ? "ok" : "bad");
+  const nKeep = res.filter(r => r.keep).length, used = found(boxes, res, sc.gt, state.inc), nFound = used.filter(Boolean).length;
+  $("kKeep").textContent = nKeep + " / " + boxes.length + " 个框";
+  $("kKeepBox").className = "kpi " + (sc.gt.length ? (nKeep === sc.gt.length && nFound === sc.gt.length ? "ok" : "bad") : "");
+  $("note").textContent = sc.gt.length ? "真目标 " + sc.gt.length + " 个，被保留的框找到 " + nFound + " 个，多出来的框 " + (nKeep - nFound) + " 个（命中的标准：同类别且 IoU 不低于 0.5）。" : "这个场景没有设真目标，只看两个框的 IoU。0 号框分数高，NMS 时由它去删 1 号框。";
+
+  $("rows").innerHTML = boxes.map((bx, i) => {
+    const r = res[i], txt = r.keep ? '<span class="keep">保留</span>' : r.low ? '<span class="low">分数低于置信度阈值</span>' : '<span class="gone">被 ' + r.by + ' 号删（IoU ' + r.iou.toFixed(2) + '）</span>';
+    return '<tr data-i="' + i + '" class="' + (i === state.sel ? "sel" : "") + '"><td><span class="dot" style="background:' + COLORS[bx[4]] + '"></span>' + i + ' 号，类别 ' + bx[4] + '</td><td>' + bx[5].toFixed(2) + '</td><td>' + (i === state.sel ? "选中" : iou(a, bx, state.inc).toFixed(3)) + '</td><td>' + txt + '</td></tr>';
+  }).join("");
+
+  const [ctx, w, h] = setup($("cv"));
+  const s = Math.min(w / sc.viewW, h / sc.viewH), ox = (w - sc.viewW * s) / 2, oy = (h - sc.viewH * s) / 2;
+  view = { s, ox, oy };
+  const X = x => ox + x * s, Y = y => oy + y * s;
+  ctx.strokeStyle = "#eef0f3"; ctx.lineWidth = 1;
+  const step = sc.viewW <= 40 ? 2 : 10;
+  for (let x = 0; x <= sc.viewW; x += step) { ctx.beginPath(); ctx.moveTo(X(x), Y(0)); ctx.lineTo(X(x), Y(sc.viewH)); ctx.stroke(); }
+  for (let y = 0; y <= sc.viewH; y += step) { ctx.beginPath(); ctx.moveTo(X(0), Y(y)); ctx.lineTo(X(sc.viewW), Y(y)); ctx.stroke(); }
+  sc.gt.forEach((g, k) => { ctx.fillStyle = used[k] ? "rgba(100,106,115,.13)" : "rgba(214,54,47,.16)"; ctx.fillRect(X(g[0]), Y(g[1]), (g[2] - g[0]) * s, (g[3] - g[1]) * s); });
+  const ix1 = Math.max(a[0], b[0]), iy1 = Math.max(a[1], b[1]), ix2 = Math.min(a[2], b[2]), iy2 = Math.min(a[3], b[3]);
+  if (ix2 > ix1 && iy2 > iy1) { ctx.fillStyle = "rgba(26,156,75,.22)"; ctx.fillRect(X(ix1), Y(iy1), (ix2 - ix1) * s, (iy2 - iy1) * s); }
+  const order = boxes.map((_, i) => i).sort((p_, q) => (p_ === state.sel) - (q === state.sel) || (res[p_].keep ? 1 : 0) - (res[q].keep ? 1 : 0));
+  ctx.font = "11px sans-serif"; ctx.textBaseline = "bottom";
+  for (const i of order) {
+    const bx = boxes[i], r = res[i];
+    ctx.strokeStyle = COLORS[bx[4]]; ctx.globalAlpha = r.keep ? 1 : r.low ? 0.35 : 0.6;
+    ctx.lineWidth = i === state.sel ? 2.6 : r.keep ? 2 : 1.3; ctx.setLineDash(r.keep ? [] : r.low ? [2, 3] : [6, 4]);
+    ctx.strokeRect(X(bx[0]), Y(bx[1]), (bx[2] - bx[0]) * s, (bx[3] - bx[1]) * s);
+    ctx.setLineDash([]); ctx.fillStyle = COLORS[bx[4]];
+    ctx.fillRect(X(bx[2]) - 5, Y(bx[3]) - 5, 10, 10);
+    ctx.globalAlpha = 1;
+    if (r.keep || i === state.sel) ctx.fillText(i + " 号 " + bx[5].toFixed(2), X(bx[0]) + 2, Y(bx[1]) - 2);
+  }
+}
+
+function pos(e) { const r = $("cv").getBoundingClientRect(); return [(e.clientX - r.left - view.ox) / view.s, (e.clientY - r.top - view.oy) / view.s, 7 / view.s]; }
+$("cv").addEventListener("pointerdown", e => {
+  const [x, y, tol] = pos(e);
+  const cand = boxes.map((_, i) => i).sort((p, q) => (q === state.sel) - (p === state.sel) || boxArea(boxes[p], 0) - boxArea(boxes[q], 0));
+  for (const i of cand) { const b = boxes[i]; if (Math.abs(x - b[2]) <= tol && Math.abs(y - b[3]) <= tol) { drag = { i, kind: "size" }; break; } }
+  if (!drag) for (const i of cand) { const b = boxes[i]; if (x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3]) { drag = { i, kind: "move", dx: x - b[0], dy: y - b[1] }; break; } }
+  if (drag) { state.sel = drag.i; $("cv").setPointerCapture(e.pointerId); render(); }
+});
+$("cv").addEventListener("pointermove", e => {
+  if (!drag) return;
+  const [x, y] = pos(e), b = boxes[drag.i];
+  if (drag.kind === "move") { const w = b[2] - b[0], h = b[3] - b[1]; b[0] = Math.round(x - drag.dx); b[1] = Math.round(y - drag.dy); b[2] = b[0] + w; b[3] = b[1] + h; }
+  else { b[2] = Math.max(b[0] + 1, Math.round(x)); b[3] = Math.max(b[1] + 1, Math.round(y)); }
+  render();
+});
+for (const ev of ["pointerup", "pointercancel"]) $("cv").addEventListener(ev, () => { drag = null; });
+$("rows").addEventListener("click", e => { const tr = e.target.closest("tr"); if (tr) { state.sel = +tr.dataset.i; render(); } });
+
+function syncControls() {
+  for (const id of ["scene", "mode", "inc"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(state[id])));
+  for (const id of ["nms", "conf"]) $(id).value = state[id];
+}
+$("scene").addEventListener("click", e => { if (e.target.dataset.v) { state.scene = e.target.dataset.v; loadScene(); syncControls(); render(); } });
+$("mode").addEventListener("click", e => { if (e.target.dataset.v) { state.mode = e.target.dataset.v; syncControls(); render(); } });
+$("inc").addEventListener("click", e => { if (e.target.dataset.v) { state.inc = +e.target.dataset.v; syncControls(); render(); } });
+for (const id of ["nms", "conf"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); loadScene(); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+loadScene(); syncControls(); render();
+}
+</script>
+</body>
+</html>
