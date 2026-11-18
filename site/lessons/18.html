@@ -58,10 +58,47 @@
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 18 章 <span class="tag P0">P0</span> <span class="badge">原版讲义</span></div><h1>传统缺陷检测</h1><p class="scene"><b>用在哪：</b>金模板比对流水线，新人最先接触的检测算法</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 12 小时</span><span class="chip"><b>深挖</b> 18 小时</span><span class="chip">前置：<a href="../lessons/03.html">第 3 章 形态学</a>、<a href="../lessons/16.html">第 16 章 图像对齐与亚像素</a></span></div><div class="meta-row"><span class="chip mono">验收：python 18_传统缺陷检测/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="18"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><h2 id="1-一条检测流水线长什么样">1. 一条检测流水线长什么样</h2>
+<div class="lesson-head"><div class="crumbs">第 18 章 <span class="tag P0">P0</span> <span class="badge ok">已升级</span></div><h1>传统缺陷检测</h1><p class="scene"><b>用在哪：</b>金模板比对流水线，新人最先接触的检测算法</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 12 小时</span><span class="chip"><b>深挖</b> 18 小时</span><span class="chip">前置：<a href="../lessons/03.html">第 3 章 形态学</a>、<a href="../lessons/16.html">第 16 章 图像对齐与亚像素</a></span></div><div class="meta-row"><span class="chip mono">验收：python 18_传统缺陷检测/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="18"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自合成数据上的实测，记录在 <a href="../../18_传统缺陷检测/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch18.py</code> 生成。换成真实图像，数值会变，结论的方向要自己再测一遍。</p>
+</div>
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：金模板比对、die-to-die 比对、印刷品和面板的外观检测。只要流程是“和一张标准图比，差得多的地方报缺陷”，用的就是这一章的方法。它也是新人最先接触的检测流水线。</p>
+<p><strong>优先级</strong>：P0。前置是第 3 章（形态学和连通域）和第 16 章（对齐），本章默认图已经对齐。后面第 19 章的指标和第 24 章的综合项目直接建立在本章之上。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">3 小时</td>
+<td>读第 1、3、6 节，看懂图 2、3、4、6，做第 7 节演示的三个问题，答完 4 道小测</td>
+<td>能讲清为什么不用固定阈值，k 的含义为什么依赖良品张数，检出率数字为什么必须带匹配规则</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">12 小时</td>
+<td>读完全章，跑 Notebook，完成作业并验收通过，填实验记录</td>
+<td>四项测试 PASS，实验记录里有一条 k 曲线、你选的工作点和一个失败案例</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">18 小时</td>
+<td>再做第 10 节的破坏实验和第 11 节的扩展</td>
+<td>能在一组自己准备的图上给出带条件的检出率和误报数</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。速通档完成后本章就算“见过”，以后用到再升档。</p>
+</div>
+<h2 id="1-一条检测流水线长什么样">1. 一条检测流水线长什么样</h2>
 <div class="highlight"><pre><span></span><code>采图 → 预处理 → 对齐 → 和参考图比对 → 差异阈值 → 连通域 → 缺陷特征 → 过滤和分类 → 统计与报告
 </code></pre></div>
-<p>每一步都会影响最终的检出和误报，排查问题时要逐段看中间结果，而不是只盯最后的数字。</p>
+<p>每一步都会影响最终的检出和误报，排查问题时要逐段看中间结果，而不是只盯最后的数字。本章覆盖从“和参考图比对”到“统计与报告”这一段，前面的对齐在第 16 章。</p>
 <h2 id="2-参考图从哪来">2. 参考图从哪来</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -105,35 +142,363 @@
 </tr>
 </tbody>
 </table></div>
-<p><strong>重复缺陷</strong>是比对方法的盲区：如果光罩上有缺陷，每个 die 同一位置都会有，die-to-die 比不出来，只有 die-to-database 或者光罩检测能发现。</p>
+<h3 id="21-双比的两个问题归属和噪声">2.1 双比的两个问题：归属和噪声</h3>
+<p>下面的实验取三张相邻 die，记为 A、B、C，在 B 上放一个 3×3、幅度 35 的缺陷，重复 200 次。</p>
+<figure><img src="../../18_传统缺陷检测/figures/fig01_双比与三比.svg" alt="图 1：左，A 和 B 的差值图上有一个亮点，但看不出缺陷属于谁。中，C 和 B 的差值图在同一位置又出现亮点。右二，B 和两边都不同且方向一致，判定缺陷在 B。最右，没有缺陷时两种做法各有多少像素超过 k=3" loading="lazy"><figcaption>图 1：左，A 和 B 的差值图上有一个亮点，但看不出缺陷属于谁。中，C 和 B 的差值图在同一位置又出现亮点。右二，B 和两边都不同且方向一致，判定缺陷在 B。最右，没有缺陷时两种做法各有多少像素超过 k=3</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>做法</th>
+<th style="text-align: right;">在缺陷位置报出（共 200 次）</th>
+<th>能否说出缺陷在哪张图</th>
+<th style="text-align: right;">无缺陷时每张图超过 k=3 的像素数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>双比，只看 A 和 B 的差</td>
+<td style="text-align: right;">184</td>
+<td>不能</td>
+<td style="text-align: right;">24.7</td>
+</tr>
+<tr>
+<td>三比，B 与 A、C 都不同且方向一致</td>
+<td style="text-align: right;">169，全部判给 B，没有一次判给 A 或 C</td>
+<td>能</td>
+<td style="text-align: right;">1.4</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>归属</strong>：A 减 B 的差值只说明两张图不一样。要知道是谁的问题，必须引入第三张图。</p>
+<p><strong>噪声</strong>：两张图各带独立噪声，方差相加，差值的噪声标准差是单张图的 <span class="arithmatex">\(\sqrt{2} \approx 1.41\)</span> 倍。用 <span class="arithmatex">\(N\)</span> 张良品的中位数做参考时，参考图自己的噪声小得多，按高斯噪声下中位数的渐近方差估算，差值噪声约为单张图的 <span class="arithmatex">\(\sqrt{1 + \pi/(2N)}\)</span> 倍，<span class="arithmatex">\(N = 12\)</span> 时约 1.06 倍。这是金模板的主要好处。</p>
+<p>三比要求两次差值都超限，同样的 <span class="arithmatex">\(k\)</span> 下检出比双比少一些（169 对 184），但噪声造成的超限像素少了一个数量级，所以有余地把 <span class="arithmatex">\(k\)</span> 调低。</p>
+<h3 id="22-重复缺陷是比对方法的盲区">2.2 重复缺陷是比对方法的盲区</h3>
+<p>如果光罩上有缺陷，每个 die 同一位置都会有。把上面实验里的缺陷同时放到三张图的同一位置，双比和三比都是 <strong>0/200</strong> 报出。die 和 die 之间没有差异，任何互相比较的方法都看不见它，只有 die-to-database 或者光罩检测能发现。</p>
 <h2 id="3-阈值为什么不能用固定灰度差">3. 阈值：为什么不能用固定灰度差</h2>
 <p>最朴素的做法是 <code>|test - ref| &gt; T</code>。问题在于不同区域的噪声水平不一样：</p>
 <ul>
-<li>图形边缘对微小错位极其敏感，差值天然大。</li>
+<li>图形边缘对微小错位极其敏感，差值天然大（第 16 章图 1）。</li>
 <li>亮区散粒噪声大（泊松噪声方差等于均值，见第 22 章）。</li>
 <li>平坦暗区噪声小，很小的差异就很可疑。</li>
 </ul>
-<p>固定 T 要么在边缘误报一片，要么在平坦区漏掉弱缺陷。</p>
-<p><strong>按像素建噪声模型</strong>：用多张良品估计每个像素的中心值和离散程度，再算 z-score：</p>
-<div class="highlight"><pre><span></span><code>z = |test - median| / sigma
-</code></pre></div>
-<p>z &gt; k 才算异常。k 有了统计含义：高斯噪声下 k=5 的单像素误报概率约 6e-7。</p>
-<h3 id="鲁棒统计中位数和-mad">鲁棒统计：中位数和 MAD</h3>
-<p>良品里难免混进坏图或者离群像素。均值和标准差会被它们拉偏，中位数和 MAD（中位数绝对偏差）不会：</p>
+<p>下面的实验用一张 96×96 的合成 die，里面有线阵列、亮的平坦焊盘和暗的平坦背景。成像模型里有随亮度增大的噪声和标准差 0.15 px 的对齐残差。用 30 张良品建模板，再在 60 张待检图上各放 5 个 3×3 的缺陷。</p>
+<figure><img src="../../18_传统缺陷检测/figures/fig02_固定阈值与逐像素阈值.svg" alt="图 2：左一，合成 die 的三种区域。左二，30 张良品估出的逐像素 sigma，亮区和边缘明显更大。左三，固定阈值 16 在良品上的超限频率，集中在亮焊盘的边框和内部。最右，两种阈值的检出率对误报曲线" loading="lazy"><figcaption>图 2：左一，合成 die 的三种区域。左二，30 张良品估出的逐像素 sigma，亮区和边缘明显更大。左三，固定阈值 16 在良品上的超限频率，集中在亮焊盘的边框和内部。最右，两种阈值的检出率对误报曲线</figcaption></figure>
+<p>各区域估出的 sigma 中位数：暗的平坦区 3.4，线阵列区 5.4，亮的平坦区 6.6。把固定阈值定在 16（约为全图 sigma 中位数的 4 倍），在良品上统计超限的位置：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>统计的位置</th>
+<th style="text-align: right;">占图像面积</th>
+<th style="text-align: right;">每个像素的超限概率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>图形边缘（亮度梯度大的像素）</td>
+<td style="text-align: right;">25%</td>
+<td style="text-align: right;">2.9%</td>
+</tr>
+<tr>
+<td>亮的平坦区（取焊盘内部一块）</td>
+<td style="text-align: right;">约 9%</td>
+<td style="text-align: right;">2.5%</td>
+</tr>
+<tr>
+<td>暗的平坦区（取背景里一块）</td>
+<td style="text-align: right;">约 17%</td>
+<td style="text-align: right;">0.001%</td>
+</tr>
+</tbody>
+</table></div>
+<p>70% 的超限事件落在只占面积 25% 的边缘像素上，亮区和暗区的超限概率差了三个数量级。固定 <span class="arithmatex">\(T\)</span> 调高，暗区的弱缺陷漏掉；调低，边缘和亮区误报一片。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>允许的误报</th>
+<th style="text-align: right;">固定阈值能达到的最高检出率</th>
+<th style="text-align: right;">逐像素 z 阈值能达到的最高检出率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每张图不超过 0.1 个</td>
+<td style="text-align: right;">12%</td>
+<td style="text-align: right;">89%</td>
+</tr>
+<tr>
+<td>每张图不超过 1 个</td>
+<td style="text-align: right;">73%</td>
+<td style="text-align: right;">92%</td>
+</tr>
+</tbody>
+</table></div>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>固定灰度差阈值在良品图上的误报，主要出现在哪里？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>暗的平坦区，因为那里信号弱</span></button><button type="button" data-k="B"><b>B</b><span>图形边缘和亮区，因为那里的差值本来就大</span></button><button type="button" data-k="C"><b>C</b><span>全图均匀分布</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。边缘对亚像素的对齐残差敏感，亮区散粒噪声大，两者的差值波动都比暗区大得多。实测 70% 的超限落在边缘像素上，暗的平坦区几乎没有。</p></div></div>
+<h3 id="31-按像素建噪声模型">3.1 按像素建噪声模型</h3>
+<p>用多张良品估计每个像素的中心值和离散程度，再算 z-score：</p>
+<div class="arithmatex">\[
+z = \frac{\lvert \text{test} - \text{median} \rvert}{\sigma}
+\]</div>
+<p><span class="arithmatex">\(z &gt; k\)</span> 才算异常。这样 <span class="arithmatex">\(k\)</span> 有了统计含义。噪声是高斯分布、<span class="arithmatex">\(\sigma\)</span> 准确已知时，一个良品像素超过 <span class="arithmatex">\(k\)</span> 的概率是 <span class="arithmatex">\(\operatorname{erfc}(k/\sqrt{2})\)</span>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: right;">k</th>
+<th style="text-align: right;">单像素误报概率</th>
+<th style="text-align: right;">400 万像素的图上期望的超限像素数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2.7e-3</td>
+<td style="text-align: right;">10800</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">6.3e-5</td>
+<td style="text-align: right;">253</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">5.7e-7</td>
+<td style="text-align: right;">2.3</td>
+</tr>
+<tr>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">2.0e-9</td>
+<td style="text-align: right;">0.008</td>
+</tr>
+</tbody>
+</table></div>
+<p>这张表解释了为什么工业上常用 <span class="arithmatex">\(k = 5\)</span> 左右：图像有几百万像素，<span class="arithmatex">\(k = 3\)</span> 意味着每张图上万个噪声点。但它有一个前提，<span class="arithmatex">\(\sigma\)</span> 准确已知。第 3.3 节会看到这个前提不成立时差多少。</p>
+<h3 id="32-鲁棒统计中位数和-mad">3.2 鲁棒统计：中位数和 MAD</h3>
+<p>良品里难免混进坏图或者离群像素。均值和标准差会被它们拉偏，中位数和 MAD（median absolute deviation，中位数绝对偏差）不会：</p>
 <div class="highlight"><pre><span></span><code>median = 逐像素中位数
 MAD    = median(|x - median|)
-sigma  ≈ 1.4826 × MAD      （对高斯分布，这个系数让 sigma 和标准差一致）
+sigma  ≈ 1.4826 × MAD
 </code></pre></div>
-<p>还要给 sigma 设下限：完全稳定的像素 MAD 可能为 0，z 会变成无穷大，任何微小差异都报警。</p>
-<h3 id="分区阈值">分区阈值</h3>
-<p>更进一步，工业设备会把 die 按图形类型分区（阵列区、逻辑区、空白区、边缘区），每个区单独设阈值和灵敏度。这一套设置叫检测配方（recipe），调配方是检测工程师的日常工作。</p>
-<h2 id="4-连通域和缺陷特征">4. 连通域和缺陷特征</h2>
+<p><strong>1.4826 从哪来</strong>。对高斯分布，一半的样本落在 <span class="arithmatex">\(\mu \pm \text{MAD}\)</span> 之内，也就是 <span class="arithmatex">\(\text{MAD} = \sigma \cdot \Phi^{-1}(0.75) = 0.6745\,\sigma\)</span>。反过来 <span class="arithmatex">\(\sigma = \text{MAD} / 0.6745 = 1.4826 \times \text{MAD}\)</span>。乘这个系数是为了让 MAD 估出的值和标准差在同一个尺度上，<span class="arithmatex">\(k\)</span> 才有上一节那张表的含义。</p>
+<p>实测：12 张良品，其中 <span class="arithmatex">\(m\)</span> 张在一块 16×16 的区域里整体偏亮 80。待检图在这块区域里有一个 3×3、幅度 40 的缺陷，噪声标准差 3，<span class="arithmatex">\(k = 6\)</span>，每个 <span class="arithmatex">\(m\)</span> 做 200 次。</p>
+<figure><img src="../../18_传统缺陷检测/figures/fig03_良品里混进坏图.svg" alt="图 3：左一，均值模板上留下了坏图的“鬼影”。左二，标准差在该区域被撑大到 30 左右。左三，1.4826 倍 MAD 基本不变。最右，污染区域内缺陷的检出率随被污染张数的变化" loading="lazy"><figcaption>图 3：左一，均值模板上留下了坏图的“鬼影”。左二，标准差在该区域被撑大到 30 左右。左三，1.4826 倍 MAD 基本不变。最右，污染区域内缺陷的检出率随被污染张数的变化</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>12 张良品里被污染的张数</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>中位数 + MAD 的检出率</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">89%</td>
+<td style="text-align: right;">9.5%</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>均值 + 标准差的检出率</td>
+<td style="text-align: right;">100%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+</tr>
+</tbody>
+</table></div>
+<p>区域外的对照缺陷两种方法都是 100% 检出，说明失效只发生在被污染的地方。</p>
+<p>混进 2 张坏图时，均值法在该区域的 sigma 是 31.2（真实噪声是 3），模板偏了 13.3 个灰度。中位数法的 sigma 是 3.6，模板只偏 0.7。均值法漏检的主因是 sigma 被撑大：<span class="arithmatex">\(40 / 31.2 \approx 1.3\)</span>，远低于 <span class="arithmatex">\(k = 6\)</span>。</p>
+<p>还要注意中位数法的边界。理论上中位数能容忍接近一半的样本是坏的，实测 12 张里混进 4 张（三分之一）时检出率已经开始下降，5 张时基本失效。鲁棒统计只能对付少数坏样本，良品库本身仍然要筛。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>12 张良品里混进 1 张坏图，均值加标准差的方法在该区域漏掉了幅度 40 的缺陷。最主要的原因是什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>均值被拉高，缺陷和模板的差变小了</span></button><button type="button" data-k="B"><b>B</b><span>标准差被坏图撑大，z 值被压到阈值以下</span></button><button type="button" data-k="C"><b>C</b><span>良品张数太少</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。均值确实被拉高了几个灰度，但只有这一项的话 z 仍然远超阈值。标准差从 3 变成二三十，才是把 z 压到 1 到 2 之间的原因。坏图对离散程度的破坏比对中心值的破坏更严重。</p></div></div>
+<h3 id="33-良品不够时k-的含义会变">3.3 良品不够时，k 的含义会变</h3>
+<p>第 3.1 节的表假设 <span class="arithmatex">\(\sigma\)</span> 准确已知。实际的 <span class="arithmatex">\(\sigma\)</span> 是用 <span class="arithmatex">\(N\)</span> 张良品估出来的，每个像素只有 <span class="arithmatex">\(N\)</span> 个样本，估计值本身有很大的波动。被低估的像素上，正常的噪声也会算出很大的 z。</p>
+<p>实测：纯高斯噪声（标准差 3），没有任何缺陷，<span class="arithmatex">\(k = 5\)</span>。每个 <span class="arithmatex">\(N\)</span> 重复建模板 30 次，共统计约 553 万个良品像素。</p>
+<figure><img src="../../18_传统缺陷检测/figures/fig04_良品张数与误报.svg" alt="图 4：左，良品像素超过 k=5 的实测概率随良品张数的变化，绿色虚线是 sigma 已知时的理论值。右，逐像素估出的 sigma 与真值之比的分布，N=5 时左侧的尖峰是 min_sigma 把过小的估计值托住了" loading="lazy"><figcaption>图 4：左，良品像素超过 k=5 的实测概率随良品张数的变化，绿色虚线是 sigma 已知时的理论值。右，逐像素估出的 sigma 与真值之比的分布，N=5 时左侧的尖峰是 min_sigma 把过小的估计值托住了</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>良品张数 N</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">9</th>
+<th style="text-align: right;">15</th>
+<th style="text-align: right;">30</th>
+<th style="text-align: right;">100</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>中位数 + MAD 的单像素误报概率</td>
+<td style="text-align: right;">3.3e-2</td>
+<td style="text-align: right;">1.1e-2</td>
+<td style="text-align: right;">3.3e-3</td>
+<td style="text-align: right;">4.2e-4</td>
+<td style="text-align: right;">1.5e-5</td>
+</tr>
+<tr>
+<td>均值 + 标准差的单像素误报概率</td>
+<td style="text-align: right;">7.8e-3</td>
+<td style="text-align: right;">1.4e-3</td>
+<td style="text-align: right;">2.5e-4</td>
+<td style="text-align: right;">3.4e-5</td>
+<td style="text-align: right;">3.3e-6</td>
+</tr>
+<tr>
+<td>sigma 已知时的理论值</td>
+<td style="text-align: right;">5.7e-7</td>
+<td style="text-align: right;">5.7e-7</td>
+<td style="text-align: right;">5.7e-7</td>
+<td style="text-align: right;">5.7e-7</td>
+<td style="text-align: right;">5.7e-7</td>
+</tr>
+<tr>
+<td>MAD 估出的 sigma 与真值之比（5% 到 95% 分位）</td>
+<td style="text-align: right;">0.33 到 1.72</td>
+<td style="text-align: right;">0.36 到 1.59</td>
+<td style="text-align: right;">0.50 到 1.47</td>
+<td style="text-align: right;">0.65 到 1.33</td>
+<td style="text-align: right;">0.81 到 1.19</td>
+</tr>
+</tbody>
+</table></div>
+<p>读这张表的三个结论：</p>
+<ol>
+<li><strong>良品少时 k=5 远没有理论上那么严</strong>。30 张良品、MAD 法，单像素误报概率是 4.2e-4，比理论值高约 700 倍。折算到 400 万像素的图上是约 1700 个超限像素，不是 2 个。</li>
+<li><strong>鲁棒是有代价的</strong>。同样的 <span class="arithmatex">\(N\)</span>，MAD 法的误报概率是标准差法的 4 到 13 倍，因为 MAD 估计 sigma 的效率更低。上一节看到的抗污染能力，是用这个代价换来的。</li>
+<li><strong>不要把 k 当成概率来报告</strong>。<span class="arithmatex">\(k\)</span> 是一个需要在自己的数据上标定的旋钮。汇报时给实测的误报数，不要给“5 sigma 对应百万分之一”这种理论换算。</li>
+</ol>
+<div class="callout callout-key"><div class="callout-title">要点</div><p>本章作业用 12 到 15 张良品，测试用 <span class="arithmatex">\(k = 6\)</span> 加面积过滤，在小图上是够的。到了真实尺寸的图像，要么增加良品张数，要么把相邻像素或同类区域的统计合并起来估 sigma（第 3.5 节的分区就是一种合并），要么靠面积过滤兜底（第 5 节）。</p>
+</div>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>用 9 张良品、中位数加 MAD 建模板，k 取 5。在没有任何缺陷的良品图上，单个像素被判为异常的概率实测大约是多少？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>约 6e-7，和高斯理论一致</span></button><button type="button" data-k="B"><b>B</b><span>约 1%</span></button><button type="button" data-k="C"><b>C</b><span>0，因为没有缺陷</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 1.1e-2。每个像素只有 9 个样本，MAD 估出的 sigma 有一部分低于真值的一半，这些像素上普通的噪声就能超过 5 倍的“sigma”。理论值 6e-7 只在 sigma 准确已知时成立。</p></div></div>
+<h3 id="34-sigma-的下限">3.4 sigma 的下限</h3>
+<p>完全稳定的像素（比如饱和区，或者量化后数值不变的暗区）MAD 可能为 0，z 会变成无穷大，任何微小差异都报警。所以要给 sigma 设下限 <code>min_sigma</code>。图 4 右栏 <span class="arithmatex">\(N = 5\)</span> 时左侧的尖峰，就是这个下限把过小的估计值托住的结果。下限通常取相机读出噪声的量级。</p>
+<h3 id="35-分区阈值">3.5 分区阈值</h3>
+<p>更进一步，工业设备会把 die 按图形类型分区（阵列区、逻辑区、空白区、边缘区），每个区单独设阈值和灵敏度。这一套设置叫检测配方（recipe），调配方是检测工程师的日常工作。分区还有一个统计上的好处：同一个区里的像素可以合起来估噪声，样本量从 <span class="arithmatex">\(N\)</span> 变成 <span class="arithmatex">\(N\)</span> 乘以区域像素数，上一节的问题就缓解了。</p>
+<h2 id="4-整体亮度变化与归一化">4. 整体亮度变化与归一化</h2>
+<p>照明强度、曝光时间、薄膜厚度的缓慢变化，会让待检图相对模板整体变亮或变暗。这时每个像素的差值是“亮度 × 变化比例”，和缺陷无关。</p>
+<p>整片报警的门槛可以直接估出来：亮度为 <span class="arithmatex">\(L\)</span> 的区域整体变化比例 <span class="arithmatex">\(g\)</span> 时，差值是 <span class="arithmatex">\(gL\)</span>，它超过 <span class="arithmatex">\(k\sigma\)</span> 的条件是</p>
+<div class="arithmatex">\[
+g &gt; \frac{k\,\sigma}{L} = \frac{k}{\text{信噪比}}
+\]</div>
+<p>实测：让良品图整体乘一个增益，统计亮的平坦区（灰度约 180）里 <span class="arithmatex">\(z &gt; 5\)</span> 的像素比例。两种相机噪声水平各做一遍。</p>
+<figure><img src="../../18_传统缺陷检测/figures/fig05_整体亮度变化.svg" alt="图 5：左，低噪声相机下待检图整体亮 8% 时的 z 图，亮焊盘整片超限。中，做线性亮度归一化之后的 z 图。右，亮区被报警的像素比例随整体亮度变化的曲线，竖虚线是按 k 除以信噪比估出的门槛" loading="lazy"><figcaption>图 5：左，低噪声相机下待检图整体亮 8% 时的 z 图，亮焊盘整片超限。中，做线性亮度归一化之后的 z 图。右，亮区被报警的像素比例随整体亮度变化的曲线，竖虚线是按 k 除以信噪比估出的门槛</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>待检图比模板整体亮</th>
+<th style="text-align: right;">2%</th>
+<th style="text-align: right;">4%</th>
+<th style="text-align: right;">6%</th>
+<th style="text-align: right;">8%</th>
+<th style="text-align: right;">10%</th>
+<th style="text-align: right;">20%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本章的噪声水平（亮区信噪比 27）</td>
+<td style="text-align: right;">0.1%</td>
+<td style="text-align: right;">0.3%</td>
+<td style="text-align: right;">0.9%</td>
+<td style="text-align: right;">2.9%</td>
+<td style="text-align: right;">6.1%</td>
+<td style="text-align: right;">59%</td>
+</tr>
+<tr>
+<td>低噪声相机（亮区信噪比 95）</td>
+<td style="text-align: right;">1.5%</td>
+<td style="text-align: right;">20%</td>
+<td style="text-align: right;">66%</td>
+<td style="text-align: right;">95%</td>
+<td style="text-align: right;">99.7%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>归一化之后（两种相机）</td>
+<td style="text-align: right;">低于 0.1%</td>
+<td style="text-align: right;">低于 0.1%</td>
+<td style="text-align: right;">低于 0.1%</td>
+<td style="text-align: right;">低于 0.1%</td>
+<td style="text-align: right;">低于 0.1%</td>
+<td style="text-align: right;">低于 0.1%</td>
+</tr>
+</tbody>
+</table></div>
+<p>按公式估出的门槛分别是 18.5% 和 5.3%，和曲线上报警比例达到一半的位置一致。</p>
+<p>这里有一个容易忽略的结论：<strong>相机信噪比越高，越怕亮度漂移</strong>。噪声小，sigma 小，同样比例的亮度变化换算成 z 就更大。本章合成数据的噪声偏大，亮 10% 也只有 6% 的像素报警；换成信噪比 95 的相机，亮 4% 就有两成像素报警。</p>
+<p><strong>归一化的做法</strong>：比对之前，把待检图线性拟合到模板，<span class="arithmatex">\(\text{test} \approx a \cdot \text{median} + b\)</span>，用最小二乘求 <span class="arithmatex">\(a\)</span>、<span class="arithmatex">\(b\)</span>，再用 <span class="arithmatex">\((\text{test} - b)/a\)</span> 去比对。实验里这样处理之后，报警比例回到没有亮度变化时的水平。</p>
+<p>两个限制要知道。第一，大面积的真缺陷会把拟合拉偏，工程上用鲁棒拟合或者只取一部分稳定像素来拟合。第二，亮度变化在视场内不均匀时，一组 <span class="arithmatex">\(a\)</span>、<span class="arithmatex">\(b\)</span> 不够，要分块做，或者先做平场校正（flat-field correction，拍一张均匀目标得到视场内的响应图，再用它把亮度不均除掉）。</p>
+<h2 id="5-连通域和缺陷特征">5. 连通域和缺陷特征</h2>
 <p>阈值之后得到的是像素级的候选，要合并成“缺陷”：</p>
 <ul>
 <li><strong>连通性</strong>：8 连通把对角相邻也算一起，4 连通只算上下左右。8 连通更符合缺陷形状，但两个挨得很近的缺陷可能被合成一个。</li>
 <li><strong>面积过滤</strong>：去掉单像素噪声点，<code>min_area</code> 是最常用、最有效的误报过滤器。</li>
 <li><strong>形态学</strong>：开运算去毛刺，闭运算把断开的划痕连起来（第 3 章）。</li>
 </ul>
+<h3 id="51-面积过滤有多有效">5.1 面积过滤有多有效</h3>
+<figure><img src="../../18_传统缺陷检测/figures/fig06_工作点与匹配规则.svg" alt="图 6：左，检出率（蓝，左轴）和每张图的误报数（红，右轴，对数）随 k 的变化，虚线是不做面积过滤，实线是 min_area=3。右，检测结果完全相同时，只改变匹配半径得到的检出率和误报数" loading="lazy"><figcaption>图 6：左，检出率（蓝，左轴）和每张图的误报数（红，右轴，对数）随 k 的变化，虚线是不做面积过滤，实线是 min_area=3。右，检测结果完全相同时，只改变匹配半径得到的检出率和误报数</figcaption></figure>
+<p>同图 2 的合成 die，12 张良品建模板，60 张待检图各 5 个缺陷：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>k</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">4.5</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">6</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>不过滤：检出率</td>
+<td style="text-align: right;">98%</td>
+<td style="text-align: right;">98%</td>
+<td style="text-align: right;">98%</td>
+<td style="text-align: right;">94%</td>
+</tr>
+<tr>
+<td>不过滤：每张图误报</td>
+<td style="text-align: right;">113</td>
+<td style="text-align: right;">71</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td>min_area=3：检出率</td>
+<td style="text-align: right;">90%</td>
+<td style="text-align: right;">86%</td>
+<td style="text-align: right;">79%</td>
+<td style="text-align: right;">63%</td>
+</tr>
+<tr>
+<td>min_area=3：每张图误报</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">0.1</td>
+<td style="text-align: right;">低于 0.02</td>
+<td style="text-align: right;">约 0.02</td>
+</tr>
+</tbody>
+</table></div>
+<p><span class="arithmatex">\(k = 5\)</span> 时，面积过滤把误报从每张图 47 个压到几乎为 0。原因是噪声像素彼此独立：单个像素超限的概率是 <span class="arithmatex">\(p\)</span>，三个相邻像素同时超限的概率在 <span class="arithmatex">\(p^3\)</span> 的量级。</p>
+<p>代价也在表里：检出率从 98% 掉到 79%。弱缺陷只有一两个像素超过阈值，和噪声点一起被滤掉了。所以 <span class="arithmatex">\(k\)</span> 和 <code>min_area</code> 要一起调：有了面积过滤，可以把 <span class="arithmatex">\(k\)</span> 降到 4 或 4.5，换回一部分检出。</p>
+<p>这个推理只对彼此独立的噪声成立。对齐残差造成的超限沿边缘连成一串（第 16 章图 1），面积过滤滤不掉，要靠提高对齐精度或者边缘区降灵敏度。</p>
+<h3 id="52-连通域标记的实现">5.2 连通域标记的实现</h3>
+<p>作业要求不用库函数实现连通域标记。两种常见写法：</p>
+<ul>
+<li><strong>广度优先搜索（BFS）</strong>：光栅扫描，遇到没标记的前景像素就开一个新编号，用队列把和它连通的像素全部标上。</li>
+<li><strong>两遍扫描加并查集</strong>：第一遍给每个像素临时编号并记录哪些编号相通，第二遍把相通的编号合并。</li>
+</ul>
+<p>不要用递归的深度优先搜索。一个大连通域可能有几十万像素，递归深度会超过语言的栈上限（第 15 章第 4 节专门讲了这个问题）。</p>
+<h3 id="53-缺陷特征">5.3 缺陷特征</h3>
 <p>每个缺陷提取特征，供后续过滤和分类：</p>
 <div class="table-wrap"><table>
 <thead>
@@ -169,7 +534,7 @@ sigma  ≈ 1.4826 × MAD      （对高斯分布，这个系数让 sigma 和标�
 </tr>
 </tbody>
 </table></div>
-<h2 id="5-工业指标">5. 工业指标</h2>
+<h2 id="6-工业指标与怎样评估">6. 工业指标与怎样评估</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -201,9 +566,57 @@ sigma  ≈ 1.4826 × MAD      （对高斯分布，这个系数让 sigma 和标�
 </tbody>
 </table></div>
 <p><strong>代价不对称</strong>：漏检意味着坏芯片流到后道甚至客户，代价很高；过检意味着良品被报废或者送去人工复查，代价是成本和产能。所以产线一般先定漏检上限，在满足上限的前提下压低过检。第 19 章的 <code>threshold_at_escape</code> 就是这个思路。</p>
-<p><strong>怎么报告</strong>：不要只给一个准确率。给出检出率和误报率随阈值变化的曲线，标出当前工作点，并说明测试集有多少缺陷、分别是什么类型。缺陷样本少时要报置信区间。</p>
-<p><strong>匹配规则</strong>要提前定好：预测和真值距离多少以内算命中？一个真值能不能被多个预测命中？作业里的贪心一对一匹配是常用做法。规则不同，指标可以差很多。</p>
-<h2 id="6-典型误报来源">6. 典型误报来源</h2>
+<h3 id="61-匹配规则会改变指标">6.1 匹配规则会改变指标</h3>
+<p>预测和真值距离多少以内算命中？一个真值能不能被多个预测命中？这些规则要提前定好。作业里的贪心一对一匹配是常用做法。</p>
+<p>规则的影响有多大，可以量出来。图 6 右栏的实验里，检测结果完全固定，真值坐标带有标准差 1.5 px 的定位误差（人工标注或者复查设备给的坐标都有误差），只改变匹配半径：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>匹配半径（px）</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">20</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检出率</td>
+<td style="text-align: right;">14%</td>
+<td style="text-align: right;">41%</td>
+<td style="text-align: right;">59%</td>
+<td style="text-align: right;">68%</td>
+<td style="text-align: right;">68%</td>
+<td style="text-align: right;">73%</td>
+</tr>
+<tr>
+<td>每张图误报</td>
+<td style="text-align: right;">5.2</td>
+<td style="text-align: right;">3.8</td>
+<td style="text-align: right;">2.9</td>
+<td style="text-align: right;">2.5</td>
+<td style="text-align: right;">2.5</td>
+<td style="text-align: right;">2.2</td>
+</tr>
+</tbody>
+</table></div>
+<p>同一份检测结果，检出率可以报成 14%，也可以报成 73%。半径太小，定位稍有偏差的命中被同时记成一次漏检和一次误报。半径太大，不相干的误报被配给了漏掉的真值，检出率虚高（真值坐标没有误差时的检出率是 68%，半径 20 px 时报出了 73%）。</p>
+<p>合理的半径由真值的定位精度和缺陷之间的最小间距决定：大于前者的两到三倍，小于后者的一半。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>两个人用同一份检测输出和同一份真值，一个报检出率 41%，另一个报 68%。最先该核对什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>两人用的阈值 k 是否相同</span></button><button type="button" data-k="B"><b>B</b><span>两人用的匹配半径是否相同</span></button><button type="button" data-k="C"><b>C</b><span>两人用的随机种子是否相同</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。检测输出已经固定，k 和随机种子都不再起作用。上面的实验里，匹配半径 2 px 时检出率是 41%，5 px 时是 68%。</p></div></div>
+<h3 id="62-怎么报告">6.2 怎么报告</h3>
+<ul>
+<li>不要只给一个准确率。给出检出率和误报数随阈值变化的曲线（图 6 左栏），标出当前工作点。</li>
+<li>写清条件：良品张数、k、<code>min_area</code>、匹配半径、测试集有多少缺陷、分别是什么类型和尺寸。</li>
+<li>缺陷样本少时报置信区间。例如 30 个真缺陷检出 28 个，检出率 93%，Wilson 95% 置信区间是 79% 到 98%。只报“93%”会让人以为它比 90% 好。</li>
+<li>误报用“每张图”或“每片晶圆”多少个来报，不要用比例。良品像素太多，按像素算的误报率总是小得没有区分度。</li>
+</ul>
+<h2 id="7-交互演示">7. 交互演示</h2>
+<p>把“阈值切在哪”抽象成两个分数分布：良品的分数和缺陷的分数。拖动阈值看过检和漏检怎样此消彼长，再改变缺陷率，看报警里真缺陷的比例怎么变。按页面里“试一试”的三个问题操作。</p>
+<div class="embed"><iframe src="../../demos/过检漏检权衡.html" height="880" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/过检漏检权衡.html">打开交互演示：过检与漏检的权衡</a></p>
+<h2 id="8-典型误报来源">8. 典型误报来源</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -221,12 +634,12 @@ sigma  ≈ 1.4826 × MAD      （对高斯分布，这个系数让 sigma 和标�
 <tr>
 <td>整片区域报警</td>
 <td>照明或膜厚漂移导致整体亮度变化</td>
-<td>比对前做亮度归一化</td>
+<td>比对前做亮度归一化（第 4 节）</td>
 </tr>
 <tr>
 <td>散落的单像素点</td>
-<td>噪声</td>
-<td>面积过滤、提高 k</td>
+<td>噪声，或者良品张数不够导致 sigma 被低估</td>
+<td>面积过滤、提高 k、增加良品</td>
 </tr>
 <tr>
 <td>颜色差（color variation）</td>
@@ -241,6 +654,82 @@ sigma  ≈ 1.4826 × MAD      （对高斯分布，这个系数让 sigma 和标�
 </tbody>
 </table></div>
 <p>第 24 章的综合项目会让你亲手遇到前两种。</p>
+<h2 id="9-常见错误">9. 常见错误</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sigma 整体偏小约三分之一，误报很多</td>
+<td>MAD 忘了乘 1.4826</td>
+<td>用标准差为 3 的纯噪声测，sigma 中位数应接近 3</td>
+</tr>
+<tr>
+<td>某些像素 z 是 inf 或 nan</td>
+<td>sigma 为 0，没有设下限</td>
+<td>用完全相同的几张图建模板测</td>
+</tr>
+<tr>
+<td>差值出现 250 左右的大数</td>
+<td>用 <code>uint8</code> 直接相减发生回绕</td>
+<td>先转成 <code>float64</code></td>
+</tr>
+<tr>
+<td>对角相连的缺陷被拆成两个</td>
+<td>用了 4 连通</td>
+<td>测两个对角相邻的像素</td>
+</tr>
+<tr>
+<td>大连通域上程序崩溃</td>
+<td>用递归实现连通域，栈溢出</td>
+<td>用一张全是前景的大图测</td>
+</tr>
+<tr>
+<td>bbox 比预期小一行一列</td>
+<td>没按开区间约定给 <code>y1</code>、<code>x1</code> 加 1</td>
+<td>测一个 3×3 的方块，bbox 的高和宽应为 3</td>
+</tr>
+<tr>
+<td>一个真值被两个预测同时命中，tp 大于真值个数</td>
+<td>匹配没做一对一</td>
+<td>在同一个真值附近放两个预测测</td>
+</tr>
+<tr>
+<td>质心坐标顺序反了</td>
+<td>把 (x, y) 当成了 (行, 列)</td>
+<td>测一个不在对角线上的缺陷</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="10-破坏实验">10. 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>把良品张数从 12 减到 5，k 保持 6 不变。良品图上的误报数怎么变？对照图 4 解释。</li>
+<li>让待检图整体亮 10%，不做归一化。误报出现在哪些区域？按第 4 节的公式，你的数据里整片报警的门槛是百分之几？</li>
+<li>把 <code>min_area</code> 设为 1 和 9，各丢掉了什么？</li>
+<li>把 3 张良品换成同一位置带大缺陷的图，比较中位数加 MAD 和均值加标准差（Notebook 实验 2）。再换成 5 张试试。</li>
+<li>图 2 最右一栏里，固定阈值从 12 降到 8，检出率反而从 97% 降到 91%。先猜原因，再画出阈值为 8 时的候选掩膜验证。</li>
+<li>把匹配半径从 3 改成 1 和 10，同一份检测结果的检出率各是多少？</li>
+</ol>
+<h2 id="11-扩展深挖档">11. 扩展（深挖档）</h2>
+<ul>
+<li>实现三比仲裁：输入三张图，输出只属于中间那张的缺陷。复现第 2.1 节的表。</li>
+<li>实现分区阈值：给 die 画一张区域图，每个区用区内所有像素合起来估 sigma，比较和逐像素估计在良品少时的误报。</li>
+<li>实现亮度归一化，并构造一个“大面积真缺陷把拟合拉偏”的例子，再用只取中间 80% 像素的办法修好它。</li>
+<li>下载 <code>data/README.md</code> 里列的 DAGM 2007 数据集，选一类纹理规则的样本，用本章的流水线跑一遍，按第 6.2 节的格式写报告。</li>
+</ul>
+<h2 id="12-和后续章节的关系">12. 和后续章节的关系</h2>
+<ul>
+<li>第 16 章的对齐精度决定了本章边缘区的 sigma 有多大。</li>
+<li>第 19 章的异常检测把“和模板逐像素比”换成“和良品特征比”，指标和工作点的思路完全相同。</li>
+<li>第 22 章解释亮区噪声为什么大（散粒噪声）。</li>
+<li>第 24 章把对齐、亮度归一化、金模板、阈值和连通域串成一条流水线。</li>
+</ul>
 <h2 id="自测问题">自测问题</h2>
 <ol>
 <li>双比法报出一个差异，怎样判断缺陷在待检 die 还是参考 die 上？</li>
@@ -248,10 +737,12 @@ sigma  ≈ 1.4826 × MAD      （对高斯分布，这个系数让 sigma 和标�
 <li>为什么 MAD 要乘 1.4826？</li>
 <li>k 从 4 提到 6，检出率和误报率大致怎么变？</li>
 <li>同一批数据，两个人报出的检出率差很多，最先该核对什么？</li>
+<li>只有 10 张良品时，“k=5 对应百万分之一的误报”这句话错在哪？有哪些补救办法？</li>
+<li>换了一台噪声更低的相机之后，整片报警反而变多了，可能是什么原因？</li>
 </ol></article><nav class="prev-next"><a href="17.html">← 第 17 章 相机标定</a><a href="19.html">第 19 章 异常检测与深度缺陷检测 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#1-一条检测流水线长什么样">1. 一条检测流水线长什么样</a></li><li><a href="#2-参考图从哪来">2. 参考图从哪来</a></li><li><a href="#3-阈值为什么不能用固定灰度差">3. 阈值：为什么不能用固定灰度差</a></li><li class="sub"><a href="#鲁棒统计中位数和-mad">鲁棒统计：中位数和 MAD</a></li><li class="sub"><a href="#分区阈值">分区阈值</a></li><li><a href="#4-连通域和缺陷特征">4. 连通域和缺陷特征</a></li><li><a href="#5-工业指标">5. 工业指标</a></li><li><a href="#6-典型误报来源">6. 典型误报来源</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#1-一条检测流水线长什么样">1. 一条检测流水线长什么样</a></li><li><a href="#2-参考图从哪来">2. 参考图从哪来</a></li><li class="sub"><a href="#21-双比的两个问题归属和噪声">2.1 双比的两个问题：归属和噪声</a></li><li class="sub"><a href="#22-重复缺陷是比对方法的盲区">2.2 重复缺陷是比对方法的盲区</a></li><li><a href="#3-阈值为什么不能用固定灰度差">3. 阈值：为什么不能用固定灰度差</a></li><li class="sub"><a href="#31-按像素建噪声模型">3.1 按像素建噪声模型</a></li><li class="sub"><a href="#32-鲁棒统计中位数和-mad">3.2 鲁棒统计：中位数和 MAD</a></li><li class="sub"><a href="#33-良品不够时k-的含义会变">3.3 良品不够时，k 的含义会变</a></li><li class="sub"><a href="#34-sigma-的下限">3.4 sigma 的下限</a></li><li class="sub"><a href="#35-分区阈值">3.5 分区阈值</a></li><li><a href="#4-整体亮度变化与归一化">4. 整体亮度变化与归一化</a></li><li><a href="#5-连通域和缺陷特征">5. 连通域和缺陷特征</a></li><li class="sub"><a href="#51-面积过滤有多有效">5.1 面积过滤有多有效</a></li><li class="sub"><a href="#52-连通域标记的实现">5.2 连通域标记的实现</a></li><li class="sub"><a href="#53-缺陷特征">5.3 缺陷特征</a></li><li><a href="#6-工业指标与怎样评估">6. 工业指标与怎样评估</a></li><li class="sub"><a href="#61-匹配规则会改变指标">6.1 匹配规则会改变指标</a></li><li class="sub"><a href="#62-怎么报告">6.2 怎么报告</a></li><li><a href="#7-交互演示">7. 交互演示</a></li><li><a href="#8-典型误报来源">8. 典型误报来源</a></li><li><a href="#9-常见错误">9. 常见错误</a></li><li><a href="#10-破坏实验">10. 破坏实验</a></li><li><a href="#11-扩展深挖档">11. 扩展（深挖档）</a></li><li><a href="#12-和后续章节的关系">12. 和后续章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

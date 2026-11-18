@@ -23,6 +23,7 @@ from pathlib import Path
 
 import markdown
 from markdown.extensions.toc import slugify_unicode
+from pymdownx.arithmatex import arithmatex_fenced_format
 from pygments.formatters import HtmlFormatter
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +44,8 @@ def warn(msg: str) -> None:
 def md_convert(text: str, toc: bool = False):
     exts = ["tables", "sane_lists", "md_in_html", "attr_list", "pymdownx.superfences",
             "pymdownx.highlight", "pymdownx.arithmatex", "pymdownx.tilde"]
-    cfg = {"pymdownx.arithmatex": {"generic": True}, "pymdownx.highlight": {"use_pygments": True, "guess_lang": False}}
+    cfg = {"pymdownx.arithmatex": {"generic": True}, "pymdownx.highlight": {"use_pygments": True, "guess_lang": False},
+           "pymdownx.superfences": {"custom_fences": [{"name": "math", "class": "arithmatex", "format": arithmatex_fenced_format(which="generic")}]}}
     if toc:
         exts.append("toc")
         cfg["toc"] = {"slugify": slugify_unicode, "toc_depth": "2-3"}

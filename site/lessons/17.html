@@ -58,130 +58,543 @@
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 17 章 <span class="tag P0">P0</span> <span class="badge">原版讲义</span></div><h1>相机标定</h1><p class="scene"><b>用在哪：</b>把像素换算成物理尺寸，校正畸变，建立相机和平台的坐标关系</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 12 小时</span><span class="chip"><b>深挖</b> 18 小时</span><span class="chip">前置：<a href="../lessons/04.html">第 4 章 几何变换</a>、<a href="../lessons/07.html">第 7 章 相机与三维视觉</a></span></div><div class="meta-row"><span class="chip mono">验收：python 17_相机标定/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="17"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><h2 id="1-标定要求什么">1. 标定要求什么</h2>
-<p>针孔模型（第 7 章）：</p>
-<div class="highlight"><pre><span></span><code>s [u, v, 1]^T = K [R | t] [X, Y, Z, 1]^T
-
-K = [[fx, γ,  cx],
-     [0,  fy, cy],
-     [0,  0,  1 ]]
-</code></pre></div>
+<div class="lesson-head"><div class="crumbs">第 17 章 <span class="tag P0">P0</span> <span class="badge ok">已升级</span></div><h1>相机标定</h1><p class="scene"><b>用在哪：</b>把像素换算成物理尺寸，校正畸变，建立相机和平台的坐标关系</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 12 小时</span><span class="chip"><b>深挖</b> 18 小时</span><span class="chip">前置：<a href="../lessons/04.html">第 4 章 几何变换</a>、<a href="../lessons/07.html">第 7 章 相机与三维视觉</a></span></div><div class="meta-row"><span class="chip mono">验收：python 17_相机标定/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="17"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自合成相机上的实测，记录在 <a href="../../17_相机标定/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch17.py</code> 生成。线性解用本章作业的参考实现，带非线性优化的对照用 OpenCV 的 <code>calibrateCamera</code>。换成真实相机，数值会变，结论的方向要自己再测一遍。</p>
+</div>
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：把像素换算成物理尺寸（线宽、缺陷大小、套刻偏差），校正镜头畸变，建立相机和运动平台、相机和相机之间的坐标关系。凡是要回答“这个东西有多大、在哪里”的检测和量测，前面都有一步标定。</p>
+<p><strong>优先级</strong>：P0，岗位要求里单独列出。前置是第 4 章（齐次坐标、单应）和第 7 章（针孔模型）。后面第 21 章的渲染相机和第 24 章的坐标变换用同一套模型。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">3 小时</td>
+<td>读第 1、2 节和第 6 节，看懂图 3 到图 5，把第 7 节演示里列的四条都试一遍，答完 4 道小测</td>
+<td>能讲清内参、外参、畸变各是什么，标定图应该怎么拍，为什么重投影误差小不代表标定准</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">12 小时</td>
+<td>读完全章并跟着推一遍第 3 节，跑 Notebook，完成作业并验收通过，填实验记录</td>
+<td>验收全部 PASS，实验记录里有视图数、倾斜角和误差的关系</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">18 小时</td>
+<td>再做第 10 节的破坏实验和第 11 节的扩展</td>
+<td>用自己拍的棋盘图完成一次标定，并用留出的图报告误差</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。第 3 节的推导是本章最花时间的部分，速通档可以只记结论。</p>
+</div>
+<h2 id="1-标定要求什么不准会怎样">1. 标定要求什么，不准会怎样</h2>
+<p>针孔模型（第 7 章）把三维点投影到像素：</p>
+<div class="arithmatex">\[
+s \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = K\,[R \mid t] \begin{bmatrix} X \\ Y \\ Z \\ 1 \end{bmatrix},
+\qquad
+K = \begin{bmatrix} f_x &amp; \gamma &amp; c_x \\ 0 &amp; f_y &amp; c_y \\ 0 &amp; 0 &amp; 1 \end{bmatrix}
+\]</div>
 <ul>
-<li><strong>内参</strong> K：焦距（以像素为单位）、主点、倾斜（现代相机 γ≈0）。</li>
-<li><strong>外参</strong> R、t：世界坐标系到相机坐标系的变换，每张标定图各有一组。</li>
-<li><strong>畸变</strong>：真实镜头不是理想针孔，需要额外参数。</li>
+<li><strong>内参</strong> <span class="arithmatex">\(K\)</span>：焦距（以像素为单位）、主点、倾斜（现代相机 <span class="arithmatex">\(\gamma \approx 0\)</span>）。换镜头或调焦之后才会变。</li>
+<li><strong>外参</strong> <span class="arithmatex">\(R\)</span>、<span class="arithmatex">\(t\)</span>：世界坐标系到相机坐标系的变换，每张标定图各有一组。</li>
+<li><strong>畸变</strong>：真实镜头不是理想针孔，需要额外参数（第 2 节）。</li>
 </ul>
 <p>标定就是用已知几何的标定物（棋盘、圆点阵列），从图像里反推这些参数。</p>
+<p>不准的代价可以直接量出来。本章的合成相机分辨率 640×480，带一点桶形畸变（<span class="arithmatex">\(k_1 = -0.1\)</span>），它让画面右下角的点向内移动约 9.6 px。如果标定时不建畸变模型：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">不建畸变模型</th>
+<th style="text-align: right;">建 k1、k2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>重投影 RMS（px）</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">0.27</td>
+</tr>
+<tr>
+<td>焦距 fx 的相对误差</td>
+<td style="text-align: right;">2.7%</td>
+<td style="text-align: right;">0.24%</td>
+</tr>
+</tbody>
+</table></div>
+<p>重投影误差只从 0.27 px 涨到 0.34 px，看上去差不多，焦距误差的中位数却到了 2.7%。在已知工作距离下，物体尺寸等于像素长度乘以距离再除以焦距，焦距错百分之几，量出来的尺寸就错百分之几。第 6 节会反复遇到这个现象：<strong>重投影误差小，不代表参数准</strong>。</p>
 <h2 id="2-畸变模型">2. 畸变模型</h2>
-<p>在归一化坐标 (x, y) = (Xc/Zc, Yc/Zc) 上，r² = x² + y²：</p>
-<div class="highlight"><pre><span></span><code>径向：  x_d = x (1 + k1 r² + k2 r⁴ + k3 r⁶)
-切向：  x_d += 2 p1 x y + p2 (r² + 2x²)
-        y_d 同理
-</code></pre></div>
-<p>然后 u = fx·x_d + cx，v = fy·y_d + cy。</p>
+<p>在归一化坐标 <span class="arithmatex">\((x, y) = (X_c / Z_c,\; Y_c / Z_c)\)</span> 上，记 <span class="arithmatex">\(r^2 = x^2 + y^2\)</span>：</p>
+<div class="arithmatex">\[
+\begin{aligned}
+x_d &amp;= x\,(1 + k_1 r^2 + k_2 r^4 + k_3 r^6) + 2 p_1 x y + p_2 (r^2 + 2x^2) \\
+y_d &amp;= y\,(1 + k_1 r^2 + k_2 r^4 + k_3 r^6) + p_1 (r^2 + 2y^2) + 2 p_2 x y
+\end{aligned}
+\]</div>
+<p>然后 <span class="arithmatex">\(u = f_x\,x_d + c_x\)</span>，<span class="arithmatex">\(v = f_y\,y_d + c_y\)</span>。</p>
 <ul>
-<li>k1 &lt; 0 是桶形畸变（广角常见），k1 &gt; 0 是枕形畸变。</li>
-<li>切向畸变来自镜片和传感器不平行，通常很小。</li>
+<li><span class="arithmatex">\(k_1 &lt; 0\)</span> 是桶形畸变（广角常见），<span class="arithmatex">\(k_1 &gt; 0\)</span> 是枕形畸变。</li>
+<li>带 <span class="arithmatex">\(p_1\)</span>、<span class="arithmatex">\(p_2\)</span> 的项是切向畸变，来自镜片和传感器不平行，通常很小。</li>
+<li>畸变随 <span class="arithmatex">\(r\)</span> 增长，画面中央几乎没有，四角最大。这一点决定了标定图必须覆盖到四角（第 6.3 节）。</li>
 <li>工业检测常用低畸变镜头或远心镜头，但亚像素测量时仍然要标。</li>
 </ul>
 <h2 id="3-zhang-方法用平面标定物">3. Zhang 方法：用平面标定物</h2>
-<p>把世界坐标系建在棋盘平面上，棋盘上所有点 Z = 0：</p>
-<div class="highlight"><pre><span></span><code>s [u, v, 1]^T = K [r1 r2 r3 t] [X, Y, 0, 1]^T = K [r1 r2 t] [X, Y, 1]^T
-</code></pre></div>
-<p>所以棋盘平面到图像是一个<strong>单应</strong> H = λ K [r1 r2 t]。每张图用 DLT 估计一个 H（第 4 章已经见过单应）。</p>
-<h3 id="31-两个约束">3.1 两个约束</h3>
-<p>记 H = [h1 h2 h3]，则 r1 = K⁻¹h1 / λ，r2 = K⁻¹h2 / λ。旋转矩阵的列正交且等长：</p>
-<div class="highlight"><pre><span></span><code>r1 · r2 = 0         →  h1^T K^{-T} K^{-1} h2 = 0
-|r1| = |r2|         →  h1^T K^{-T} K^{-1} h1 = h2^T K^{-T} K^{-1} h2
-</code></pre></div>
-<p>令 B = K^{-T} K^{-1}（对称矩阵，6 个未知数，差一个尺度）。每张图给 2 个关于 B 的线性方程。</p>
-<h3 id="32-写成线性方程组">3.2 写成线性方程组</h3>
-<p>把 B 的 6 个独立元素排成向量 b = [B11, B12, B22, B13, B23, B33]，则</p>
-<div class="highlight"><pre><span></span><code>hi^T B hj = v_ij^T b
-v_ij = [hi1 hj1, hi1 hj2 + hi2 hj1, hi2 hj2,
-        hi3 hj1 + hi1 hj3, hi3 hj2 + hi2 hj3, hi3 hj3]
-</code></pre></div>
-<p>每张图贡献两行：<code>v12^T</code> 和 <code>(v11 - v22)^T</code>。n 张图叠成 2n x 6 的矩阵 V，求 Vb = 0 的最小二乘解（SVD 最小奇异值对应的右奇异向量）。</p>
-<p><strong>为什么至少 3 张</strong>：b 有 6 个元素差一个尺度，即 5 个自由度，每张图 2 个方程，3 张图 6 个方程。若假设 γ = 0，可以再加一个方程，2 张图也能解。</p>
-<h3 id="33-从-b-恢复-k">3.3 从 B 恢复 K</h3>
+<h3 id="31-平面到图像是一个单应">3.1 平面到图像是一个单应</h3>
+<p>把世界坐标系建在棋盘平面上，棋盘上所有点 <span class="arithmatex">\(Z = 0\)</span>，旋转矩阵的第三列 <span class="arithmatex">\(r_3\)</span> 乘的是 0，直接消失：</p>
+<div class="arithmatex">\[
+s \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = K\,[r_1\; r_2\; r_3\; t] \begin{bmatrix} X \\ Y \\ 0 \\ 1 \end{bmatrix} = K\,[r_1\; r_2\; t] \begin{bmatrix} X \\ Y \\ 1 \end{bmatrix}
+\]</div>
+<p>所以棋盘平面到图像是一个 3×3 的<strong>单应</strong>（homography）<span class="arithmatex">\(H = \lambda\,K\,[r_1\; r_2\; t]\)</span>，<span class="arithmatex">\(\lambda\)</span> 是任意非零尺度。</p>
+<h3 id="32-用-dlt-估计单应">3.2 用 DLT 估计单应</h3>
+<p>设棋盘上的点 <span class="arithmatex">\((x, y)\)</span> 对应图像上的 <span class="arithmatex">\((u, v)\)</span>，<span class="arithmatex">\(H\)</span> 的元素记为 <span class="arithmatex">\(H_{ij}\)</span>：</p>
+<div class="arithmatex">\[
+u = \frac{H_{11}x + H_{12}y + H_{13}}{H_{31}x + H_{32}y + H_{33}}, \qquad
+v = \frac{H_{21}x + H_{22}y + H_{23}}{H_{31}x + H_{32}y + H_{33}}
+\]</div>
+<p>两边乘以分母并移项，每对点得到两个关于 <span class="arithmatex">\(H\)</span> 的 9 个元素的线性方程：</p>
+<div class="arithmatex">\[
+\begin{aligned}
+-x H_{11} - y H_{12} - H_{13} + u x H_{31} + u y H_{32} + u H_{33} &amp;= 0 \\
+-x H_{21} - y H_{22} - H_{23} + v x H_{31} + v y H_{32} + v H_{33} &amp;= 0
+\end{aligned}
+\]</div>
+<p><span class="arithmatex">\(N\)</span> 对点叠成 <span class="arithmatex">\(2N \times 9\)</span> 的矩阵 <span class="arithmatex">\(A\)</span>，求 <span class="arithmatex">\(A h = 0\)</span> 的最小二乘解，也就是 <span class="arithmatex">\(A\)</span> 最小奇异值对应的右奇异向量。<span class="arithmatex">\(H\)</span> 有 9 个元素、差一个尺度，共 8 个自由度，所以至少要 4 对点。这个做法叫直接线性变换（direct linear transform，DLT）。</p>
+<p>作业里的 <code>homography_dlt</code> 还要先做归一化，为什么要做、什么时候有用，见第 5 节。</p>
+<h3 id="33-两个约束">3.3 两个约束</h3>
+<p>记 <span class="arithmatex">\(H = [h_1\; h_2\; h_3]\)</span>（按列），则 <span class="arithmatex">\(r_1 = K^{-1}h_1 / \lambda\)</span>，<span class="arithmatex">\(r_2 = K^{-1}h_2 / \lambda\)</span>。旋转矩阵的列互相垂直并且等长：</p>
+<div class="arithmatex">\[
+\begin{aligned}
+r_1 \cdot r_2 = 0 \quad &amp;\Rightarrow \quad h_1^\top K^{-\top} K^{-1} h_2 = 0 \\
+\lVert r_1 \rVert = \lVert r_2 \rVert \quad &amp;\Rightarrow \quad h_1^\top K^{-\top} K^{-1} h_1 = h_2^\top K^{-\top} K^{-1} h_2
+\end{aligned}
+\]</div>
+<p>令 <span class="arithmatex">\(B = K^{-\top} K^{-1}\)</span>。它是对称矩阵，有 6 个独立元素，差一个尺度。每张图给出 2 个关于 <span class="arithmatex">\(B\)</span> 的线性方程。</p>
+<h3 id="34-写成线性方程组">3.4 写成线性方程组</h3>
+<p>把 <span class="arithmatex">\(B\)</span> 的 6 个独立元素排成向量 <span class="arithmatex">\(b = [B_{11}, B_{12}, B_{22}, B_{13}, B_{23}, B_{33}]^\top\)</span>。记 <span class="arithmatex">\(h_{ik}\)</span> 为第 <span class="arithmatex">\(i\)</span> 列的第 <span class="arithmatex">\(k\)</span> 个元素，则 <span class="arithmatex">\(h_i^\top B\,h_j = v_{ij}^\top b\)</span>，其中</p>
+<div class="arithmatex">\[
+v_{ij} = \begin{bmatrix} h_{i1}h_{j1} \\ h_{i1}h_{j2} + h_{i2}h_{j1} \\ h_{i2}h_{j2} \\ h_{i3}h_{j1} + h_{i1}h_{j3} \\ h_{i3}h_{j2} + h_{i2}h_{j3} \\ h_{i3}h_{j3} \end{bmatrix}
+\]</div>
+<p>每张图贡献两行：<span class="arithmatex">\(v_{12}^\top\)</span> 和 <span class="arithmatex">\((v_{11} - v_{22})^\top\)</span>。<span class="arithmatex">\(n\)</span> 张图叠成 <span class="arithmatex">\(2n \times 6\)</span> 的矩阵 <span class="arithmatex">\(V\)</span>，求 <span class="arithmatex">\(V b = 0\)</span> 的最小二乘解。</p>
+<p><strong>为什么至少 3 张</strong>：<span class="arithmatex">\(b\)</span> 有 6 个元素、差一个尺度，即 5 个自由度，每张图 2 个方程，3 张图 6 个方程。若假设 <span class="arithmatex">\(\gamma = 0\)</span>，可以再加一个方程，2 张图也能解。</p>
+<p><strong>为什么板子要倾斜</strong>。假设所有标定图都正对相机，板子只在自己的平面内旋转角度 <span class="arithmatex">\(\theta\)</span> 和平移。这时 <span class="arithmatex">\(r_1 = (\cos\theta, \sin\theta, 0)^\top\)</span>，<span class="arithmatex">\(r_2 = (-\sin\theta, \cos\theta, 0)^\top\)</span>，第三个分量都是 0。<span class="arithmatex">\(K\)</span> 的第三行是 <span class="arithmatex">\((0, 0, 1)\)</span>，所以 <span class="arithmatex">\(h_1 = \lambda K r_1\)</span> 和 <span class="arithmatex">\(h_2 = \lambda K r_2\)</span> 的第三个分量也是 0。代回 <span class="arithmatex">\(v_{ij}\)</span> 的定义，后三个元素全为 0，方程里根本不出现 <span class="arithmatex">\(B_{13}\)</span>、<span class="arithmatex">\(B_{23}\)</span>、<span class="arithmatex">\(B_{33}\)</span>。</p>
+<p>这三个量恰好携带主点和焦距的绝对大小。剩下的 <span class="arithmatex">\(B_{11}\)</span>、<span class="arithmatex">\(B_{22}\)</span> 只确定到一个共同的尺度，能解出来的只有 <span class="arithmatex">\(f_x / f_y\)</span> 这个比值。直观上也说得通：正对相机时，焦距加倍、距离也加倍，图像完全一样。只有板子倾斜、出现近大远小，焦距才能和距离分开。第 6.1 节量了这件事有多严重。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>所有标定图都正对相机拍，板子只在自己的平面内旋转和平移。Zhang 方法的两个约束能确定什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>全部内参，只是精度差一些</span></button><button type="button" data-k="B"><b>B</b><span>只有 fx 和 fy 的比值</span></button><button type="button" data-k="C"><b>C</b><span>只有主点</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。这种姿态下 <span class="arithmatex">\(h_1\)</span>、<span class="arithmatex">\(h_2\)</span> 的第三个分量为 0，方程里不出现 <span class="arithmatex">\(B_{13}\)</span>、<span class="arithmatex">\(B_{23}\)</span>、<span class="arithmatex">\(B_{33}\)</span>，主点和焦距的绝对大小都没有约束。实测倾斜上限 2° 时线性解的焦距误差中位数是 294%，基本是随机数。</p></div></div>
+<h3 id="35-从-b-恢复-k">3.5 从 B 恢复 K</h3>
 <p>两种方式：</p>
 <ul>
-<li>用 Zhang 论文附录的闭式公式直接算 fx、fy、cx、cy、γ。</li>
-<li>注意 B 只确定到一个尺度，可能整体是负的。把它调成正定后做 Cholesky 分解得到 K⁻¹ 的转置，再求逆、归一化。</li>
+<li>用 Zhang 论文附录的闭式公式直接算 <span class="arithmatex">\(f_x\)</span>、<span class="arithmatex">\(f_y\)</span>、<span class="arithmatex">\(c_x\)</span>、<span class="arithmatex">\(c_y\)</span>、<span class="arithmatex">\(\gamma\)</span>。</li>
+<li>注意 <span class="arithmatex">\(B\)</span> 只确定到一个尺度，可能整体是负的。把它调成正定后做 Cholesky 分解得到 <span class="arithmatex">\(K^{-1}\)</span> 的转置，再求逆、归一化使 <span class="arithmatex">\(K_{33} = 1\)</span>。</li>
 </ul>
-<h3 id="34-外参">3.4 外参</h3>
-<p>r1 = s K⁻¹h1，r2 = s K⁻¹h2，r3 = r1 × r2，t = s K⁻¹h3，其中 s = 1 / ‖K⁻¹h1‖。</p>
-<p>噪声会让 [r1 r2 r3] 不严格正交，用 SVD 投影到最近的旋转矩阵：R = U V^T。如果 t_z &lt; 0，说明符号选反了，整体取负。</p>
+<h3 id="36-外参">3.6 外参</h3>
+<p>有了 <span class="arithmatex">\(K\)</span>，每张图的外参从它的单应里解出来：</p>
+<div class="arithmatex">\[
+r_1 = s\,K^{-1}h_1, \quad r_2 = s\,K^{-1}h_2, \quad r_3 = r_1 \times r_2, \quad t = s\,K^{-1}h_3, \qquad s = \frac{1}{\lVert K^{-1}h_1 \rVert}
+\]</div>
+<p>两个细节：</p>
+<ul>
+<li>如果 <span class="arithmatex">\(t_z &lt; 0\)</span>，说明板子被算到了相机后方，符号选反了，<span class="arithmatex">\(r_1\)</span>、<span class="arithmatex">\(r_2\)</span>、<span class="arithmatex">\(t\)</span> 整体取负。</li>
+<li>噪声会让 <span class="arithmatex">\([r_1\; r_2\; r_3]\)</span> 不严格正交。对它做 SVD 得到 <span class="arithmatex">\(U \Sigma V^\top\)</span>，取 <span class="arithmatex">\(R = U V^\top\)</span>，这是离它最近的旋转矩阵。还要检查 <span class="arithmatex">\(\det R = +1\)</span>。</li>
+</ul>
 <h2 id="4-非线性优化">4. 非线性优化</h2>
-<p>线性解只是初值。真正的标定最小化所有图、所有点的重投影误差：</p>
-<div class="highlight"><pre><span></span><code>min Σ_i Σ_j ‖ m_ij - π(K, dist, R_i, t_i, M_j) ‖²
-</code></pre></div>
-<p>用 Levenberg-Marquardt 同时优化内参、畸变和所有外参。<code>cv2.calibrateCamera</code> 做的就是：Zhang 线性初值 + LM 优化。</p>
-<h2 id="5-关于点坐标归一化">5. 关于点坐标归一化</h2>
-<p>DLT 构造的矩阵里，像素坐标（几百到几千）和 1 混在一起，条件数很差。Hartley 建议先把点平移到质心、缩放到平均距离 √2。</p>
-<p>实话实说：在 float64 加 SVD、点分布良好时，归一化与否的结果几乎一样。本课程测过，0.5 px 噪声下两者误差都是 0.107 px。它的价值在这些情况：float32 计算、点集中在小区域、坐标数值极大、以及后续还要做迭代的流程。养成习惯即可，不要神化它。</p>
+<p>线性解最小化的是代数量 <span class="arithmatex">\(\lVert V b \rVert\)</span>，它没有几何含义，也不包含畸变。真正的标定以线性解为初值，最小化所有图、所有点的重投影误差：</p>
+<div class="arithmatex">\[
+\min_{K,\,\text{dist},\,R_i,\,t_i} \; \sum_i \sum_j \left\lVert m_{ij} - \pi(K, \text{dist}, R_i, t_i, M_j) \right\rVert^2
+\]</div>
+<p><span class="arithmatex">\(m_{ij}\)</span> 是第 <span class="arithmatex">\(i\)</span> 张图上第 <span class="arithmatex">\(j\)</span> 个角点的观测位置，<span class="arithmatex">\(\pi\)</span> 是带畸变的投影函数。用 Levenberg-Marquardt 同时优化内参、畸变和所有外参。<code>cv2.calibrateCamera</code> 做的就是这两步：Zhang 线性初值，再加 LM 优化。</p>
+<p>优化能带来多少，视图数和噪声各有多大影响，用合成相机量一下。无畸变，倾斜上限 30°，各 200 次。</p>
+<figure><img src="../../17_相机标定/figures/fig01_视图数与噪声.svg" alt="图 1：左，焦距误差随视图数的变化。右，焦距误差随角点噪声的变化。橙色是本章作业实现的线性解，蓝色是再做非线性优化之后" loading="lazy"><figcaption>图 1：左，焦距误差随视图数的变化。右，焦距误差随角点噪声的变化。橙色是本章作业实现的线性解，蓝色是再做非线性优化之后</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>视图数（噪声 0.3 px）</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">6</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">12</th>
+<th style="text-align: right;">20</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>线性解：fx 误差中位数</td>
+<td style="text-align: right;">1.72%</td>
+<td style="text-align: right;">1.34%</td>
+<td style="text-align: right;">0.80%</td>
+<td style="text-align: right;">0.72%</td>
+<td style="text-align: right;">0.54%</td>
+<td style="text-align: right;">0.40%</td>
+</tr>
+<tr>
+<td>优化后：fx 误差中位数</td>
+<td style="text-align: right;">1.18%</td>
+<td style="text-align: right;">0.90%</td>
+<td style="text-align: right;">0.62%</td>
+<td style="text-align: right;">0.51%</td>
+<td style="text-align: right;">0.43%</td>
+<td style="text-align: right;">0.30%</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>角点噪声（8 张视图）</th>
+<th style="text-align: right;">0.1 px</th>
+<th style="text-align: right;">0.3 px</th>
+<th style="text-align: right;">1.0 px</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>线性解：fx 误差中位数</td>
+<td style="text-align: right;">0.24%</td>
+<td style="text-align: right;">0.70%</td>
+<td style="text-align: right;">2.36%</td>
+</tr>
+<tr>
+<td>优化后：fx 误差中位数</td>
+<td style="text-align: right;">0.19%</td>
+<td style="text-align: right;">0.58%</td>
+<td style="text-align: right;">1.95%</td>
+</tr>
+</tbody>
+</table></div>
+<p>三个结论：</p>
+<ol>
+<li>视图越多越准，但收益递减。从 3 张加到 12 张，误差降到原来的三分之一左右；从 12 张再加到 20 张，只再降四分之一左右。常说的“拍 10 到 20 张”来自这里。</li>
+<li>误差和角点噪声成正比。角点检测的精度直接决定标定的精度，模糊、过曝、板子不平都会体现在这里。</li>
+<li>没有畸变时，优化后的误差是线性解的七到八成。线性解已经相当接近，它的主要用途是给优化提供一个好的初值。</li>
+</ol>
+<div class="callout callout-key"><div class="callout-title">要点</div><p>本章作业实现的是线性部分，不含畸变。它的验收标准是在无畸变的合成数据上内参误差足够小。真实镜头都有畸变，一定要接着做非线性优化。有畸变时只用线性解，实测重投影 RMS 是 0.74 px，是建了畸变模型并优化之后的 2.7 倍。</p>
+</div>
+<h2 id="5-点坐标归一化到底有什么用">5. 点坐标归一化到底有什么用</h2>
+<p>DLT 构造的矩阵里，像素坐标（几百到几千）、它们的乘积（几万到几百万）和 1 混在一起，各列的数量级差很多。Hartley 建议先把两组点各自平移到质心、缩放到离原点的平均距离为 <span class="arithmatex">\(\sqrt{2}\)</span>，解完再变换回去。作业里的 <code>normalize_points</code> 做的就是这一步。</p>
+<p>它到底起多大作用，取决于坐标长什么样、方程怎么解。下面用 54 个角点、0.5 px 噪声、300 个随机视图，比较三种坐标和两种解法。误差是估出的单应把板上的点映射到图像后，和无噪声位置的均方根距离。</p>
+<figure><img src="../../17_相机标定/figures/fig02_归一化.svg" alt="图 2：三种坐标条件下，归一化与不归一化的单应误差。每组四对柱子分别是 SVD 和法方程两种解法、float64 和 float32 两种精度" loading="lazy"><figcaption>图 2：三种坐标条件下，归一化与不归一化的单应误差。每组四对柱子分别是 SVD 和法方程两种解法、float64 和 float32 两种精度</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>坐标条件</th>
+<th style="text-align: right;">SVD，归一化</th>
+<th style="text-align: right;">SVD，不归一化</th>
+<th style="text-align: right;">法方程，归一化</th>
+<th style="text-align: right;">法方程，不归一化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>常规：板 0 到 120 mm，像素 0 到 640</td>
+<td style="text-align: right;">0.185</td>
+<td style="text-align: right;">0.185</td>
+<td style="text-align: right;">0.185</td>
+<td style="text-align: right;">0.185</td>
+</tr>
+<tr>
+<td>角点只占约 30×20 px 的小范围</td>
+<td style="text-align: right;">0.188</td>
+<td style="text-align: right;">0.213</td>
+<td style="text-align: right;">0.188</td>
+<td style="text-align: right;">0.213</td>
+</tr>
+<tr>
+<td>大数值：板坐标用微米，像素坐标加 4000</td>
+<td style="text-align: right;">0.185</td>
+<td style="text-align: right;">0.186</td>
+<td style="text-align: right;">0.185</td>
+<td style="text-align: right;">1540</td>
+</tr>
+</tbody>
+</table></div>
+<p>表里是 float64 的结果。用 SVD 求解时，float32 的六个数和 float64 到三位有效数字都相同。“SVD”指直接分解方程矩阵 <span class="arithmatex">\(A\)</span>，“法方程”指先算 <span class="arithmatex">\(A^\top A\)</span> 再做特征分解。</p>
+<p>读表的结论：</p>
+<ol>
+<li><strong>常规坐标下，归一化与否没有差别</strong>。四种做法都是 0.185 px。</li>
+<li><strong>角点集中在小范围时，不归一化差 13%</strong>（0.213 对 0.188），而且和精度、解法都无关。float32 和 float64 结果相同，说明这不是舍入误差。按 Hartley 的分析，DLT 最小化的是代数误差，各个方程在其中占多大权重取决于坐标怎么取，归一化之后的坐标让代数误差更接近几何误差。</li>
+<li><strong>数值很大又用法方程时，不归一化会彻底失效</strong>（1540 px）。方程矩阵最大奇异值和第二小奇异值之比，归一化后是 3.5，不归一化在大数值坐标下是 1.2e9。法方程把这个比值平方，超过了 float64 能分辨的范围（约 1e16）。直接对 <span class="arithmatex">\(A\)</span> 做 SVD 不平方，所以没事。</li>
+</ol>
+<p>所以归一化的价值有两条，一条是统计上的，一条是数值上的。用 SVD 求解时，单纯换成 float32 在这组实验里没有造成差别。检测设备上，平台坐标常用微米甚至纳米，数值很大；对位标记通常只占视场的一小块。这两种情况都落在表的后两行，所以归一化值得作为默认步骤。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>用 float64 和 SVD 解 DLT，角点在画面里分布得比较开。归一化和不归一化的结果差多少？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>差一个数量级</span></button><button type="button" data-k="B"><b>B</b><span>几乎没有差别</span></button><button type="button" data-k="C"><b>C</b><span>不归一化会解不出来</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测都是 0.185 px。归一化起作用的条件是角点只占很小的范围（差 13%），或者坐标数值很大并且用法方程求解（不归一化直接失效）。</p></div></div>
 <h2 id="6-标定质量怎么判断">6. 标定质量怎么判断</h2>
-<p><strong>重投影误差（RMS）</strong>：好的标定通常在 0.1–0.5 px。但它<strong>小不代表准</strong>：</p>
+<p><strong>重投影误差（RMS）</strong>是标定程序自己报告的数字，好的标定通常在 0.1 到 0.5 px。但它只说明模型在参与标定的那些点上自洽。下面三个实验各展示一种“RMS 很好看，标定却不对”的情况。</p>
+<h3 id="61-姿态太单一焦距不可信">6.1 姿态太单一：焦距不可信</h3>
+<p>每次 8 张视图，角点噪声 0.3 px，无畸变。只改变板子绕 x、y 轴倾斜的上限。</p>
+<figure><img src="../../17_相机标定/figures/fig03_姿态多样性.svg" alt="图 3：左二，倾斜上限 5° 和 30° 时 8 张视图里标定板的轮廓。右二，焦距误差随倾斜上限的变化，纵轴是对数。最右，重投影 RMS 随倾斜上限的变化，虚线是角点噪声对应的水平" loading="lazy"><figcaption>图 3：左二，倾斜上限 5° 和 30° 时 8 张视图里标定板的轮廓。右二，焦距误差随倾斜上限的变化，纵轴是对数。最右，重投影 RMS 随倾斜上限的变化，虚线是角点噪声对应的水平</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>倾斜上限</th>
+<th style="text-align: right;">2°</th>
+<th style="text-align: right;">5°</th>
+<th style="text-align: right;">10°</th>
+<th style="text-align: right;">20°</th>
+<th style="text-align: right;">30°</th>
+<th style="text-align: right;">45°</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>线性解：fx 误差中位数</td>
+<td style="text-align: right;">294%</td>
+<td style="text-align: right;">25%</td>
+<td style="text-align: right;">3.3%</td>
+<td style="text-align: right;">1.06%</td>
+<td style="text-align: right;">0.60%</td>
+<td style="text-align: right;">0.41%</td>
+</tr>
+<tr>
+<td>优化后：fx 误差中位数</td>
+<td style="text-align: right;">57%</td>
+<td style="text-align: right;">7.4%</td>
+<td style="text-align: right;">1.8%</td>
+<td style="text-align: right;">0.83%</td>
+<td style="text-align: right;">0.47%</td>
+<td style="text-align: right;">0.36%</td>
+</tr>
+<tr>
+<td>优化后：重投影 RMS（px）</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.41</td>
+</tr>
+</tbody>
+</table></div>
+<p>倾斜上限 2° 时，线性解在 200 次里还有 45 次解不出有效的内参。</p>
+<p>倾斜从 30° 降到 5°，焦距误差从 0.5% 涨到 7%，重投影 RMS 一直是 0.41 px，一点没变。这正是第 3.4 节推导的结果：板子接近正对相机时，焦距和距离可以互相补偿，换一组错的焦距和错的距离，角点照样对得上。</p>
+<p>实用的结论是倾斜至少 20° 到 30°，而且要朝不同方向倾斜。</p>
+<h3 id="62-模型不够残差里有规律">6.2 模型不够：残差里有规律</h3>
+<p>真实相机带 <span class="arithmatex">\(k_1 = -0.1\)</span> 的畸变，标定时不建畸变模型。12 张视图覆盖全画面，角点噪声 0.2 px，各 100 次：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">重投影 RMS 中位数（px）</th>
+<th style="text-align: right;">fx 误差中位数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>不建畸变模型</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">2.7%</td>
+</tr>
+<tr>
+<td>建 k1、k2</td>
+<td style="text-align: right;">0.27</td>
+<td style="text-align: right;">0.24%</td>
+</tr>
+</tbody>
+</table></div>
+<p>只看 RMS，0.34 和 0.27 都在“好的标定”范围里。区别藏在残差的方向上。下面是一次 40 张视图的标定，把 2160 个角点的残差按位置分格取平均。随机噪声在平均后互相抵消，剩下的就是模型没解释掉的部分。</p>
+<figure><img src="../../17_相机标定/figures/fig04_没建模的畸变.svg" alt="图 4：左，不建畸变模型时分格平均的残差，四角和边缘的箭头明显更长。中，建 k1、k2 之后，平均残差几乎为零。右，沿半径方向的残差平均值随角点到主点距离的变化" loading="lazy"><figcaption>图 4：左，不建畸变模型时分格平均的残差，四角和边缘的箭头明显更长。中，建 k1、k2 之后，平均残差几乎为零。右，沿半径方向的残差平均值随角点到主点距离的变化</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>角点到主点的距离（px）</th>
+<th style="text-align: right;">25</th>
+<th style="text-align: right;">75</th>
+<th style="text-align: right;">125</th>
+<th style="text-align: right;">175</th>
+<th style="text-align: right;">225</th>
+<th style="text-align: right;">275</th>
+<th style="text-align: right;">325</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>不建畸变：径向残差的平均（px）</td>
+<td style="text-align: right;">-0.01</td>
+<td style="text-align: right;">-0.02</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">0.09</td>
+<td style="text-align: right;">0.03</td>
+<td style="text-align: right;">-0.16</td>
+<td style="text-align: right;">-0.44</td>
+</tr>
+<tr>
+<td>建 k1、k2：径向残差的平均（px）</td>
+<td style="text-align: right;">-0.01</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">-0.01</td>
+<td style="text-align: right;">0.01</td>
+<td style="text-align: right;">-0.01</td>
+<td style="text-align: right;">0.01</td>
+<td style="text-align: right;">-0.01</td>
+</tr>
+</tbody>
+</table></div>
+<p>不建畸变时，径向残差先正后负，在画面边缘达到 -0.44 px。这次标定估出的焦距是 fx = 869.6、fy = 834.1，真值是 820 和 790，偏了约 6%：优化器用一个错的焦距去凑畸变造成的偏移。偏多少、往哪边偏取决于视图怎么摆，上表那 100 次里 fx 的偏差从 -2.3% 到 +7.5%（5% 到 95% 分位）。</p>
+<p>判断方法：<strong>把残差按图像位置画出来</strong>。随机散布说明模型够用；有随半径或随位置变化的规律，说明模型缺了东西。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一次标定报告重投影 RMS 是 0.3 px。这个数字能直接说明什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>内参的误差很小</span></button><button type="button" data-k="B"><b>B</b><span>模型在参与标定的那些角点上是自洽的</span></button><button type="button" data-k="C"><b>C</b><span>畸变已经被正确建模</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。姿态单一时焦距可以错 7% 而 RMS 不变（第 6.1 节）；不建畸变模型时焦距错 2.7%，RMS 只从 0.27 涨到 0.34（第 6.2 节）。RMS 小是必要条件，不是充分条件。</p></div></div>
+<h3 id="63-覆盖不全四角没有约束">6.3 覆盖不全：四角没有约束</h3>
+<p>相机仍带 <span class="arithmatex">\(k_1 = -0.1\)</span> 的畸变，这次标定时建了 k1、k2，模型是对的。区别只在拍法：一种让板子只出现在画面中央，一种覆盖全画面。然后另拍 40 张覆盖全画面的图，<strong>不参与标定</strong>，用标定结果去算它们的重投影误差。各 30 次。</p>
+<figure><img src="../../17_相机标定/figures/fig05_覆盖范围与留出验证.svg" alt="图 5：左，两种拍法的角点分布。中间两幅，留出视图上的残差按位置的分布，标定时只拍中央的那一组在四角明显变大。最右，标定自己报告的 RMS 和留出视图的 RMS" loading="lazy"><figcaption>图 5：左，两种拍法的角点分布。中间两幅，留出视图上的残差按位置的分布，标定时只拍中央的那一组在四角明显变大。最右，标定自己报告的 RMS 和留出视图的 RMS</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">标定时只拍画面中央</th>
+<th style="text-align: right;">标定时覆盖全画面</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>标定自己报告的 RMS（px）</td>
+<td style="text-align: right;">0.28</td>
+<td style="text-align: right;">0.27</td>
+</tr>
+<tr>
+<td>留出视图的 RMS（px）</td>
+<td style="text-align: right;">0.35</td>
+<td style="text-align: right;">0.28</td>
+</tr>
+<tr>
+<td>留出视图在画面中央的平均残差（px）</td>
+<td style="text-align: right;">0.27</td>
+<td style="text-align: right;">0.25</td>
+</tr>
+<tr>
+<td>留出视图在画面四角的平均残差（px）</td>
+<td style="text-align: right;">1.85</td>
+<td style="text-align: right;">0.27</td>
+</tr>
+<tr>
+<td>估出的 k1（真值 -0.1）的 5% 到 95% 分位</td>
+<td style="text-align: right;">-0.159 到 -0.050</td>
+<td style="text-align: right;">-0.120 到 -0.089</td>
+</tr>
+</tbody>
+</table></div>
+<p>两种拍法自己报告的 RMS 几乎相同。但只拍中央时，四角的实际误差是 1.85 px，是中央的 7 倍，估出的 <span class="arithmatex">\(k_1\)</span> 在 -0.16 到 -0.05 之间乱跳。畸变在中央本来就很小，那里的点对畸变参数几乎没有约束，优化器给出什么值都能拟合好。</p>
+<p>留出验证的总 RMS 只从 0.28 涨到 0.35，也不算显眼。<strong>按位置看</strong>才看得出问题集中在四角。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>标定板只出现在画面中央，标定程序报告 RMS 0.28 px。这台相机在画面四角的实际误差大约是多少？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>也是 0.28 px 左右</span></button><button type="button" data-k="B"><b>B</b><span>接近 2 px</span></button><button type="button" data-k="C"><b>C</b><span>一定比 0.28 px 小</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 1.85 px。中央的点约束不了畸变参数，估出来的畸变系数不准，外推到四角误差就放大了。标定自己报告的 RMS 只统计参与标定的点，这些点都在中央。</p></div></div>
+<h3 id="64-检查清单">6.4 检查清单</h3>
 <ul>
-<li>所有棋盘都在画面中央，边缘的畸变根本没被约束，RMS 照样很小。</li>
-<li>姿态太单一（都正对相机），焦距和距离耦合，参数之间可以互相补偿。</li>
-<li>参数太多（k3、薄棱镜项）会过拟合。</li>
-</ul>
-<p>更可靠的检查：</p>
-<ul>
-<li><strong>覆盖</strong>：棋盘要出现在画面四角和中心，要有明显的倾斜（±30° 左右）。</li>
-<li><strong>留出验证</strong>：留几张图不参与标定，用标定结果算它们的重投影误差。</li>
+<li><strong>姿态</strong>：倾斜至少 20° 到 30°，朝不同方向。</li>
+<li><strong>覆盖</strong>：角点要出现在画面四角和中心，把所有标定图的角点画在一张图上检查。</li>
+<li><strong>留出验证</strong>：留几张图不参与标定，用标定结果算它们的重投影误差，并且按位置看。</li>
+<li><strong>残差图</strong>：把残差按图像位置画出来，看有没有规律。</li>
 <li><strong>参数不确定度</strong>：看各参数的标准差（OpenCV 的 <code>calibrateCameraExtended</code> 会给）。</li>
-<li><strong>物理检查</strong>：拍一把标准尺，测量长度和真值比较。</li>
+<li><strong>参数数量</strong>：<span class="arithmatex">\(k_3\)</span>、薄棱镜项这类高阶参数容易过拟合，留出验证变差就去掉。</li>
+<li><strong>物理检查</strong>：拍一把标准尺或一块标准片，测量长度和真值比较。这是最终的判据。</li>
 </ul>
-<h2 id="7-工业检测里的标定">7. 工业检测里的标定</h2>
+<h2 id="7-交互演示">7. 交互演示</h2>
+<p>拖动内参、外参和畸变系数，看棋盘的投影怎么变。画面下方列了四条可以逐个试的操作，其中第二条对应第 6.1 节的焦距和距离耦合，第三条对应第 6.3 节的四角覆盖。</p>
+<div class="embed"><iframe src="../../demos/相机投影与畸变.html" height="920" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/相机投影与畸变.html">打开交互演示：相机投影与镜头畸变</a></p>
+<h2 id="8-工业检测里的标定">8. 工业检测里的标定</h2>
 <p><strong>像素尺寸标定</strong>：显微和检测场景最常见。拍一块已知间距的标准片（刻线尺、点阵片），算出每像素对应多少微米，x 和 y 分开算，并检查视场内是否均匀。</p>
 <p><strong>远心镜头</strong>：放大倍率不随物距变化，没有“近大远小”，适合测量。它的投影更接近正交投影而不是透视投影，针孔模型不适用，需要专门的仿射或正交模型。</p>
-<p><strong>相机与运动平台的关系</strong>：检测设备上，相机固定、晶圆在 XY 平台上移动。要标定平台坐标轴在图像里的方向、两轴是否垂直、步进距离对应多少像素。做法是让平台按已知距离移动，用第 16 章的对齐方法测图像位移，拟合一个 2x2 矩阵加平移。</p>
+<p><strong>相机与运动平台的关系</strong>：检测设备上，相机固定、晶圆在 XY 平台上移动。要标定平台坐标轴在图像里的方向、两轴是否垂直、步进距离对应多少像素。做法是让平台按已知距离移动，用第 16 章的对齐方法测图像位移，拟合一个 2×2 矩阵加平移。平台坐标的数值通常很大，这里正好用得上第 5 节的归一化。</p>
 <p><strong>线扫相机</strong>：一维传感器加运动扫描成像，扫描方向的分辨率由运动速度和行频决定，两个方向的标定要分开处理。</p>
 <p><strong>多相机拼接</strong>：每台相机先单独标定，再用公共标定板求它们之间的关系，用于拼接大视场。</p>
-<h2 id="8-常见错误">8. 常见错误</h2>
+<p>具体到某台设备用哪种标定物、精度要求多少，以设备和公司的资料为准。</p>
+<h2 id="9-常见错误">9. 常见错误</h2>
 <div class="table-wrap"><table>
 <thead>
 <tr>
 <th>现象</th>
 <th>可能原因</th>
+<th>怎么查</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>主点离画面中心很远</td>
 <td>姿态不够多样，或者棋盘角点顺序错了</td>
+<td>画出每张图的角点连线，看顺序是否一致；检查倾斜角</td>
 </tr>
 <tr>
 <td>fx 和 fy 差很多</td>
 <td>像素不是正方形（少见），更可能是棋盘尺寸 x、y 写反</td>
+<td>核对标定板的行列数和格子边长</td>
 </tr>
 <tr>
 <td>RMS 很大</td>
 <td>角点检测错了、某张图模糊、棋盘不平</td>
+<td>逐张看每张图各自的 RMS，找出最差的那张</td>
 </tr>
 <tr>
 <td>换个距离测量就不准</td>
-<td>普通镜头的放大倍率随距离变化，考虑远心镜头或重新标定</td>
+<td>普通镜头的放大倍率随距离变化</td>
+<td>在工作距离上重新标定，或者改用远心镜头</td>
 </tr>
 <tr>
 <td>标定好的参数换台机器不对</td>
-<td>同型号镜头也有个体差异，每台单独标</td>
+<td>同型号镜头也有个体差异</td>
+<td>每台单独标定</td>
+</tr>
+<tr>
+<td>估出的单应差一个整体倍数</td>
+<td>没有缩放到 <span class="arithmatex">\(H_{33} = 1\)</span></td>
+<td>比较前先归一化</td>
+</tr>
+<tr>
+<td>外参里的 t_z 是负的</td>
+<td>没处理符号，板子被算到了相机后方</td>
+<td>检查 <span class="arithmatex">\(t_z &lt; 0\)</span> 时是否整体取负</td>
+</tr>
+<tr>
+<td>R 的行列式是 -1</td>
+<td><span class="arithmatex">\(r_3\)</span> 的叉乘顺序写反，或者 SVD 投影后没检查行列式</td>
+<td>打印 <code>np.linalg.det(R)</code></td>
+</tr>
+<tr>
+<td>闭式解开方时出现 nan</td>
+<td><span class="arithmatex">\(B\)</span> 整体符号为负，或者姿态退化</td>
+<td>检查 <span class="arithmatex">\(B_{11}\)</span> 的符号；检查倾斜角</td>
 </tr>
 </tbody>
 </table></div>
+<h2 id="10-破坏实验">10. 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>把倾斜角限制在 ±3° 左右（Notebook 实验 2），焦距和主点各变成什么样？重投影误差变了吗？</li>
+<li>把棋盘格边长写错（15 写成 10），哪些参数受影响，哪些不受影响？</li>
+<li>把某张视图的角点顺序打乱，结果怎样？</li>
+<li>只用 3 张视图，重复 20 次不同的随机种子，fx 的波动范围有多大？</li>
+<li>在 <code>homography_dlt</code> 里跳过归一化，把板坐标乘以 1000、像素坐标加 4000，结果变了吗？再把求解方式从 SVD 改成对 <span class="arithmatex">\(A^\top A\)</span> 做特征分解试试。</li>
+<li>给合成数据加上 <span class="arithmatex">\(k_1 = -0.1\)</span> 的畸变，仍用线性解，内参偏了多少？把残差按位置画出来。</li>
+</ol>
+<h2 id="11-扩展深挖档">11. 扩展（深挖档）</h2>
+<ul>
+<li>用手机拍 15 到 20 张棋盘图，用 <code>cv2.calibrateCamera</code> 标定。留 5 张不参与标定，按第 6.3 节的做法报告留出误差，并按位置画残差图。</li>
+<li>在线性解的基础上自己实现一个只优化 <span class="arithmatex">\(k_1\)</span> 的非线性优化（可以用 <code>scipy.optimize.least_squares</code>，需要另外安装 scipy），和 OpenCV 的结果对照。</li>
+<li>做一次像素尺寸标定：拍一把刻度尺，算出每像素对应多少毫米，在画面中央和边缘各测一次，比较两者的差别。</li>
+<li>用第 16 章的相位相关测“平台移动”：把一张图按已知的仿射关系平移若干次，拟合 2×2 矩阵，看能恢复到什么精度。</li>
+</ul>
+<h2 id="12-和后续章节的关系">12. 和后续章节的关系</h2>
+<ul>
+<li>第 4 章的单应和第 7 章的针孔模型是本章的前置。</li>
+<li>第 16 章的对齐方法用来测平台移动造成的图像位移。</li>
+<li>第 21 章的渲染相机用同一套内外参，只是 OpenGL 的坐标约定不同。</li>
+<li>第 22 章的成像仿真需要像素尺寸和放大倍率。</li>
+<li>第 24 章要把缺陷的像素坐标换算到 die 和晶圆坐标。</li>
+</ul>
 <h2 id="自测问题">自测问题</h2>
 <ol>
-<li>为什么平面标定物上 Z = 0 可以把投影简化成单应？</li>
+<li>为什么平面标定物上 <span class="arithmatex">\(Z = 0\)</span> 可以把投影简化成单应？</li>
 <li>所有标定图都和相机平行（只平移不旋转）时会发生什么？</li>
 <li>0.2 px 的 RMS 和 1.5 px 的 RMS，哪个一定更好？</li>
 <li>检测设备说明书写“像素尺寸 0.5 µm”，你怎样验证？</li>
 <li>远心镜头为什么适合测量线宽？</li>
+<li>归一化在什么条件下有用？各是什么原因？</li>
+<li>怎样从残差图判断畸变模型够不够？为什么只看 RMS 看不出来？</li>
 </ol></article><nav class="prev-next"><a href="16.html">← 第 16 章 图像对齐与亚像素</a><a href="18.html">第 18 章 传统缺陷检测 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#1-标定要求什么">1. 标定要求什么</a></li><li><a href="#2-畸变模型">2. 畸变模型</a></li><li><a href="#3-zhang-方法用平面标定物">3. Zhang 方法：用平面标定物</a></li><li class="sub"><a href="#31-两个约束">3.1 两个约束</a></li><li class="sub"><a href="#32-写成线性方程组">3.2 写成线性方程组</a></li><li class="sub"><a href="#33-从-b-恢复-k">3.3 从 B 恢复 K</a></li><li class="sub"><a href="#34-外参">3.4 外参</a></li><li><a href="#4-非线性优化">4. 非线性优化</a></li><li><a href="#5-关于点坐标归一化">5. 关于点坐标归一化</a></li><li><a href="#6-标定质量怎么判断">6. 标定质量怎么判断</a></li><li><a href="#7-工业检测里的标定">7. 工业检测里的标定</a></li><li><a href="#8-常见错误">8. 常见错误</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#1-标定要求什么不准会怎样">1. 标定要求什么，不准会怎样</a></li><li><a href="#2-畸变模型">2. 畸变模型</a></li><li><a href="#3-zhang-方法用平面标定物">3. Zhang 方法：用平面标定物</a></li><li class="sub"><a href="#31-平面到图像是一个单应">3.1 平面到图像是一个单应</a></li><li class="sub"><a href="#32-用-dlt-估计单应">3.2 用 DLT 估计单应</a></li><li class="sub"><a href="#33-两个约束">3.3 两个约束</a></li><li class="sub"><a href="#34-写成线性方程组">3.4 写成线性方程组</a></li><li class="sub"><a href="#35-从-b-恢复-k">3.5 从 B 恢复 K</a></li><li class="sub"><a href="#36-外参">3.6 外参</a></li><li><a href="#4-非线性优化">4. 非线性优化</a></li><li><a href="#5-点坐标归一化到底有什么用">5. 点坐标归一化到底有什么用</a></li><li><a href="#6-标定质量怎么判断">6. 标定质量怎么判断</a></li><li class="sub"><a href="#61-姿态太单一焦距不可信">6.1 姿态太单一：焦距不可信</a></li><li class="sub"><a href="#62-模型不够残差里有规律">6.2 模型不够：残差里有规律</a></li><li class="sub"><a href="#63-覆盖不全四角没有约束">6.3 覆盖不全：四角没有约束</a></li><li class="sub"><a href="#64-检查清单">6.4 检查清单</a></li><li><a href="#7-交互演示">7. 交互演示</a></li><li><a href="#8-工业检测里的标定">8. 工业检测里的标定</a></li><li><a href="#9-常见错误">9. 常见错误</a></li><li><a href="#10-破坏实验">10. 破坏实验</a></li><li><a href="#11-扩展深挖档">11. 扩展（深挖档）</a></li><li><a href="#12-和后续章节的关系">12. 和后续章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

@@ -59,7 +59,7 @@
   </nav>
   <main class="content">
 <div class="lesson-head"><div class="crumbs">第 6 章 <span class="tag P3">P3</span> <span class="badge">原版讲义</span></div><h1>光流与运动</h1><p class="scene"><b>用在哪：</b>运动估计、视频稳像，也是迭代对齐方法的思想来源</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 6 小时</span><span class="chip"><b>深挖</b> 7 小时</span><span class="chip">前置：<a href="../lessons/02.html">第 2 章 卷积与边缘</a></span></div><div class="meta-row"><span class="chip mono">验收：python 06_光流/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="06"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
-<p>配套练习：<a href="../../06_光流/6-1_稀疏光流追踪.py"><code>6-1_稀疏光流追踪.py</code></a> | <a href="../../06_光流/6-2_稠密光流可视化.py"><code>6-2_稠密光流可视化.py</code></a></p>
+<p>自动验收的作业是 <a href="../../06_光流/6-1_前向反向筛选.py"><code>6-1_前向反向筛选.py</code></a>。扩展练习 6-1（稀疏光流追踪）和 6-2（稠密光流可视化）的题目在 <a href="../../视觉算法学习计划.md"><code>视觉算法学习计划.md</code></a> 的“第 6 天”一节，需要自己新建文件完成。</p>
 </blockquote>
 <hr />
 <h2 id="61-光流是什么">6.1 光流是什么</h2>
@@ -268,9 +268,9 @@ A [u, v]ᵀ ≈ b
 </ol>
 <hr />
 <h2 id="69-与配套练习的连接">6.9 与配套练习的连接</h2>
-<h3 id="练习-6-1稀疏光流追踪"><a href="../../06_光流/6-1_稀疏光流追踪.py">练习 6-1：稀疏光流追踪</a></h3>
+<h3 id="扩展练习-6-1稀疏光流追踪">扩展练习 6-1：稀疏光流追踪</h3>
 <p>对应本章 6.2～6.4 和 6.7。先用角点回答“追谁”，再用 LK 回答“去了哪里”。完成后建议加入前向—反向误差，并尝试修改 <code>winSize、maxLevel、minDistance</code>，观察快速运动、边缘点和遮挡时的差异。</p>
-<h3 id="练习-6-2稠密光流可视化"><a href="../../06_光流/6-2_稠密光流可视化.py">练习 6-2：稠密光流可视化</a></h3>
+<h3 id="扩展练习-6-2稠密光流可视化">扩展练习 6-2：稠密光流可视化</h3>
 <p>对应本章 6.5～6.6。把 <code>flow[...,0:2]</code> 转成幅值和方向，再映射到 HSV。进一步可用速度阈值生成运动区域掩码，并比较固定相机与手持相机下的结果。</p>
 <hr />
 <h2 id="动手前的检查清单">动手前的检查清单</h2>
@@ -289,7 +289,7 @@ A [u, v]ᵀ ≈ b
 <p>确认完了，打开 <code>06_光流/</code> 开始做题。</p></article><nav class="prev-next"><a href="05.html">← 第 5 章 特征点与描述子</a><a href="07.html">第 7 章 相机与三维视觉 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#61-光流是什么">6.1 光流是什么</a></li><li><a href="#62-从亮度恒定到光流约束方程">6.2 从亮度恒定到光流约束方程</a></li><li class="sub"><a href="#三个基本假设">三个基本假设</a></li><li class="sub"><a href="#为什么一个像素还不够">为什么一个像素还不够</a></li><li><a href="#63-lucas-kanade把邻域变成最小二乘">6.3 Lucas-Kanade：把邻域变成最小二乘</a></li><li class="sub"><a href="#加权可解性与迭代">加权、可解性与迭代</a></li><li><a href="#64-金字塔-lk先在小图上追大运动">6.4 金字塔 LK：先在小图上追大运动</a></li><li><a href="#65-稠密光流farneback-在做什么">6.5 稠密光流：Farneback 在做什么</a></li><li><a href="#66-opencv-api-速查">6.6 OpenCV API 速查</a></li><li class="sub"><a href="#稀疏金字塔-lk">稀疏金字塔 LK</a></li><li class="sub"><a href="#farneback-稠密光流">Farneback 稠密光流</a></li><li><a href="#67-实例追踪视频中的角点">6.7 实例：追踪视频中的角点</a></li><li><a href="#68-常见坑与排查顺序">6.8 常见坑与排查顺序</a></li><li><a href="#69-与配套练习的连接">6.9 与配套练习的连接</a></li><li class="sub"><a href="#练习-6-1稀疏光流追踪">练习 6-1：稀疏光流追踪</a></li><li class="sub"><a href="#练习-6-2稠密光流可视化">练习 6-2：稠密光流可视化</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#61-光流是什么">6.1 光流是什么</a></li><li><a href="#62-从亮度恒定到光流约束方程">6.2 从亮度恒定到光流约束方程</a></li><li class="sub"><a href="#三个基本假设">三个基本假设</a></li><li class="sub"><a href="#为什么一个像素还不够">为什么一个像素还不够</a></li><li><a href="#63-lucas-kanade把邻域变成最小二乘">6.3 Lucas-Kanade：把邻域变成最小二乘</a></li><li class="sub"><a href="#加权可解性与迭代">加权、可解性与迭代</a></li><li><a href="#64-金字塔-lk先在小图上追大运动">6.4 金字塔 LK：先在小图上追大运动</a></li><li><a href="#65-稠密光流farneback-在做什么">6.5 稠密光流：Farneback 在做什么</a></li><li><a href="#66-opencv-api-速查">6.6 OpenCV API 速查</a></li><li class="sub"><a href="#稀疏金字塔-lk">稀疏金字塔 LK</a></li><li class="sub"><a href="#farneback-稠密光流">Farneback 稠密光流</a></li><li><a href="#67-实例追踪视频中的角点">6.7 实例：追踪视频中的角点</a></li><li><a href="#68-常见坑与排查顺序">6.8 常见坑与排查顺序</a></li><li><a href="#69-与配套练习的连接">6.9 与配套练习的连接</a></li><li class="sub"><a href="#扩展练习-6-1稀疏光流追踪">扩展练习 6-1：稀疏光流追踪</a></li><li class="sub"><a href="#扩展练习-6-2稠密光流可视化">扩展练习 6-2：稠密光流可视化</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

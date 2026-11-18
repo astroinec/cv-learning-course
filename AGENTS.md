@@ -35,6 +35,11 @@ NN_主题/
 | `docs/常见问题.md` | 环境和学习问题 | 遇到新问题时追加 |
 | `路线图.html` | 可视化路线图，学员在浏览器里勾进度（存在 localStorage） | 新增章节时同步改里面的 `CHAPTERS` 数组 |
 | `demos/*.html` | 交互演示，无依赖的单文件网页 | 按需 |
+| `course.json` | 每章的应用场景、优先级、三档用时、前置和学习路线，网页首页和侧栏由它生成 | 新增或升级章节时 |
+| `docs/写作规范.md` | 升级后每章的固定结构、数字复现规则、讲义扩展写法 | 约定变化时 |
+| `docs/升级进度.md` | 哪些章已按新规范升级、剩下什么、按什么顺序做 | 每升级完一章 |
+| `scripts/build_site.py` | 把各章讲义生成为 `site/` 下的离线网页 | 改了讲义或 `course.json` 后运行，加 `--strict` |
+| `NN_*/figures/` | 讲义配图和 `实测数字.json`，由 `solutions` 分支的 `solutions/figures/chNN.py` 生成 | 改讲义里的数字前先重跑脚本 |
 | `scripts/build_track2_notebooks.py` | 生成第 16–24 章 Notebook | 改 Notebook 内容时改这里再运行 |
 | `scripts/run_track2_notebooks.py` | 执行 Notebook 全部代码单元，检查能否跑通 | 维护用 |
 
