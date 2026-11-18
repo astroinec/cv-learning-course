@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 21 章 3D 数学与渲染管线 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li class="current" data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 21 章 <span class="tag P2">P2</span> <span class="badge">原版讲义</span></div><h1>3D 数学与渲染管线</h1><p class="scene"><b>用在哪：</b>渲染设计数据做参考图、三维仿真、OpenGL 和 Shader</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 24 小时</span><span class="chip">前置：<a href="../lessons/07.html">第 7 章 相机与三维视觉</a></span></div><div class="meta-row"><span class="chip mono">验收：python 21_3D数学与渲染管线/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="21"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><h2 id="1-必备-3d-数学">1. 必备 3D 数学</h2>
+<p><strong>点积</strong> a·b = |a||b|cosθ：投影长度、夹角、判断朝向（法线和光线方向的点积就是 Lambert 光照）。</p>
+<p><strong>叉积</strong> a×b：垂直于两者的向量，长度等于平行四边形面积。用来求法线、构造坐标系、判断三角形绕序（正负号）。</p>
+<p><strong>齐次坐标</strong>：3D 点写成 (x, y, z, 1)，方向写成 (x, y, z, 0)。好处是平移也能写成矩阵乘法，多个变换可以合并成一个 4x4 矩阵。方向的 w=0，所以不受平移影响。</p>
+<p><strong>变换顺序</strong>：列向量约定下 p' = M3 M2 M1 p，最右边的先作用。“先缩放再旋转再平移”写成 T R S。顺序错了是最常见的 bug。</p>
+<p><strong>法线变换</strong>：物体做非均匀缩放时，法线要用模型矩阵的逆转置变换，否则不再垂直于表面。</p>
+<h2 id="2-旋转的几种表示">2. 旋转的几种表示</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>表示</th>
+<th>参数</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>旋转矩阵</td>
+<td>9 个（3 个自由度）</td>
+<td>直接相乘</td>
+<td>冗余，数值误差累积后不再正交</td>
+</tr>
+<tr>
+<td>欧拉角</td>
+<td>3 个</td>
+<td>直观</td>
+<td>顺序约定繁多，万向锁</td>
+</tr>
+<tr>
+<td>轴角 / 旋转向量</td>
+<td>3 个</td>
+<td>OpenCV 的 rvec 就是这个</td>
+<td>插值不方便</td>
+</tr>
+<tr>
+<td>四元数</td>
+<td>4 个（单位）</td>
+<td>插值平滑（slerp），无万向锁</td>
+<td>不直观</td>
+</tr>
+</tbody>
+</table></div>
+<p>工程里：存储和插值用四元数，计算用矩阵，和 OpenCV 交互用旋转向量（<code>cv2.Rodrigues</code> 互转）。读别人的代码时，先确认欧拉角的轴顺序和内旋外旋约定。</p>
+<h2 id="3-渲染管线从顶点到像素">3. 渲染管线：从顶点到像素</h2>
+<div class="highlight"><pre><span></span><code>模型坐标 --M--&gt; 世界坐标 --V--&gt; 相机坐标 --P--&gt; 裁剪坐标 --÷w--&gt; NDC --视口变换--&gt; 屏幕像素
+</code></pre></div>
+<ul>
+<li><strong>模型矩阵 M</strong>：物体自身的摆放。</li>
+<li><strong>视图矩阵 V</strong>：世界到相机，作业里的 <code>look_at</code> 构造它。OpenGL 约定相机看向 -Z、y 向上、x 向右。</li>
+<li><strong>投影矩阵 P</strong>：透视投影把视锥（near 到 far 之间的棱台）映射成 [-1, 1]³ 的立方体。</li>
+<li><strong>透视除法</strong>：裁剪坐标除以 w 得到 NDC（归一化设备坐标）。透视投影后 w = -z_camera，所以除以 w 就是“近大远小”。</li>
+<li><strong>视口变换</strong>：NDC 映射到像素坐标。屏幕 y 向下，所以要翻转 y。</li>
+</ul>
+<h3 id="透视矩阵的第三行">透视矩阵的第三行</h3>
+<div class="highlight"><pre><span></span><code>z_ndc = ((f+n)/(n-f) · z + 2fn/(n-f)) / (-z)
+</code></pre></div>
+<p>z = -n 时 z_ndc = -1，z = -f 时 z_ndc = 1。这个映射是<strong>非线性</strong>的（和 1/z 成线性关系），近处精度高、远处精度低。near 设得太小，远处深度会挤在一起，出现 z-fighting（两个面闪烁交替）。</p>
+<h3 id="和视觉的相机约定对照">和视觉的相机约定对照</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>OpenGL</th>
+<th>OpenCV</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>相机看向</td>
+<td>-Z</td>
+<td>+Z</td>
+</tr>
+<tr>
+<td>y 轴</td>
+<td>向上</td>
+<td>向下</td>
+</tr>
+<tr>
+<td>投影</td>
+<td>投影矩阵到 NDC</td>
+<td>内参 K 直接到像素</td>
+</tr>
+</tbody>
+</table></div>
+<p>两者之间相当于绕 x 轴转 180°（y、z 取反）。把标定得到的 K、R、t 用于 OpenGL 渲染时，要转换坐标系，并且根据 fx、fy、cx、cy 和图像尺寸构造对应的投影矩阵（注意主点偏移会让视锥不对称）。这是做“仿真图和真实图对齐”时的必经步骤。</p>
+<h2 id="4-光栅化">4. 光栅化</h2>
+<p>把投影后的三角形变成像素：</p>
+<ol>
+<li>计算三角形的包围盒，只遍历盒内的像素。</li>
+<li>对每个像素中心 (x+0.5, y+0.5)，用<strong>重心坐标</strong>判断是否在三角形内：三个坐标都非负就在内部（边上的点可以算在内）。</li>
+<li>用重心坐标插值深度、颜色、纹理坐标、法线。</li>
+<li><strong>深度测试（z-buffer）</strong>：维护每个像素当前最近的深度，新片元更近才写入。这样绘制顺序就无关紧要了。</li>
+</ol>
+<p><strong>重心坐标</strong>用有向面积计算：</p>
+<div class="highlight"><pre><span></span><code>area = (x1-x0)(y2-y0) - (x2-x0)(y1-y0)
+w0 = ((x1-px)(y2-py) - (x2-px)(y1-py)) / area
+w1 = ((x2-px)(y0-py) - (x0-px)(y2-py)) / area
+w2 = 1 - w0 - w1
+</code></pre></div>
+<p>area 的正负表示绕序，除以 area 后两种绕序都能得到正的重心坐标。area 为 0 是退化三角形，直接跳过。</p>
+<p><strong>透视校正插值</strong>：严格来说，颜色和纹理坐标应该在 1/w 空间插值才正确，屏幕空间直接线性插值会在大三角形上产生纹理扭曲。深度如果用 NDC 的 z，在屏幕空间线性插值是正确的。作业只要求深度。</p>
+<h2 id="5-着色">5. 着色</h2>
+<p><strong>Lambert 漫反射</strong>：亮度 = 反射率 × max(0, n·l)，n 是法线，l 是指向光源的方向。和视线方向无关。</p>
+<p><strong>Phong / Blinn-Phong 高光</strong>：加上 (n·h)^shininess 项，h 是光线和视线的半程向量。金属、抛光晶圆表面有强镜面反射，检测里的明场和暗场照明效果都和这个有关（第 22 章）。</p>
+<p><strong>PBR（基于物理的渲染）</strong>：用微表面模型（粗糙度、金属度）描述材质，能量守恒，现代引擎的标准。做高保真仿真时会用到。</p>
+<h2 id="6-opengl-管线和-glsl">6. OpenGL 管线和 GLSL</h2>
+<p>可编程阶段：</p>
+<div class="highlight"><pre><span></span><code>顶点数据（VBO） → 顶点着色器 → 图元装配 → 光栅化 → 片元着色器 → 深度测试和混合 → 帧缓冲
+</code></pre></div>
+<p>一个最小的着色器对：</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// 顶点着色器：每个顶点执行一次</span>
+<span class="cp">#version 330 core</span>
+<span class="k">layout</span><span class="p">(</span><span class="n">location</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mo">0</span><span class="p">)</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="kt">vec3</span><span class="w"> </span><span class="n">aPos</span><span class="p">;</span>
+<span class="k">layout</span><span class="p">(</span><span class="n">location</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="kt">vec3</span><span class="w"> </span><span class="n">aNormal</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">mat4</span><span class="w"> </span><span class="n">model</span><span class="p">,</span><span class="w"> </span><span class="n">view</span><span class="p">,</span><span class="w"> </span><span class="n">projection</span><span class="p">;</span>
+<span class="k">out</span><span class="w"> </span><span class="kt">vec3</span><span class="w"> </span><span class="n">vNormal</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">vNormal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">mat3</span><span class="p">(</span><span class="n">transpose</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">model</span><span class="p">)))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">aNormal</span><span class="p">;</span><span class="w">   </span><span class="c1">// 法线用逆转置</span>
+<span class="w">    </span><span class="nb">gl_Position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">projection</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">view</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">model</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">vec4</span><span class="p">(</span><span class="n">aPos</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1">// 片元着色器：每个像素执行一次</span>
+<span class="cp">#version 330 core</span>
+<span class="k">in</span><span class="w"> </span><span class="kt">vec3</span><span class="w"> </span><span class="n">vNormal</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">vec3</span><span class="w"> </span><span class="n">lightDir</span><span class="p">;</span>
+<span class="k">out</span><span class="w"> </span><span class="kt">vec4</span><span class="w"> </span><span class="n">FragColor</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">diff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">dot</span><span class="p">(</span><span class="n">normalize</span><span class="p">(</span><span class="n">vNormal</span><span class="p">),</span><span class="w"> </span><span class="n">normalize</span><span class="p">(</span><span class="n">lightDir</span><span class="p">)),</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">FragColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">vec4</span><span class="p">(</span><span class="kt">vec3</span><span class="p">(</span><span class="n">diff</span><span class="p">),</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>要点：</p>
+<ul>
+<li><code>uniform</code> 是一次绘制里所有顶点共用的参数（矩阵、光源），<code>in</code>/<code>out</code> 在阶段之间传递并自动插值。</li>
+<li><code>gl_Position</code> 输出裁剪坐标，透视除法和视口变换由硬件完成。</li>
+<li>你在作业里手写的就是光栅化和深度测试这两个固定功能阶段。</li>
+</ul>
+<p><strong>离屏渲染</strong>：检测仿真不需要窗口，渲染到帧缓冲对象（FBO）后读回像素（<code>glReadPixels</code>），可以批量生成数据。macOS 的 OpenGL 已停留在 4.1 并被标记为弃用，学习阶段够用；工程上可能会遇到 Vulkan、Metal 或者 EGL 无头渲染，概念相通。</p>
+<h2 id="7-渲染在检测里的用途">7. 渲染在检测里的用途</h2>
+<ol>
+<li><strong>参考图生成</strong>：把版图多边形渲染成图，再经过第 22 章的光学模糊和噪声模型，作为 die-to-database 比对的参考。</li>
+<li><strong>合成数据</strong>：在 3D 结构上放缺陷（颗粒、凹坑、桥接），渲染出带精确掩码的图像。</li>
+<li><strong>成像条件研究</strong>：改变照明角度、焦距、倾斜，研究它们对缺陷可见性的影响，指导光学设计。</li>
+<li><strong>仿真到真实的对齐</strong>：用标定得到的相机参数构造投影矩阵，让仿真图和真实图在几何上对齐（第 3 节的约定转换）。</li>
+</ol>
+<h2 id="自测问题">自测问题</h2>
+<ol>
+<li>为什么方向向量的齐次坐标 w=0？</li>
+<li>先旋转再平移和先平移再旋转，矩阵怎么写？结果有什么区别？</li>
+<li>near 从 0.1 改成 0.001，深度精度会怎样？</li>
+<li>片元着色器里 <code>vNormal</code> 为什么要重新 normalize？</li>
+<li>用 OpenCV 标定的 K 渲染时，主点不在图像中心会对投影矩阵产生什么影响？</li>
+</ol></article><nav class="prev-next"><a href="20.html">← 第 20 章 合成缺陷与生成模型</a><a href="22.html">第 22 章 成像与设备仿真 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#1-必备-3d-数学">1. 必备 3D 数学</a></li><li><a href="#2-旋转的几种表示">2. 旋转的几种表示</a></li><li><a href="#3-渲染管线从顶点到像素">3. 渲染管线：从顶点到像素</a></li><li class="sub"><a href="#透视矩阵的第三行">透视矩阵的第三行</a></li><li class="sub"><a href="#和视觉的相机约定对照">和视觉的相机约定对照</a></li><li><a href="#4-光栅化">4. 光栅化</a></li><li><a href="#5-着色">5. 着色</a></li><li><a href="#6-opengl-管线和-glsl">6. OpenGL 管线和 GLSL</a></li><li><a href="#7-渲染在检测里的用途">7. 渲染在检测里的用途</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

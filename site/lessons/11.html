@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 11 章 目标检测 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li class="current" data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 11 章 <span class="tag P3">P3</span> <span class="badge">原版讲义</span></div><h1>目标检测</h1><p class="scene"><b>用在哪：</b>有标注时定位并分类缺陷</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 10 小时</span><span class="chip"><b>深挖</b> 12 小时</span><span class="chip">前置：<a href="../lessons/09.html">第 9 章 CNN 核心</a></span></div><div class="meta-row"><span class="chip mono">验收：python 11_目标检测/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="11"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
+<p>配套练习：<code>DL-7 YOLO 自定义检测</code> | <code>DL-8 手写 IoU + NMS</code></p>
+<p>前置知识：第 8 天的损失函数与反向传播、第 9 天的 CNN 与特征金字塔直觉、第 10 天的迁移学习和数据增强。</p>
+</blockquote>
+<hr />
+<h2 id="111-检测比分类多做了什么">11.1 检测比分类多做了什么</h2>
+<p>分类模型回答：“图里有没有猫？”目标检测还要回答：“有几只猫？每只在哪里？”因此一张图的标签不再是单个类别，而是一组目标：</p>
+<div class="highlight"><pre><span></span><code>[(class_id, x1, y1, x2, y2), ...]
+</code></pre></div>
+<p><code>(x1,y1)</code> 是左上角，<code>(x2,y2)</code> 是右下角。也常用中心点形式 <code>(cx,cy,w,h)</code>。两者可互换：</p>
+<div class="highlight"><pre><span></span><code>cx=(x1+x2)/2, cy=(y1+y2)/2, w=x2-x1, h=y2-y1
+</code></pre></div>
+<p>检测的难点来自“输出数量不固定”。一张图可能没有目标，也可能有几十个；网络却只能输出固定形状张量。现代检测器通常先产生大量候选预测，再通过置信度阈值和 NMS 留下最终结果。</p>
+<p>一个预测通常包含三类信息：</p>
+<ol>
+<li><strong>位置</strong>：框的中心和宽高，或到四条边的距离；</li>
+<li><strong>目标性 objectness</strong>：这里是否存在任意目标；</li>
+<li><strong>类别分数</strong>：如果有目标，它属于哪一类。</li>
+</ol>
+<p>第 9 天的分类网络把空间特征压成一个向量；检测网络必须保留空间布局，因为“在哪里”正藏在特征图的位置中。</p>
+<hr />
+<h2 id="112-两阶段与一阶段先找再认还是一次完成">11.2 两阶段与一阶段：先找再认，还是一次完成</h2>
+<h3 id="faster-r-cnn两阶段">Faster R-CNN：两阶段</h3>
+<p>两阶段检测器把问题拆开：</p>
+<div class="highlight"><pre><span></span><code>图像 → Backbone 特征
+     → RPN 产生候选区域
+     → RoI Align 抽取每个区域的固定尺寸特征
+     → 分类头 + 边框回归头
+</code></pre></div>
+<p>RPN 先问“哪些位置像目标”，第二阶段再精细分类和修框。这样通常定位精细、对小目标友好，但每个候选区域还要继续处理，速度和部署复杂度较高。</p>
+<p>RoI Align 的关键不是名字，而是<strong>避免粗暴取整</strong>。候选框坐标映射到特征图后常是小数；RoI Pooling 取整会造成错位，RoI Align 用双线性插值采样，更适合需要精确边界的任务。</p>
+<h3 id="yolo一阶段">YOLO：一阶段</h3>
+<p>YOLO 把检测写成一次稠密预测：特征图上的许多位置同时预测框和类别。</p>
+<div class="highlight"><pre><span></span><code>图像 → Backbone → Neck（融合多尺度）→ Detection Head → 候选框 → NMS
+</code></pre></div>
+<ul>
+<li><strong>Backbone</strong> 提取纹理到语义的层级特征；</li>
+<li><strong>Neck</strong>（如 FPN/PAN）融合高分辨率细节与低分辨率语义；</li>
+<li><strong>Head</strong> 在多个尺度上输出位置、目标性和类别。</li>
+</ul>
+<p>例如输入 <code>640×640</code>，大尺度特征图负责小目标，小尺度特征图负责大目标。这对应第 9 天的感受野：深层单元“看得广”但位置粗，浅层单元“看得细”但语义弱，FPN 让两者合作。</p>
+<p>“一阶段一定不准、两阶段一定慢”只是历史印象。今天二者边界已经模糊，实际选择应看数据、延迟、显存、部署后端和可维护性，而不是只看论文类别。</p>
+<hr />
+<h2 id="113-anchor-到底在帮助什么">11.3 Anchor 到底在帮助什么</h2>
+<p>直接让网络从零猜任意宽高很难。Anchor-based 检测器先在每个位置放若干参考框，例如“细长、方形、扁宽”，网络只学习相对修正：</p>
+<div class="highlight"><pre><span></span><code>tx, ty：中心相对网格的偏移
+ tw, th：宽高相对 anchor 的缩放
+</code></pre></div>
+<p>一种常见参数化是：</p>
+<div class="highlight"><pre><span></span><code>bx = sigmoid(tx) + cx
+by = sigmoid(ty) + cy
+bw = aw * exp(tw)
+bh = ah * exp(th)
+</code></pre></div>
+<p>其中 <code>(cx,cy)</code> 是网格位置，<code>(aw,ah)</code> 是 anchor 尺寸。指数保证宽高为正。训练时需要把真实框分配给合适的 anchor，这叫 <strong>label assignment</strong>。</p>
+<p>Anchor 的代价是超参数多、正负样本分配复杂。Anchor-free 方法改为预测中心点、四边距离或关键点，减少手工设计。不要把“无 anchor”等同于“没有候选位置”：它仍在特征图位置上做稠密预测，只是不再依赖预设宽高。</p>
+<p>自定义数据若目标形状很特殊，旧式 YOLO 可能需要重新聚类 anchor；新版本常有自动适配或 anchor-free 头，应先确认实现，别机械照搬旧教程。</p>
+<hr />
+<h2 id="114-iou框重叠得有多好">11.4 IoU：框重叠得有多好</h2>
+<p>交并比 Intersection over Union：</p>
+<div class="highlight"><pre><span></span><code>IoU(A,B) = area(A∩B) / area(A∪B)
+</code></pre></div>
+<p>范围为 <code>[0,1]</code>。完全不重叠是 0，完全相同是 1。计算步骤：</p>
+<div class="highlight"><pre><span></span><code><span class="n">inter_x1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">bx1</span><span class="p">)</span>
+<span class="n">inter_y1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ay1</span><span class="p">,</span> <span class="n">by1</span><span class="p">)</span>
+<span class="n">inter_x2</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ax2</span><span class="p">,</span> <span class="n">bx2</span><span class="p">)</span>
+<span class="n">inter_y2</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ay2</span><span class="p">,</span> <span class="n">by2</span><span class="p">)</span>
+<span class="n">inter_w</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">inter_x2</span> <span class="o">-</span> <span class="n">inter_x1</span><span class="p">)</span>
+<span class="n">inter_h</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">inter_y2</span> <span class="o">-</span> <span class="n">inter_y1</span><span class="p">)</span>
+<span class="n">inter</span> <span class="o">=</span> <span class="n">inter_w</span> <span class="o">*</span> <span class="n">inter_h</span>
+<span class="n">union</span> <span class="o">=</span> <span class="n">area_a</span> <span class="o">+</span> <span class="n">area_b</span> <span class="o">-</span> <span class="n">inter</span>
+<span class="n">iou</span> <span class="o">=</span> <span class="n">inter</span> <span class="o">/</span> <span class="p">(</span><span class="n">union</span> <span class="o">+</span> <span class="mf">1e-7</span><span class="p">)</span>
+</code></pre></div>
+<p><code>max(0,...)</code> 不能省，否则不相交时会得到负面积。还要统一坐标约定：连续坐标通常不写 <code>+1</code>；某些旧式整数像素实现写 <code>x2-x1+1</code>，混用会产生隐蔽误差。</p>
+<p>IoU 既用于评价，也用于样本匹配和 NMS。但普通 IoU 在两框不相交时恒为 0，无法告诉优化器“应该往哪个方向移动”。因此回归损失常使用 GIoU、DIoU、CIoU：除重叠外，再考虑最小包围框、中心距离和宽高比。</p>
+<h3 id="一个逐步例子">一个逐步例子</h3>
+<p>真实框 <code>G=(10,10,50,50)</code>，预测框 <code>P=(30,20,70,60)</code>：</p>
+<div class="highlight"><pre><span></span><code>交集左上 = (30,20)，右下 = (50,50)
+交集面积 = 20×30 = 600
+G 面积 = 40×40 = 1600
+P 面积 = 40×40 = 1600
+并集 = 1600+1600-600 = 2600
+IoU = 600/2600 ≈ 0.231
+</code></pre></div>
+<p>它们看起来有重叠，但若评价阈值是 0.5，这个预测仍算定位失败。</p>
+<hr />
+<h2 id="115-precisionrecallap-与-map">11.5 Precision、Recall、AP 与 mAP</h2>
+<p>先在某个 IoU 阈值下匹配预测与真实框：</p>
+<ul>
+<li><strong>TP</strong>：类别正确，且与尚未匹配的真实框 IoU 达标；</li>
+<li><strong>FP</strong>：背景误报、类别错、定位不达标，或同一目标被重复预测；</li>
+<li><strong>FN</strong>：真实目标没有被检测到。</li>
+</ul>
+<div class="highlight"><pre><span></span><code>Precision = TP/(TP+FP)   预测出来的有多少是真的
+Recall    = TP/(TP+FN)   真实目标有多少被找到了
+</code></pre></div>
+<p>改变置信度阈值，会得到一条 Precision-Recall 曲线。<strong>AP</strong> 是该类别 PR 曲线下面积，<strong>mAP</strong> 是各类别 AP 的平均。</p>
+<p>常见的 <code>mAP@0.5</code> 只要求 IoU≥0.5；<code>mAP@0.5:0.95</code> 在 0.50、0.55……0.95 十个阈值上求平均，更强调精确定位。报告结果必须写清口径，否则两个“mAP 80%”可能根本不可比。</p>
+<p>类别不均衡时，mAP 给每类相同权重：稀有类很差会明显拉低平均值。这通常比只看总体准确率合理，但业务还可能更关心某些关键类，需要同时报告 per-class AP、召回率和混淆矩阵。</p>
+<hr />
+<h2 id="116-nms从一堆重叠框中选代表">11.6 NMS：从一堆重叠框中选代表</h2>
+<p>同一目标附近会产生许多高分框。经典 NMS 是贪心算法：</p>
+<div class="highlight"><pre><span></span><code>1. 按置信度从高到低排序；
+2. 取最高分框加入结果；
+3. 删除与它同类别且 IoU 超过阈值的框；
+4. 对剩余框重复。
+</code></pre></div>
+<p>NMS 阈值太低，会误删密集目标；太高，会保留重复框。通常先按置信度过滤，再做 NMS，避免处理海量低质量框。</p>
+<p>必须理解 <strong>class-aware NMS</strong>：不同类别通常分别去重，否则“人”和“背包”高度重叠时可能互相删除。Soft-NMS 不直接删框，而是按重叠程度降低分数；密集场景可能更稳。</p>
+<p>DL-8 应自己实现 IoU 与 NMS，但不要只验证“能运行”。至少设计四类测试：完全重合、完全分离、边界接触、三个框链式重叠。教程不直接给完整练习答案，排序、索引更新和批处理留给你完成。</p>
+<hr />
+<h2 id="117-检测损失三个目标如何一起学">11.7 检测损失：三个目标如何一起学</h2>
+<p>简化后总损失可写为：</p>
+<div class="highlight"><pre><span></span><code>L = λ_box L_box + λ_obj L_obj + λ_cls L_cls
+</code></pre></div>
+<ul>
+<li><code>L_box</code>：IoU 系列损失，推动框贴近真实框；</li>
+<li><code>L_obj</code>：二元交叉熵，区分目标与背景；</li>
+<li><code>L_cls</code>：交叉熵或 BCE，学习类别。</li>
+</ul>
+<p>背景位置远多于目标位置，若全部同等训练，模型可能靠“一律预测背景”获得很小的平均损失。常见处理包括正负样本筛选、Focal Loss 和动态标签分配。</p>
+<p>Focal Loss 在 BCE 上乘 <code>(1-p_t)^γ</code>。容易样本的 <code>p_t</code> 接近 1，权重被压低；困难样本获得更多关注。它不是“类别权重”的同义词：类别权重解决类间不均衡，Focal 更关注难易不均衡。</p>
+<p>训练日志中不要只看总 loss。框损失下降但分类损失不降，可能是标签类别错；目标性损失异常，可能是框格式或样本分配有问题。</p>
+<hr />
+<h2 id="118-数据流程标注正确比换模型更重要">11.8 数据流程：标注正确比换模型更重要</h2>
+<h3 id="1-定义类别和标注规则">1. 定义类别和标注规则</h3>
+<p>先明确遮挡目标是否标、截断目标怎么标、模糊到什么程度忽略。规则不一致等于给模型互相矛盾的监督。</p>
+<h3 id="2-检查框与类别">2. 检查框与类别</h3>
+<p>训练前随机可视化至少几十张。重点检查：</p>
+<ul>
+<li><code>(x,y,w,h)</code> 与 <code>(x1,y1,x2,y2)</code> 是否混淆；</li>
+<li>YOLO 归一化坐标是否真的除以图像宽高；</li>
+<li>resize/flip/crop 后框是否同步变换；</li>
+<li>类别编号是否从框架要求的起点开始；</li>
+<li>空标签图是否被正确处理。</li>
+</ul>
+<h3 id="3-划分数据">3. 划分数据</h3>
+<p>同一视频相邻帧、同一物体连拍、同一场景切图不能随机散到训练和验证集，否则会数据泄漏。应按视频、拍摄批次、设备或物体实例分组划分。</p>
+<h3 id="4-增强">4. 增强</h3>
+<p>水平翻转、颜色扰动、随机缩放、Mosaic 可提升泛化，但增强必须符合业务。文字、交通方向、医学左右侧等场景不能随意翻转。裁剪后只剩极小框时，应设可见面积规则。</p>
+<hr />
+<h2 id="119-yolo-自定义训练先跑通最小闭环">11.9 YOLO 自定义训练：先跑通最小闭环</h2>
+<p>以 Ultralytics 风格接口说明流程，具体参数以本机版本为准：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s2">"yolo11n.pt"</span><span class="p">)</span>          <span class="c1"># 小模型先验证流程</span>
+<span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="s2">"dataset.yaml"</span><span class="p">,</span>
+    <span class="n">imgsz</span><span class="o">=</span><span class="mi">640</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">batch</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">"mps"</span><span class="p">,</span>                  <span class="c1"># Apple Silicon；也可为 0 或 "cpu"</span>
+<span class="p">)</span>
+<span class="n">metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">val</span><span class="p">()</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s2">"demo.jpg"</span><span class="p">,</span> <span class="n">conf</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">iou</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+</code></pre></div>
+<p><code>dataset.yaml</code> 通常描述训练/验证图像路径、类别数和名称。建议按以下顺序调试：</p>
+<ol>
+<li>用 10～30 张图训练到明显过拟合；若做不到，先查标签与代码；</li>
+<li>再跑完整训练集，观察 train/val 曲线；</li>
+<li>固定验证集比较模型、输入尺寸和增强；</li>
+<li>最后才做长周期训练。</li>
+</ol>
+<p>“能在小数据上过拟合”是重要的单元测试。若一个高容量模型连 20 张图都记不住，通常不是泛化问题，而是数据读取、标签映射、损失或学习率有错误。</p>
+<p>推理时别只展示最好看的图片。应保存低置信度漏检、高置信度误检、小目标、遮挡、逆光等失败样本，为第 14 天错误分析做准备。</p>
+<hr />
+<h2 id="1110-常见坑与排查顺序">11.10 常见坑与排查顺序</h2>
+<h3 id="小目标总漏检">小目标总漏检</h3>
+<p>目标 resize 后可能只剩几像素。检查原始分辨率和目标尺寸分布；可提高输入尺寸、使用切片推理、补充近景数据或强化高分辨率特征层。提高输入尺寸会近似按面积增加计算量，不是免费午餐。</p>
+<h3 id="密集目标互相删除">密集目标互相删除</h3>
+<p>先检查是不是 NMS 阈值过低，再看标注是否包含每个实例。可尝试更合适的 NMS、Soft-NMS 或专门的密集检测方案。</p>
+<h3 id="训练集很好验证集很差">训练集很好，验证集很差</h3>
+<p>优先检查划分是否同分布、样本是否过少、增强是否失真、背景是否形成捷径。第 10 天的 Grad-CAM/Shortcut Learning 直觉仍适用：检测器也可能只认背景纹理。</p>
+<h3 id="框整体偏移或比例错误">框整体偏移或比例错误</h3>
+<p>几乎总是几何变换或坐标格式问题。把“增强前图+框”和“增强后图+框”并排画出来，比盯 loss 更有效。</p>
+<h3 id="类别不均衡">类别不均衡</h3>
+<p>先统计“图片数”和“实例数”，两者不同。可补数据、重采样、调整损失或合并无法可靠区分的类别。不要只复制稀有类图片，否则背景也被重复记忆。</p>
+<h3 id="指标不错但业务不可用">指标不错但业务不可用</h3>
+<p>离线数据可能太干净，或指标没有体现关键成本。例如漏掉安全帽比多报一个安全帽严重，应单独设置关键类召回目标，并在真实设备上测端到端延迟。</p>
+<hr />
+<h2 id="1111-与-dl-7dl-12-的衔接">11.11 与 DL-7～DL-12 的衔接</h2>
+<ul>
+<li><strong>DL-7 YOLO 自定义检测</strong>：本章的数据格式、最小过拟合测试、训练/验证和错误样本保存是主线；你需要自己完成数据集配置和参数实验。</li>
+<li><strong>DL-8 手写 IoU+NMS</strong>：本章给出定义、边界条件与测试思路，但保留批量实现和最终练习组织，不直接给完整答案。</li>
+<li><strong>DL-9 U-Net 分割</strong>：检测框只能给粗定位；需要像素边界时转向下一章。</li>
+<li><strong>DL-10/11</strong>：自编码器或自监督预训练可利用无标签图像，缓解检测标注昂贵的问题。</li>
+<li><strong>DL-12 综合项目</strong>：将 DL-7 的检测器与 DL-9 的分割器组成端到端系统，并进行部署评估。</li>
+</ul>
+<hr />
+<h2 id="章末检查清单">章末检查清单</h2>
+<ul>
+<li>[ ] 能解释分类、检测、分割的输出差异。</li>
+<li>[ ] 能画出 Faster R-CNN 与 YOLO 的主要数据流。</li>
+<li>[ ] 知道 Anchor 帮助了什么，也知道 Anchor-free 并非没有候选位置。</li>
+<li>[ ] 能手算两个框的 IoU，并处理不相交情形。</li>
+<li>[ ] 能区分 Precision、Recall、AP、mAP@0.5 与 mAP@0.5:0.95。</li>
+<li>[ ] 能逐步描述 NMS，并说明阈值过高、过低的后果。</li>
+<li>[ ] 能解释框、目标性、分类三类损失。</li>
+<li>[ ] 会在增强后可视化框，排除坐标同步错误。</li>
+<li>[ ] 会先用几十张图做“最小过拟合”测试。</li>
+<li>[ ] 会按视频/场景/实例分组划分数据，避免相邻样本泄漏。</li>
+<li>[ ] 不只汇报总 mAP，还检查 per-class 指标和失败样本。</li>
+<li>[ ] 已准备好进入 DL-7 与 DL-8，但不会照抄现成完整答案。</li>
+</ul></article><nav class="prev-next"><a href="10.html">← 第 10 章 迁移学习与模型分析</a><a href="12.html">第 12 章 图像分割 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#111-检测比分类多做了什么">11.1 检测比分类多做了什么</a></li><li><a href="#112-两阶段与一阶段先找再认还是一次完成">11.2 两阶段与一阶段：先找再认，还是一次完成</a></li><li class="sub"><a href="#faster-r-cnn两阶段">Faster R-CNN：两阶段</a></li><li class="sub"><a href="#yolo一阶段">YOLO：一阶段</a></li><li><a href="#113-anchor-到底在帮助什么">11.3 Anchor 到底在帮助什么</a></li><li><a href="#114-iou框重叠得有多好">11.4 IoU：框重叠得有多好</a></li><li class="sub"><a href="#一个逐步例子">一个逐步例子</a></li><li><a href="#115-precisionrecallap-与-map">11.5 Precision、Recall、AP 与 mAP</a></li><li><a href="#116-nms从一堆重叠框中选代表">11.6 NMS：从一堆重叠框中选代表</a></li><li><a href="#117-检测损失三个目标如何一起学">11.7 检测损失：三个目标如何一起学</a></li><li><a href="#118-数据流程标注正确比换模型更重要">11.8 数据流程：标注正确比换模型更重要</a></li><li class="sub"><a href="#1-定义类别和标注规则">1. 定义类别和标注规则</a></li><li class="sub"><a href="#2-检查框与类别">2. 检查框与类别</a></li><li class="sub"><a href="#3-划分数据">3. 划分数据</a></li><li class="sub"><a href="#4-增强">4. 增强</a></li><li><a href="#119-yolo-自定义训练先跑通最小闭环">11.9 YOLO 自定义训练：先跑通最小闭环</a></li><li><a href="#1110-常见坑与排查顺序">11.10 常见坑与排查顺序</a></li><li class="sub"><a href="#小目标总漏检">小目标总漏检</a></li><li class="sub"><a href="#密集目标互相删除">密集目标互相删除</a></li><li class="sub"><a href="#训练集很好验证集很差">训练集很好，验证集很差</a></li><li class="sub"><a href="#框整体偏移或比例错误">框整体偏移或比例错误</a></li><li class="sub"><a href="#类别不均衡">类别不均衡</a></li><li class="sub"><a href="#指标不错但业务不可用">指标不错但业务不可用</a></li><li><a href="#1111-与-dl-7dl-12-的衔接">11.11 与 DL-7～DL-12 的衔接</a></li><li><a href="#章末检查清单">章末检查清单</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 15 章 C++ 视觉工程 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li class="current" data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 15 章 <span class="tag P0">P0</span> <span class="badge">原版讲义</span></div><h1>C++ 视觉工程</h1><p class="scene"><b>用在哪：</b>读写产线上的 C++ 视觉代码：内存布局、积分图、连通域、CMake</p><div class="meta-row"><span class="chip"><b>速通</b> 4 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 22 小时</span><span class="chip">前置：无</span></div><div class="meta-row"><span class="chip mono">验收：python 15_C++视觉工程/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="15"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><p>这一章不是完整的 C++ 教程，而是一份“工业视觉团队里最常用到、最容易出错”的清单。语法细节请配合 LearnCpp 查。</p>
+<h2 id="1-图像在内存里长什么样">1. 图像在内存里长什么样</h2>
+<p>一张 <code>H x W</code> 的单通道 8 位图，在内存里是 <code>H * W</code> 个连续字节，按行排列：</p>
+<div class="highlight"><pre><span></span><code>地址：  0        1        ...  W-1      W        W+1 ...
+像素：  (0,0)    (0,1)    ...  (0,W-1)  (1,0)    (1,1) ...
+</code></pre></div>
+<p>下标公式 <code>index = y * step + x</code>。<code>step</code> 是“一行占多少个元素”，通常等于 <code>W</code>，但不总是：</p>
+<ul>
+<li>从大图里取 ROI 时，子图的 <code>step</code> 还是大图的宽度，数据不连续。</li>
+<li>有些相机 SDK 为了对齐会在每行末尾补字节（padding），<code>step &gt; W</code>。</li>
+</ul>
+<p>所以写遍历代码时，用 <code>step</code> 而不是 <code>W</code> 算行首地址，这是新人改别人代码时最常见的越界来源。OpenCV 里对应 <code>mat.step</code>（字节数）和 <code>mat.ptr&lt;T&gt;(y)</code>（第 y 行行首指针）。</p>
+<p><strong>多通道</strong>：BGR 三通道是交错存储 <code>B G R B G R ...</code>，下标为 <code>(y * step + x) * 3 + c</code>。</p>
+<p><strong>遍历顺序</strong>：外层循环 y、内层循环 x，按地址顺序访问，缓存命中最好。反过来写，大图上可能慢好几倍。</p>
+<h2 id="2-类型与溢出">2. 类型与溢出</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>坑</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>两个 <code>uint8_t</code> 相加</td>
+<td>255 + 1 在存回 <code>uint8_t</code> 时变成 0</td>
+<td>先提升到 <code>int</code> 计算，再饱和截断（OpenCV 的 <code>saturate_cast</code>）</td>
+</tr>
+<tr>
+<td>积分图</td>
+<td>4000x4000 的全白图求和约 4e9，超过 <code>uint32_t</code> 上限</td>
+<td>用 <code>uint64_t</code> 或 <code>double</code></td>
+</tr>
+<tr>
+<td>平方和（方差、NCC）</td>
+<td><code>int</code> 很容易溢出</td>
+<td>用 <code>double</code> 或 <code>int64_t</code></td>
+</tr>
+<tr>
+<td>有符号和无符号混用</td>
+<td><code>size_t i; i - 1</code> 在 i=0 时变成巨大正数</td>
+<td>下标用 <code>int</code>，或者先判断再减</td>
+</tr>
+<tr>
+<td>浮点比较</td>
+<td><code>a == b</code> 不可靠</td>
+<td>用 <code>std::fabs(a - b) &lt; eps</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><code>-Wall -Wextra</code> 会提示大部分有符号和无符号比较的问题，警告要清零，不要忽略。</p>
+<h2 id="3-值语义引用和拷贝">3. 值语义、引用和拷贝</h2>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">Image</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">img</span><span class="p">);</span><span class="w">         </span><span class="c1">// 按值传：整张图拷贝一次，慢</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Image</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">img</span><span class="p">);</span><span class="w">  </span><span class="c1">// const 引用：不拷贝，也不能改，读图首选</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">Image</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">img</span><span class="p">);</span><span class="w">        </span><span class="c1">// 非 const 引用：原地修改</span>
+</code></pre></div>
+<p><code>std::vector</code> 是值语义，赋值就是深拷贝。<strong><code>cv::Mat</code> 不一样</strong>：它是引用计数的句柄，<code>Mat b = a;</code> 只拷贝句柄，<code>b</code> 和 <code>a</code> 指向同一块像素。要深拷贝用 <code>a.clone()</code> 或 <code>a.copyTo(b)</code>。这个差异导致过无数“我明明改的是副本，原图怎么也变了”的 bug。</p>
+<p><strong>RAII</strong>：资源跟对象生命周期绑定。用 <code>std::vector</code>、<code>std::unique_ptr</code> 管理内存，不要手写 <code>new</code>/<code>delete</code>。相机缓冲区、文件句柄也用类包起来，在析构函数里释放。</p>
+<h2 id="4-不要用递归做连通域和泛洪填充">4. 不要用递归做连通域和泛洪填充</h2>
+<p>一个 3000x3000 的蛇形前景区域，递归深度可达几百万层，默认栈（macOS 主线程 8 MB，子线程通常更小）一定会溢出，表现是程序直接崩溃（Segmentation fault），而且只在大图上出现。正确做法是用 <code>std::queue</code>（BFS）或 <code>std::vector</code> 当显式栈（DFS）。本章测试专门放了一个蛇形大区域来检查这一点。</p>
+<h2 id="5-积分图让任意矩形求和变成-o1">5. 积分图：让任意矩形求和变成 O(1)</h2>
+<p>定义 <code>II(y, x) = sum(img[0..y-1, 0..x-1])</code>，尺寸为 <code>(H+1) x (W+1)</code>，多出的第 0 行和第 0 列全为 0，这样就不用处理边界特判。矩形 <code>[y0, y1) x [x0, x1)</code> 的和是：</p>
+<div class="highlight"><pre><span></span><code>S = II(y1, x1) - II(y0, x1) - II(y1, x0) + II(y0, x0)
+</code></pre></div>
+<p>递推：<code>II(y+1, x+1) = II(y, x+1) + rowsum(y, 0..x)</code>。</p>
+<p>用途：盒式滤波、局部均值和方差（同时维护平方的积分图）、NCC 分母加速、Haar 特征。本章的盒式均值要求“耗时与半径无关”，测试会对比 r=1 和 r=30 的耗时。</p>
+<h2 id="6-ncc-模板匹配的工程细节">6. NCC 模板匹配的工程细节</h2>
+<p>公式和第 16 章相同：</p>
+<div class="highlight"><pre><span></span><code>NCC = Σ (I - Ī)(T - T̄) / sqrt( Σ (I - Ī)^2 · Σ (T - T̄)^2 )
+</code></pre></div>
+<ul>
+<li>模板的均值和方差只算一次。</li>
+<li>窗口方差为 0（平坦区域）时分母为 0，必须特判，否则产生 NaN，NaN 和任何数比较都是 false，会导致“最大值”找错。</li>
+<li>直接实现是 O(H·W·h·w)，大图大模板很慢。工程上的做法：积分图算窗口均值和方差，FFT 算分子；或者图像金字塔先在缩小图上粗搜，再在原图局部精搜。</li>
+</ul>
+<h2 id="7-cmake-最小知识">7. CMake 最小知识</h2>
+<div class="highlight"><pre><span></span><code><span class="nb">cmake_minimum_required</span><span class="p">(</span><span class="s">VERSION</span><span class="w"> </span><span class="s">3.16</span><span class="p">)</span>
+<span class="nb">project</span><span class="p">(</span><span class="s">demo</span><span class="w"> </span><span class="s">CXX</span><span class="p">)</span>
+<span class="nb">set</span><span class="p">(</span><span class="s">CMAKE_CXX_STANDARD</span><span class="w"> </span><span class="s">17</span><span class="p">)</span>
+<span class="nb">find_package</span><span class="p">(</span><span class="s">OpenCV</span><span class="w"> </span><span class="s">REQUIRED</span><span class="p">)</span><span class="w">                 </span><span class="c"># 找到 brew 安装的 OpenCV</span>
+<span class="nb">add_executable</span><span class="p">(</span><span class="s">demo</span><span class="w"> </span><span class="s">main.cpp</span><span class="p">)</span>
+<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">demo</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="o">${</span><span class="nv">OpenCV_LIBS</span><span class="o">}</span><span class="p">)</span>
+</code></pre></div>
+<p>构建三步：</p>
+<div class="highlight"><pre><span></span><code>cmake<span class="w"> </span>-S<span class="w"> </span>.<span class="w"> </span>-B<span class="w"> </span>build<span class="w"> </span>-DCMAKE_BUILD_TYPE<span class="o">=</span>Release<span class="w">   </span><span class="c1"># 配置</span>
+cmake<span class="w"> </span>--build<span class="w"> </span>build<span class="w"> </span>-j<span class="w">                           </span><span class="c1"># 编译</span>
+./build/demo<span class="w">                                     </span><span class="c1"># 运行</span>
+</code></pre></div>
+<p>几个要点：</p>
+<ul>
+<li><strong>Debug 和 Release 性能差距可以是 10 倍以上</strong>，测速一定用 Release。</li>
+<li>用 <code>target_*</code> 系列命令（<code>target_include_directories</code>、<code>target_link_libraries</code>），不要用全局的 <code>include_directories</code>。</li>
+<li>构建目录和源码分开（<code>-B build</code>），不要在源码目录里直接 <code>cmake .</code>。</li>
+</ul>
+<h2 id="8-调试与定位">8. 调试与定位</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>越界、use-after-free</td>
+<td>编译加 <code>-fsanitize=address</code>，出错时直接打印出错行和调用栈</td>
+</tr>
+<tr>
+<td>整数溢出、未定义行为</td>
+<td><code>-fsanitize=undefined</code></td>
+</tr>
+<tr>
+<td>崩溃后看现场</td>
+<td><code>lldb ./build/demo</code>，<code>run</code> 后 <code>bt</code> 看调用栈</td>
+</tr>
+<tr>
+<td>慢</td>
+<td>macOS 上 Instruments 的 Time Profiler；或者先用 <code>std::chrono</code> 给各阶段计时</td>
+</tr>
+</tbody>
+</table></div>
+<p>本章 <code>CMakeLists.txt</code> 已经提供 <code>-DWITH_SANITIZERS=ON</code> 选项。建议故意在 <code>box_mean</code> 里把 <code>y1</code> 写成 <code>y + r + 2</code>，体验一次 ASan 报错，记住它长什么样。</p>
+<h2 id="9-性能的几条朴素规则">9. 性能的几条朴素规则</h2>
+<ol>
+<li>先测量再优化，只优化最热的那一段。</li>
+<li>热循环里不要用带边界检查的 <code>at()</code>，用行指针。</li>
+<li>不要在循环里分配内存（<code>std::vector</code> 的 <code>push_back</code> 提前 <code>reserve</code>）。</li>
+<li>能用积分图、可分离滤波（先行后列）降低复杂度的，先降复杂度，再考虑 SIMD 和多线程。</li>
+<li>OpenCV 的大部分函数已经做了 SIMD 和多线程优化，自己重写前先对比一下。</li>
+</ol>
+<h2 id="10-python-和-c-怎么协作">10. Python 和 C++ 怎么协作</h2>
+<p>常见模式是 Python 里做算法原型和评估，验证完再移植到 C++。移植时：</p>
+<ul>
+<li>用同一组输入图和同一份期望输出做对拍，逐像素比较差异。</li>
+<li>注意边界策略（反射、复制、补零）、取整方式（四舍五入还是截断）、颜色通道顺序（OpenCV 是 BGR）这三类最容易不一致的地方。</li>
+<li>需要在 Python 里调用 C++ 时，了解 pybind11 即可，入门阶段不必深挖。</li>
+</ul>
+<h2 id="自测问题">自测问题</h2>
+<ol>
+<li>一个 1920x1080 的 BGR 图，像素 (y=100, x=200) 的 G 通道在第几个字节？</li>
+<li>从大图取 ROI 后，为什么不能用 <code>memcpy(dst, roi.data, W*H)</code> 拷贝？</li>
+<li><code>Mat a = imread(...); Mat b = a; b.setTo(0);</code> 之后 <code>a</code> 是什么？</li>
+<li>用积分图求局部方差需要几张积分图？</li>
+<li>为什么 NCC 对亮度的线性变化不敏感？</li>
+</ol></article><nav class="prev-next"><a href="14.html">← 第 14 章 综合项目与部署</a><a href="16.html">第 16 章 图像对齐与亚像素 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#1-图像在内存里长什么样">1. 图像在内存里长什么样</a></li><li><a href="#2-类型与溢出">2. 类型与溢出</a></li><li><a href="#3-值语义引用和拷贝">3. 值语义、引用和拷贝</a></li><li><a href="#4-不要用递归做连通域和泛洪填充">4. 不要用递归做连通域和泛洪填充</a></li><li><a href="#5-积分图让任意矩形求和变成-o1">5. 积分图：让任意矩形求和变成 O(1)</a></li><li><a href="#6-ncc-模板匹配的工程细节">6. NCC 模板匹配的工程细节</a></li><li><a href="#7-cmake-最小知识">7. CMake 最小知识</a></li><li><a href="#8-调试与定位">8. 调试与定位</a></li><li><a href="#9-性能的几条朴素规则">9. 性能的几条朴素规则</a></li><li><a href="#10-python-和-c-怎么协作">10. Python 和 C++ 怎么协作</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

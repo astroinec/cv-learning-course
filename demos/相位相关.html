@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>相位相关与亚像素：一维演示</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .charts { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .two { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>相位相关与亚像素：一维演示（第 16 章）</h1>
+  <div class="sub">把二维图像换成一行 128 个像素，其余和作业里的算法一致：算相关曲线，找峰，用三点抛物线取小数。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>信号<div class="seg" id="sig"><button data-v="texture" class="on">随机纹理</button><button data-v="periodic">周期图案</button><button data-v="marked">周期 + 标记</button></div></label>
+    <label>方法<div class="seg" id="mode"><button data-v="phase" class="on">相位相关</button><button data-v="cc">普通互相关</button></div></label>
+    <label>真实平移（px）<b id="shiftV"></b><input type="range" id="shift" min="-20" max="20" step="0.05" value="3.35"></label>
+    <label>噪声（相对信号标准差）<b id="noiseV"></b><input type="range" id="noise" min="0" max="0.6" step="0.01" value="0"></label>
+    <label>搜索范围（px）<b id="radV"></b><input type="range" id="rad" min="3" max="64" step="1" value="64"></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>真实平移</span><b id="kTrue"></b></div>
+    <div class="kpi"><span>整数峰位置</span><b id="kInt"></b></div>
+    <div class="kpi"><span>加上抛物线小数后</span><b id="kEst"></b></div>
+    <div class="kpi" id="kErrBox"><span>误差</span><b id="kErr"></b></div>
+  </div>
+
+  <div class="charts">
+    <figure class="panel"><figcaption>两行信号<i style="background:var(--muted)"></i>参考<i style="background:var(--blue)"></i>平移后</figcaption><canvas id="c1" height="150"></canvas></figure>
+    <div class="two">
+      <figure class="panel"><figcaption>相关曲线<i style="background:var(--orange)"></i>相关值<i style="background:var(--green)"></i>真值<i style="background:var(--red)"></i>估计，浅绿色是搜索范围</figcaption><canvas id="c2" height="210"></canvas></figure>
+      <figure class="panel"><figcaption>峰值附近放大：三点与抛物线</figcaption><canvas id="c3" height="210"></canvas></figure>
+    </div>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>随机纹理、相位相关、无噪声。把平移从 3.00 慢慢拖到 4.00，看误差怎样随小数部分变化，最大值出现在哪。<button data-preset='{"sig":"texture","mode":"phase","shift":3.35,"noise":0,"rad":64}'>载入</button></li>
+      <li>把噪声加到 0.3，比较相位相关和普通互相关的误差。哪个更稳，为什么？<button data-preset='{"sig":"texture","mode":"phase","shift":3.35,"noise":0.3,"rad":64}'>载入</button></li>
+      <li>换成周期图案（周期 16 px）、普通互相关、平移 5 px、噪声 0.1。估计值是多少？和真值差了几个周期？<button data-preset='{"sig":"periodic","mode":"cc","shift":5,"noise":0.1,"rad":64}'>载入</button></li>
+      <li>保持上一步，把搜索范围缩到 ±7 px（小于半个周期），普通互相关恢复了吗？再换成相位相关，把平移在 2 到 7 之间来回拖，估计值还稳不稳？<button data-preset='{"sig":"periodic","mode":"cc","shift":5,"noise":0.1,"rad":7}'>载入</button></li>
+      <li>换成周期 + 标记、相位相关、搜索范围不限。非周期的标记起了什么作用？<button data-preset='{"sig":"marked","mode":"phase","shift":5,"noise":0.1,"rad":64}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+const N = 128, H = N / 2;
+const COS = new Float64Array(N * N), SIN = new Float64Array(N * N);
+for (let k = 0; k < N; k++) for (let n = 0; n < N; n++) { const a = 2 * Math.PI * k * n / N; COS[k * N + n] = Math.cos(a); SIN[k * N + n] = Math.sin(a); }
+const freq = k => (k < H ? k : k - N) / N;
+
+function dft(re, im) {
+  const R = new Float64Array(N), I = new Float64Array(N);
+  for (let k = 0; k < N; k++) { let sr = 0, si = 0; for (let n = 0; n < N; n++) { const c = COS[k * N + n], s = SIN[k * N + n]; sr += re[n] * c + im[n] * s; si += im[n] * c - re[n] * s; } R[k] = sr; I[k] = si; }
+  return [R, I];
+}
+function idftReal(R, I) {
+  const out = new Float64Array(N);
+  for (let n = 0; n < N; n++) { let s = 0; for (let k = 0; k < N; k++) s += R[k] * COS[k * N + n] - I[k] * SIN[k * N + n]; out[n] = s / N; }
+  return out;
+}
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+function lowpass(x, sigmaF) { const [R, I] = dft(x, new Float64Array(N)); for (let k = 0; k < N; k++) { const g = Math.exp(-freq(k) * freq(k) / (2 * sigmaF * sigmaF)); R[k] *= g; I[k] *= g; } return idftReal(R, I); }
+function shiftSignal(x, d) { const [R, I] = dft(x, new Float64Array(N)); for (let k = 0; k < N; k++) { const a = -2 * Math.PI * freq(k) * d, c = Math.cos(a), s = Math.sin(a), r = R[k], i = I[k]; R[k] = r * c - i * s; I[k] = r * s + i * c; } return idftReal(R, I); }
+function stdOf(x) { let m = 0; for (const v of x) m += v; m /= N; let s = 0; for (const v of x) s += (v - m) * (v - m); return Math.sqrt(s / N); }
+
+function makeSignal(kind) {
+  const x = new Float64Array(N);
+  if (kind === "texture") { const r = rng(7); for (let n = 0; n < N; n++) x[n] = gauss(r); return lowpass(x, 0.08); }
+  for (let n = 0; n < N; n++) x[n] = (n % 16) < 6 ? 1 : 0;
+  if (kind === "marked") for (let n = 37; n < 48; n++) x[n] = 1.6;
+  return lowpass(x, 0.16);
+}
+
+function correlate(a, b, mode) {
+  const ma = a.reduce((s, v) => s + v, 0) / N, mb = b.reduce((s, v) => s + v, 0) / N;
+  const [AR, AI] = dft(a.map(v => v - ma), new Float64Array(N));
+  const [BR, BI] = dft(b.map(v => v - mb), new Float64Array(N));
+  const CR = new Float64Array(N), CI = new Float64Array(N);
+  for (let k = 0; k < N; k++) {
+    let r = BR[k] * AR[k] + BI[k] * AI[k], i = BI[k] * AR[k] - BR[k] * AI[k];
+    if (mode === "phase") { const m = Math.hypot(r, i) + 1e-12; r /= m; i /= m; }
+    CR[k] = r; CI[k] = i;
+  }
+  return idftReal(CR, CI);
+}
+function parabola(l, c, r) { const den = l - 2 * c + r; if (Math.abs(den) < 1e-12) return 0; return Math.max(-0.5, Math.min(0.5, (l - r) / (2 * den))); }
+
+const state = { sig: "texture", mode: "phase", shift: 3.35, noise: 0, rad: 64 };
+const $ = id => document.getElementById(id);
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function axes(ctx, w, h, x0, x1, y0, y1, ticks) {
+  const L = 38, R = 8, T = 8, B = 22, sx = v => L + (v - x0) / (x1 - x0) * (w - L - R), sy = v => h - B - (v - y0) / (y1 - y0) * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  for (const t of ticks) { ctx.beginPath(); ctx.moveTo(sx(t), T); ctx.lineTo(sx(t), h - B); ctx.stroke(); ctx.fillText(t, sx(t), h - 7); }
+  ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; ctx.beginPath(); ctx.moveTo(L, sy(v)); ctx.lineTo(w - R, sy(v)); ctx.stroke(); ctx.fillText(v.toFixed(Math.abs(y1 - y0) < 1 ? 2 : 1), L - 5, sy(v) + 4); }
+  return [sx, sy, T, h - B];
+}
+function line(ctx, xs, ys, sx, sy, color, width) { ctx.strokeStyle = color; ctx.lineWidth = width || 1.6; ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(sx(x), sy(ys[i])) : ctx.moveTo(sx(x), sy(ys[i]))); ctx.stroke(); }
+function vline(ctx, x, sx, top, bot, color, dash) { ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(sx(x), top); ctx.lineTo(sx(x), bot); ctx.stroke(); ctx.setLineDash([]); }
+
+function render() {
+  const base = makeSignal(state.sig), sd = stdOf(base), r = rng(99);
+  const a = base.map(v => v + state.noise * sd * gauss(r));
+  const b = shiftSignal(base, state.shift).map(v => v + state.noise * sd * gauss(r));
+  const c = correlate(a, b, state.mode);
+  const lag = k => (k < H ? k : k - N);
+  let best = -1; for (let k = 0; k < N; k++) if (Math.abs(lag(k)) <= state.rad && (best < 0 || c[k] > c[best])) best = k;
+  const l = c[(best - 1 + N) % N], m = c[best], rr = c[(best + 1) % N], delta = parabola(l, m, rr), est = lag(best) + delta, err = est - state.shift;
+
+  $("shiftV").textContent = state.shift.toFixed(2); $("noiseV").textContent = state.noise.toFixed(2); $("radV").textContent = state.rad >= 64 ? "不限" : "±" + state.rad;
+  $("kTrue").textContent = state.shift.toFixed(2); $("kInt").textContent = lag(best); $("kEst").textContent = est.toFixed(3); $("kErr").textContent = (err >= 0 ? "+" : "") + err.toFixed(3) + " px";
+  $("kErrBox").className = "kpi " + (Math.abs(err) > 1 ? "bad" : "ok");
+
+  const idx = [...Array(N).keys()];
+  let [ctx, w, h] = setup($("c1"));
+  const lo = Math.min(...a, ...b), hi = Math.max(...a, ...b), pad = (hi - lo) * 0.08;
+  let [sx, sy] = axes(ctx, w, h, 0, N - 1, lo - pad, hi + pad, [0, 16, 32, 48, 64, 80, 96, 112, 127]);
+  line(ctx, idx, [...a], sx, sy, "#8f959e", 1.4); line(ctx, idx, [...b], sx, sy, "#2f6fed", 1.6);
+
+  [ctx, w, h] = setup($("c2"));
+  const lags = [], vals = []; for (let d = -H; d < H; d++) { lags.push(d); vals.push(c[(d + N) % N]); }
+  const cmax = Math.max(...vals), cmin = Math.min(...vals), cp = (cmax - cmin) * 0.08;
+  let top, bot; [sx, sy, top, bot] = axes(ctx, w, h, -H, H - 1, cmin - cp, cmax + cp, [-60, -40, -20, 0, 20, 40, 60]);
+  ctx.fillStyle = "rgba(26,156,75,.13)"; ctx.fillRect(sx(-Math.min(state.rad, H)), top, sx(Math.min(state.rad, H - 1)) - sx(-Math.min(state.rad, H)), bot - top);
+  line(ctx, lags, vals, sx, sy, "#e8710a", 1.5); vline(ctx, state.shift, sx, top, bot, "#1a9c4b", [5, 4]); vline(ctx, est, sx, top, bot, "#d6362f");
+
+  [ctx, w, h] = setup($("c3"));
+  const p0 = lag(best), zx = [], zy = []; for (let d = p0 - 3; d <= p0 + 3; d++) { zx.push(d); zy.push(c[(d + N) % N]); }
+  const zmax = Math.max(...zy), zmin = Math.min(...zy), zp = (zmax - zmin) * 0.15 + 1e-9;
+  [sx, sy, top, bot] = axes(ctx, w, h, p0 - 3, p0 + 3, zmin - zp, zmax + zp, zx);
+  const A = (l - 2 * m + rr) / 2, B = (rr - l) / 2, px = [], py = [];
+  for (let t = -1.3; t <= 1.3; t += 0.05) { px.push(p0 + t); py.push(A * t * t + B * t + m); }
+  line(ctx, px, py, sx, sy, "#2f6fed", 1.6); vline(ctx, state.shift, sx, top, bot, "#1a9c4b", [5, 4]); vline(ctx, est, sx, top, bot, "#d6362f");
+  zx.forEach((x, i) => { ctx.fillStyle = Math.abs(x - p0) <= 1 ? "#2f6fed" : "#8f959e"; ctx.beginPath(); ctx.arc(sx(x), sy(zy[i]), Math.abs(x - p0) <= 1 ? 5 : 3.5, 0, 7); ctx.fill(); });
+}
+
+function syncControls() {
+  for (const id of ["sig", "mode"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state[id]));
+  for (const id of ["shift", "noise", "rad"]) $(id).value = state[id];
+}
+for (const id of ["sig", "mode"]) $(id).addEventListener("click", e => { if (e.target.dataset.v) { state[id] = e.target.dataset.v; syncControls(); render(); } });
+for (const id of ["shift", "noise", "rad"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+</script>
+</body>
+</html>

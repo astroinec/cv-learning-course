@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 20 章 合成缺陷与生成模型 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li class="current" data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 20 章 <span class="tag P2">P2</span> <span class="badge">原版讲义</span></div><h1>合成缺陷与生成模型</h1><p class="scene"><b>用在哪：</b>缺陷样本太少时造数据，用于训练和测试</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 12 小时</span><span class="chip"><b>深挖</b> 18 小时</span><span class="chip">前置：<a href="../lessons/13.html">第 13 章 生成与自监督</a></span></div><div class="meta-row"><span class="chip mono">验收：python 20_合成缺陷与生成模型/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="20"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><h2 id="1-为什么需要合成数据">1. 为什么需要合成数据</h2>
+<ul>
+<li><strong>样本少</strong>：缺陷率低，某些类型一年只见几次。</li>
+<li><strong>类型不全</strong>：新工艺、新产品刚导入时没有历史缺陷。</li>
+<li><strong>标注贵</strong>：像素级标注需要专家，复查电镜（SEM）图也有成本。</li>
+<li><strong>测边界</strong>：想知道算法能检出多小、多弱的缺陷，需要可控地生成不同尺寸和对比度的样本。</li>
+</ul>
+<p>合成数据有两种用途，要分清楚：</p>
+<ol>
+<li><strong>训练</strong>：扩充训练集。要求合成样本和真实缺陷分布接近，否则模型学到的是合成的特征。</li>
+<li><strong>测试和标定灵敏度</strong>：已知真值地评估算法。要求标签精确、参数可控，像不像真实缺陷反而是次要的。</li>
+</ol>
+<p>第 24 章的数据生成器就属于第二种。</p>
+<h2 id="2-方法分类">2. 方法分类</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>做法</th>
+<th>标签精度</th>
+<th>真实感</th>
+<th>可控性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>程序化</td>
+<td>用几何和规则画划痕、颗粒、缺失</td>
+<td>精确</td>
+<td>低到中</td>
+<td>高</td>
+</tr>
+<tr>
+<td>物理仿真</td>
+<td>在版图或 3D 模型上插入缺陷，再模拟光学成像（第 21、22 章）</td>
+<td>精确</td>
+<td>高</td>
+<td>高</td>
+</tr>
+<tr>
+<td>剪贴融合</td>
+<td>从真实缺陷图上抠下来贴到良品上，泊松融合</td>
+<td>精确</td>
+<td>中到高</td>
+<td>中</td>
+</tr>
+<tr>
+<td>自监督伪异常</td>
+<td>CutPaste、DRAEM：随机切块或加纹理制造“异常”训练判别器</td>
+<td>精确</td>
+<td>低</td>
+<td>中</td>
+</tr>
+<tr>
+<td>生成模型</td>
+<td>GAN、VAE、扩散模型学习缺陷外观再生成</td>
+<td>依赖方法</td>
+<td>高</td>
+<td>低到中</td>
+</tr>
+</tbody>
+</table></div>
+<p>经验上，<strong>程序化和物理仿真是基础</strong>，生成模型用来补充真实感，而不是反过来。</p>
+<h2 id="3-程序化合成要点">3. 程序化合成要点</h2>
+<ul>
+<li><strong>软掩码</strong>：边缘用渐变过渡，而不是硬边，否则检测器会学到“硬边就是缺陷”这种捷径。作业里的 <code>scratch_mask</code> 用到线段距离做线性过渡。</li>
+<li><strong>在正确的阶段插入缺陷</strong>：缺陷应该在光学模糊和噪声之前加入，这样它和背景一样被模糊、一样带噪声。在最终图像上直接画，会出现比背景更锐利、没有噪声的“贴纸”，这是很常见的错误。第 24 章生成器就是先加缺陷再模糊和加噪的。</li>
+<li><strong>参数随机化</strong>：位置、大小、方向、对比度、极性都要随机，覆盖真实的分布范围。</li>
+<li><strong>标签同步</strong>：每次几何变换（平移、裁剪、缩放）都要同步更新掩码和坐标。</li>
+</ul>
+<h2 id="4-三类生成模型">4. 三类生成模型</h2>
+<h3 id="vae">VAE</h3>
+<p>编码器输出均值 μ 和对数方差 logσ²，采样 z = μ + σ·ε（重参数化，让采样可导），解码器重建。损失 = 重建误差 + KL(q(z|x) ‖ N(0, I))。</p>
+<ul>
+<li>优点：训练稳定，潜空间连续，可以插值。</li>
+<li>缺点：生成结果偏模糊。</li>
+<li>缺陷场景：学良品分布，用于异常检测（重建误差）；或者在潜空间里做数据增强。</li>
+</ul>
+<h3 id="gan">GAN</h3>
+<p>生成器和判别器对抗训练。</p>
+<ul>
+<li>优点：生成清晰。</li>
+<li>缺点：训练不稳定、模式坍塌（只生成少数几种样子），小数据集上尤其严重。</li>
+<li>缺陷场景：缺陷到良品的图像翻译（CycleGAN 类），或者在少量缺陷上做风格迁移。</li>
+</ul>
+<h3 id="扩散模型">扩散模型</h3>
+<p><strong>前向过程</strong>：逐步加高斯噪声，T 步后变成纯噪声。有闭式解：</p>
+<div class="highlight"><pre><span></span><code>x_t = sqrt(ᾱ_t) · x_0 + sqrt(1 - ᾱ_t) · ε,    ᾱ_t = Π_{s≤t} (1 - β_s)
+</code></pre></div>
+<p><strong>反向过程</strong>：训练网络 ε_θ(x_t, t) 预测加进去的噪声，损失就是 ‖ε - ε_θ(x_t, t)‖²。生成时从纯噪声出发，逐步去噪。</p>
+<p>为什么预测噪声：给定 x_t 和预测的 ε，就能估计 x_0 和上一步的均值，而预测噪声的数值尺度稳定、训练效果好（DDPM 论文的实验结论）。</p>
+<ul>
+<li>优点：质量高、训练稳定、模式覆盖好。</li>
+<li>缺点：采样慢（DDIM 等方法可以少步采样）。</li>
+<li><strong>Stable Diffusion</strong>：在 VAE 的潜空间里做扩散，再用文本条件控制，大幅降低计算量。</li>
+</ul>
+<h2 id="5-可控生成缺陷合成真正需要的">5. 可控生成：缺陷合成真正需要的</h2>
+<p>光会“生成一张像缺陷的图”没用，需要控制缺陷在哪、多大、什么类型：</p>
+<ul>
+<li><strong>Inpainting</strong>：给良品图和掩码，只在掩码区域生成内容。缺陷位置和标签天然对齐。</li>
+<li><strong>ControlNet</strong>：用边缘图、分割图等额外条件控制结构，比如用版图控制背景、只让模型生成纹理。</li>
+<li><strong>少样本微调</strong>：DreamBooth、LoRA 用十几张真实缺陷图微调，让模型学会某种缺陷的外观。</li>
+</ul>
+<p>风险：生成模型可能在掩码外也修改了内容，或者掩码内什么也没生成，这时标签就错了。生成后要做质量筛选（比如用检测器或差分图确认掩码内确实有变化、掩码外没有变化）。</p>
+<h2 id="6-怎样证明合成数据有用">6. 怎样证明合成数据有用</h2>
+<p>这是最容易被忽略、也最体现专业度的一步。</p>
+<p><strong>FID 等指标不够</strong>：FID 衡量生成图和真实图整体特征分布的距离，和“训练出来的检测器在真实缺陷上好不好”没有必然关系。</p>
+<p><strong>标准对照实验</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>训练数据</th>
+<th>测试数据</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只用真实</td>
+<td>真实（留出）</td>
+<td>基线</td>
+</tr>
+<tr>
+<td>只用合成</td>
+<td>真实</td>
+<td>合成数据单独能走多远，差距就是域差异</td>
+</tr>
+<tr>
+<td>真实 + 合成</td>
+<td>真实</td>
+<td>合成数据的增益</td>
+</tr>
+<tr>
+<td>真实 + 合成（不同比例）</td>
+<td>真实</td>
+<td>最佳混合比例</td>
+</tr>
+</tbody>
+</table></div>
+<p>注意：</p>
+<ul>
+<li>测试集必须是真实数据，并且和训练用的真实数据按晶圆或批次严格分开。</li>
+<li>报告每类缺陷的检出率，合成数据常常只对某几类有用。</li>
+<li>关注过检：合成数据可能让模型对某些正常纹理更敏感。</li>
+</ul>
+<h2 id="7-和其他章节的关系">7. 和其他章节的关系</h2>
+<ul>
+<li>第 21、22 章的渲染和成像仿真，是物理仿真式合成的基础。</li>
+<li>第 24 章的数据生成器就是一个程序化合成加成像仿真的例子，读它的源码是很好的练习。</li>
+</ul>
+<h2 id="自测问题">自测问题</h2>
+<ol>
+<li>为什么要在加噪声之前插入缺陷？</li>
+<li>VAE 的重参数化解决了什么问题？</li>
+<li>ᾱ_t 接近 0 时 x_t 是什么样子？</li>
+<li>用 inpainting 生成缺陷，怎样确认标签是对的？</li>
+<li>一个合成数据集 FID 很低，但加进训练后检出率没变，可能是什么原因？</li>
+</ol></article><nav class="prev-next"><a href="19.html">← 第 19 章 异常检测与深度缺陷检测</a><a href="21.html">第 21 章 3D 数学与渲染管线 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#1-为什么需要合成数据">1. 为什么需要合成数据</a></li><li><a href="#2-方法分类">2. 方法分类</a></li><li><a href="#3-程序化合成要点">3. 程序化合成要点</a></li><li><a href="#4-三类生成模型">4. 三类生成模型</a></li><li class="sub"><a href="#vae">VAE</a></li><li class="sub"><a href="#gan">GAN</a></li><li class="sub"><a href="#扩散模型">扩散模型</a></li><li><a href="#5-可控生成缺陷合成真正需要的">5. 可控生成：缺陷合成真正需要的</a></li><li><a href="#6-怎样证明合成数据有用">6. 怎样证明合成数据有用</a></li><li><a href="#7-和其他章节的关系">7. 和其他章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

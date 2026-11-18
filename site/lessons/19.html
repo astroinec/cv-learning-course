@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 19 章 异常检测与深度缺陷检测 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li class="current" data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 19 章 <span class="tag P1">P1</span> <span class="badge">原版讲义</span></div><h1>异常检测与深度缺陷检测</h1><p class="scene"><b>用在哪：</b>只有良品样本时发现未知缺陷，以及有标注时的检测、分割、分类</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 22 小时</span><span class="chip">前置：<a href="../lessons/10.html">第 10 章 迁移学习与模型分析</a>、<a href="../lessons/18.html">第 18 章 传统缺陷检测</a></span></div><div class="meta-row"><span class="chip mono">验收：python 19_异常检测与深度缺陷检测/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="19"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><h2 id="1-监督还是无监督">1. 监督还是无监督</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>监督（检测、分割、分类）</th>
+<th>无监督异常检测</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>训练数据</td>
+<td>良品和缺陷都要有，缺陷要标注</td>
+<td>只要良品</td>
+</tr>
+<tr>
+<td>能发现新类型缺陷</td>
+<td>不能，只认识见过的类型</td>
+<td>能，只要和良品不同</td>
+</tr>
+<tr>
+<td>能告诉你缺陷是什么类型</td>
+<td>能</td>
+<td>不能，只给异常分数和热图</td>
+</tr>
+<tr>
+<td>典型问题</td>
+<td>缺陷样本太少、长尾、标注贵</td>
+<td>良品本身变化大时误报多</td>
+</tr>
+</tbody>
+</table></div>
+<p>工业里常见的组合：<strong>异常检测负责“发现”，监督分类负责“分类”</strong>。传统比对（第 18 章）或异常检测先找出候选，再用分类网络判断是真缺陷还是误报、属于哪一类。</p>
+<h2 id="2-异常检测方法谱系">2. 异常检测方法谱系</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>代表方法</th>
+<th>思路</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>重建类</td>
+<td>自编码器、DRAEM</td>
+<td>只学会重建良品，缺陷处重建误差大</td>
+</tr>
+<tr>
+<td>特征分布类</td>
+<td>PaDiM</td>
+<td>预训练特征在每个位置拟合高斯分布，用马氏距离打分</td>
+</tr>
+<tr>
+<td>记忆库类</td>
+<td>PatchCore</td>
+<td>存下良品的局部特征，测试时找最近邻，距离就是异常分数</td>
+</tr>
+<tr>
+<td>师生类</td>
+<td>STFPM、EfficientAD</td>
+<td>学生网络只学会在良品上模仿老师，缺陷处两者输出不一致</td>
+</tr>
+<tr>
+<td>流模型</td>
+<td>FastFlow、CFLOW</td>
+<td>把特征映射成高斯分布，用似然打分</td>
+</tr>
+<tr>
+<td>视觉语言</td>
+<td>WinCLIP 等</td>
+<td>用文本描述“正常”和“异常”，零样本或少样本</td>
+</tr>
+</tbody>
+</table></div>
+<p>重建类的问题是网络泛化太好，连缺陷也一起重建出来了。基于预训练特征的方法（PaDiM、PatchCore）不用训练骨干网络，在 MVTec AD 上效果好，是入门首选。</p>
+<h2 id="3-patchcore-详解">3. PatchCore 详解</h2>
+<div class="highlight"><pre><span></span><code>良品图 → 预训练 CNN（ImageNet 权重，冻结）
+       → 取中间层特征（例如 ResNet 的 layer2 和 layer3）
+       → 每个位置在 3x3 邻域内平均池化（局部聚合，增加感受野和抗错位能力）
+       → 把 layer3 上采样到 layer2 尺寸后拼接，得到每个 patch 的特征向量
+       → 所有良品所有位置的特征放进记忆库
+       → 核心集采样，把记忆库压到 1%～10%
+测试图 → 同样提取 patch 特征
+       → 每个 patch 到记忆库的最近邻距离 = 该位置的异常分数
+       → 分数图上采样回原图尺寸并高斯平滑 = 异常热图
+       → 热图最大值（或带重加权）= 整图异常分数
+</code></pre></div>
+<p><strong>为什么用中间层</strong>：浅层太关注边缘和颜色，深层太偏向 ImageNet 的类别语义，中间层兼顾局部结构和泛化。</p>
+<p><strong>为什么要核心集</strong>：记忆库可能有几十万个向量，最近邻搜索又慢又占内存。k-center greedy 每次挑离已选集合最远的点，保证所有点到核心集的最大距离尽量小（覆盖半径小），压缩到 1% 时性能几乎不掉。原论文还先做随机投影降维，加速距离计算。</p>
+<p><strong>作业里的零件</strong>：</p>
+<ul>
+<li><code>pairwise_sq_dists</code>：所有距离计算的基础，用 <code>‖a‖² + ‖b‖² - 2a·b</code> 展开成矩阵乘法，要注意浮点误差会产生负数。</li>
+<li><code>greedy_coreset</code>：维护每个点到已选集合的最小距离，每加一个点只更新一次，复杂度 O(N·m·D)。</li>
+<li><code>knn_scores</code>：k=1 是原始 PatchCore 的做法。</li>
+<li><code>auroc</code>：等价于 Mann-Whitney U 统计量，按秩次计算，平局记 0.5。</li>
+<li><code>threshold_at_escape</code>：把模型分数变成产线决策。</li>
+</ul>
+<h2 id="4-指标">4. 指标</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>衡量什么</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Image AUROC</td>
+<td>整图是否异常的排序能力</td>
+<td>与阈值无关，但产线要的是某个阈值下的表现</td>
+</tr>
+<tr>
+<td>Pixel AUROC</td>
+<td>每个像素是否异常</td>
+<td>正常像素占绝大多数，数值普遍虚高</td>
+</tr>
+<tr>
+<td>PRO</td>
+<td>按缺陷区域平均的重叠率</td>
+<td>大小缺陷权重相同，比 pixel AUROC 更公平</td>
+</tr>
+<tr>
+<td>F1-max</td>
+<td>最优阈值下的 F1</td>
+<td>阈值是在测试集上挑的，偏乐观</td>
+</tr>
+<tr>
+<td>漏检约束下的过检率</td>
+<td>产线真正关心的工作点</td>
+<td>本章作业实现的就是这个</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>AUROC 高不等于能上线</strong>。99% 的 AUROC 在缺陷率 1% 的产线上，可能意味着大量过检。一定要换算到具体工作点：漏检率不超过多少时，过检率是多少。</p>
+<p><strong>阈值必须在验证集上定，不能在测试集上调</strong>。否则汇报的数字是乐观的，上线后会下降。</p>
+<h2 id="5-监督方法简述">5. 监督方法简述</h2>
+<p><strong>检测</strong>（YOLO 系列、Faster R-CNN）：输出缺陷框和类别。小缺陷是难点，要注意输入分辨率、anchor 或 stride 设置，必要时切图（tiling）推理。</p>
+<p><strong>分割</strong>（U-Net、DeepLab）：输出像素级缺陷区域，适合需要精确面积和形状的场景。缺陷像素极少，损失函数常用 Dice 或 Focal，避免全预测成背景。</p>
+<p><strong>分类</strong>：对候选缺陷的小图块分类，是缺陷复查（review）环节的主力。类别不均衡用重采样、类别权重、Focal loss 处理。</p>
+<h2 id="6-落地时的真问题">6. 落地时的真问题</h2>
+<ol>
+<li><strong>分辨率</strong>：缺陷可能只有几个像素，网络下采样 8 倍后就看不见了。保持高分辨率输入、切图推理，或者先用传统方法定位再在原分辨率上分类。</li>
+<li><strong>对齐</strong>：异常检测对错位敏感，先对齐再检测能明显降低误报。PatchCore 的局部池化提供了一点平移容忍度，但不够。</li>
+<li><strong>良品的多样性</strong>：不同批次、不同机台、不同照明下的良品都要收集到记忆库里，否则正常变化会被当成异常。</li>
+<li><strong>数据泄漏</strong>：同一片晶圆相邻 die 的图很像，训练和测试按晶圆或批次划分，不要随机划分。</li>
+<li><strong>速度</strong>：PatchCore 推理时间和记忆库大小成正比。部署时用核心集加近似最近邻（FAISS），或者换用 EfficientAD 这类快速模型。</li>
+<li><strong>漂移监控</strong>：上线后持续统计分数分布，分布整体右移通常意味着工艺或设备变化。</li>
+</ol>
+<h2 id="自测问题">自测问题</h2>
+<ol>
+<li>为什么重建类方法有时会“把缺陷也重建出来”？</li>
+<li>PatchCore 训练阶段有没有反向传播？</li>
+<li>核心集从 10% 压到 1%，速度和精度大概怎么变？为什么精度掉得不多？</li>
+<li>一个模型 image AUROC 99.5%，你还需要哪些信息才能判断它能不能上线？</li>
+<li>为什么按晶圆划分训练集和测试集比随机划分更可信？</li>
+</ol></article><nav class="prev-next"><a href="18.html">← 第 18 章 传统缺陷检测</a><a href="20.html">第 20 章 合成缺陷与生成模型 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#1-监督还是无监督">1. 监督还是无监督</a></li><li><a href="#2-异常检测方法谱系">2. 异常检测方法谱系</a></li><li><a href="#3-patchcore-详解">3. PatchCore 详解</a></li><li><a href="#4-指标">4. 指标</a></li><li><a href="#5-监督方法简述">5. 监督方法简述</a></li><li><a href="#6-落地时的真问题">6. 落地时的真问题</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

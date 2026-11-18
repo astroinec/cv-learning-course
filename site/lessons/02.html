@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 2 章 卷积与边缘 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li class="current" data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 2 章 <span class="tag P0">P0</span> <span class="badge">原版讲义</span></div><h1>卷积与边缘</h1><p class="scene"><b>用在哪：</b>边缘定位、尺寸测量、提取缺陷和图形的边界</p><div class="meta-row"><span class="chip"><b>速通</b> 4 小时</span><span class="chip"><b>标准</b> 8 小时</span><span class="chip"><b>深挖</b> 10 小时</span><span class="chip">前置：<a href="../lessons/01.html">第 1 章 像素与色彩</a></span></div><div class="meta-row"><span class="chip mono">验收：python 02_卷积与边缘/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="02"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
+<p>配套练习：<code>2-1_手写卷积.py</code> | <code>2-2_Sobel方向可视化.py</code> | <code>2-3_Canny拆解.py</code></p>
+</blockquote>
+<hr />
+<h2 id="20-这一章要解决什么">2.0 这一章要解决什么</h2>
+<p>第 1 章里，高斯滤波看起来像一个“模糊按钮”。这一章要把按钮拆开：一个小矩阵为什么能平滑图像，也能找出边缘？Sobel、Laplacian 和 Canny 看起来是不同算法，其实都在回答同一件事：<strong>局部像素怎样变化</strong>。</p>
+<p>建议把整章记成一条链：</p>
+<div class="highlight"><pre><span></span><code>邻域加权（卷积） → 近似求导（梯度） → 找候选边缘 → 细化和连接
+</code></pre></div>
+<p>边缘不是“黑色线条”，而是亮度、颜色或纹理发生明显变化的位置。算法看到的也不是物体概念，只是数值变化；因此阴影会产生边缘，颜色相近的真实物体边界却可能没有强边缘。</p>
+<hr />
+<h2 id="21-卷积让一个小模板在图像上巡逻">2.1 卷积：让一个小模板在图像上巡逻</h2>
+<h3 id="直觉每到一处问一个局部问题">直觉：每到一处，问一个局部问题</h3>
+<p>卷积核（kernel）是一个很小的权重矩阵。它滑到某个像素上时，把覆盖到的像素与权重逐项相乘，再把结果相加，作为输出像素。</p>
+<ul>
+<li>均值核问：“周围平均有多亮？”</li>
+<li>Sobel 核问：“左右两侧的亮度差有多大？”</li>
+<li>锐化核问：“中心像素比邻居突出多少？”</li>
+</ul>
+<p>二维离散卷积可写为：</p>
+<div class="arithmatex">\[
+(I*K)(x,y)=\sum_i\sum_j I(x-i,y-j)K(i,j)
+\]</div>
+<p>严格数学卷积会把核在水平和垂直方向翻转。OpenCV 的 <code>cv2.filter2D</code> 实际计算的是<strong>互相关</strong>：</p>
+<div class="arithmatex">\[
+O(x,y)=\sum_i\sum_j I(x+i,y+j)K(i,j)
+\]</div>
+<p>对高斯核这类中心对称核，翻不翻结果一样；对方向性核，符号或方向可能改变。工程资料常把两者都简称“卷积”，但手写练习时应明确采用哪一种。</p>
+<h3 id="一个-33-的逐步小例子">一个 3×3 的逐步小例子</h3>
+<p>输入局部区域和一个检测水平变化的核为：</p>
+<div class="highlight"><pre><span></span><code>局部像素                 核 K
+10  10  50              -1  0  1
+10  10  50              -1  0  1
+10  10  50              -1  0  1
+</code></pre></div>
+<p>若按互相关计算中心输出：</p>
+<div class="highlight"><pre><span></span><code>第一行：10×(-1) + 10×0 + 50×1 = 40
+三行相加：40 + 40 + 40 = 120
+</code></pre></div>
+<p>结果为较大的正数，表示从左到右明显变亮。若左右亮度对调，结果为 <code>-120</code>；取绝对值只保留“变化有多强”，保留正负号还能知道“朝哪个方向变化”。</p>
+<h3 id="边界和输出尺寸">边界和输出尺寸</h3>
+<p>一个 3×3 核放到左上角时会伸出图像。常见处理方式是：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>直觉</th>
+<th>可能的问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>不填充（valid）</td>
+<td>只在核完全落入图像时计算</td>
+<td>输出变小</td>
+</tr>
+<tr>
+<td>常数填充</td>
+<td>外面都当作 0</td>
+<td>图像边缘可能出现假边</td>
+</tr>
+<tr>
+<td>复制边缘</td>
+<td>用最近边界像素补齐</td>
+<td>边缘较平，但可能形成平台</td>
+</tr>
+<tr>
+<td>镜像填充</td>
+<td>把图像向外反射</td>
+<td>通常更自然</td>
+</tr>
+</tbody>
+</table></div>
+<p>OpenCV 可通过 <code>borderType</code> 选择，例如 <code>cv2.BORDER_CONSTANT</code>、<code>BORDER_REPLICATE</code>、<code>BORDER_REFLECT</code>。边界策略不是装饰参数，它会改变靠近图像四周的结果。</p>
+<h3 id="代码层面的卷积">代码层面的卷积</h3>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">"input.png"</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">IMREAD_GRAYSCALE</span><span class="p">)</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                   <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                   <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">filter2D</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">ddepth</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">CV_32F</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
+                        <span class="n">borderType</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">BORDER_REFLECT</span><span class="p">)</span>
+<span class="n">view</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">convertScaleAbs</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+</code></pre></div>
+<p>这里故意让输出是 <code>CV_32F</code>。若直接输出为 <code>uint8</code>，负响应会被截断成 0，方向信息悄悄消失。<code>convertScaleAbs</code> 是为了显示，不应反过来代替计算中的浮点结果。</p>
+<hr />
+<h2 id="22-图像梯度把微积分变成像素差">2.2 图像梯度：把微积分变成像素差</h2>
+<p>连续函数的一阶导数描述变化率。数字图像只在整数坐标上有值，所以用有限差分近似：</p>
+<div class="arithmatex">\[
+\frac{\partial I}{\partial x}\approx I(x+1,y)-I(x-1,y)
+\]</div>
+<p>得到水平方向导数 <code>Gx</code> 和垂直方向导数 <code>Gy</code> 后：</p>
+<div class="arithmatex">\[
+|G|=\sqrt{G_x^2+G_y^2},\qquad
+\theta=\operatorname{atan2}(G_y,G_x)
+\]</div>
+<p><code>|G|</code> 是边缘强度，<code>θ</code> 是<strong>梯度方向</strong>，即亮度增长最快的方向。它通常与边缘走向垂直：一条竖直边，其左右亮度变化大，所以 <code>Gx</code> 大。</p>
+<h3 id="sobel-在算什么">Sobel 在算什么</h3>
+<p>Sobel 核把“求导”和“对垂直方向做一点平滑”合在一起：</p>
+<div class="highlight"><pre><span></span><code>Gx = [-1  0  1]     Gy = [-1 -2 -1]
+     [-2  0  2]          [ 0  0  0]
+     [-1  0  1]          [ 1  2  1]
+</code></pre></div>
+<p><code>Gx</code> 可看成列方向差分 <code>[-1,0,1]</code> 与行方向平滑 <code>[1,2,1]^T</code> 的外积。它比简单差分对噪声更稳定，但平滑也意味着非常细的变化会被弱化。</p>
+<div class="highlight"><pre><span></span><code><span class="n">gx</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Sobel</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_32F</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">gy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Sobel</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_32F</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">mag</span><span class="p">,</span> <span class="n">angle</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cartToPolar</span><span class="p">(</span><span class="n">gx</span><span class="p">,</span> <span class="n">gy</span><span class="p">,</span> <span class="n">angleInDegrees</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<p><code>dx=1, dy=0</code> 表示对 x 求一阶导，不是“寻找竖线”的参数名。它会对竖直边强响应，但描述的是 x 方向变化。</p>
+<h3 id="scharr-为什么存在">Scharr 为什么存在</h3>
+<p>3×3 Sobel 核对不同方向的响应并不完全一致，斜边会有较明显的旋转误差。Scharr 通过重新选择权重改善 3×3 情况下的旋转对称性：</p>
+<div class="highlight"><pre><span></span><code><span class="n">gx</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Scharr</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_32F</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">gy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Scharr</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_32F</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+<p>当你固定使用 3×3 导数核并关心方向精度时，Scharr 往往比 Sobel 更合适；它不是“永远更强”的边缘检测器。</p>
+<h3 id="laplacian不问方向的二阶变化">Laplacian：不问方向的二阶变化</h3>
+<p>Laplacian 是两个方向二阶导之和：</p>
+<div class="arithmatex">\[
+\nabla^2 I=\frac{\partial^2 I}{\partial x^2}+\frac{\partial^2 I}{\partial y^2}
+\]</div>
+<p>一个常见离散核是：</p>
+<div class="highlight"><pre><span></span><code> 0  1  0
+ 1 -4  1
+ 0  1  0
+</code></pre></div>
+<p>一阶导在边缘处形成峰值，二阶导常在边缘附近发生零交叉。Laplacian 不提供边缘方向，而且二阶导会更猛烈地放大高频噪声，所以通常先高斯平滑，再计算：</p>
+<div class="highlight"><pre><span></span><code><span class="n">blur</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">lap</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Laplacian</span><span class="p">(</span><span class="n">blur</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_32F</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="23-从-roberts-到-canny改进的不是名字而是稳定性">2.3 从 Roberts 到 Canny：改进的不是名字，而是稳定性</h2>
+<p>早期算子可以按“信息利用量”理解：</p>
+<ul>
+<li><strong>Roberts</strong>：2×2 对角差分，定位紧凑，但对噪声敏感。</li>
+<li><strong>Prewitt</strong>：3×3，同时在正交方向做均匀平滑。</li>
+<li><strong>Sobel</strong>：3×3，中心行或列权重更高，平滑更自然。</li>
+<li><strong>Canny</strong>：不止算梯度，还系统解决噪声、粗边、阈值和断裂问题。</li>
+</ul>
+<p>单独显示 Sobel 幅值时，边缘经常是一条宽亮带。原因是连续几列像素都处在灰度过渡区，梯度都不小。真正想要的轮廓通常应接近一个像素宽，因此还需要非极大值抑制。</p>
+<hr />
+<h2 id="24-canny-四步拆解">2.4 Canny 四步拆解</h2>
+<h3 id="第一步高斯平滑">第一步：高斯平滑</h3>
+<p>求导会放大噪声。高斯标准差 <code>σ</code> 越大，抑制的小纹理越多，同时定位会更模糊。应按目标尺度选 <code>σ</code>：检测纸张外框可以更平滑，检测头发丝则不能过度平滑。</p>
+<h3 id="第二步计算梯度幅值和方向">第二步：计算梯度幅值和方向</h3>
+<p>经典 Canny 使用高斯导数；OpenCV 内部用 Sobel 求导。此时每个像素都有 <code>(幅值, 方向)</code>，但响应仍可能很宽。</p>
+<h3 id="第三步非极大值抑制nms">第三步：非极大值抑制（NMS）</h3>
+<p>对当前像素，沿<strong>梯度方向</strong>查看两侧邻居：只有当前幅值同时大于两侧，才保留；否则置零。</p>
+<p>假设同一条法线上的梯度幅值是：</p>
+<div class="highlight"><pre><span></span><code>12, 35, 80, 52, 17
+</code></pre></div>
+<p>只有 <code>80</code> 是局部最大值，其他都被抑制，于是一条宽亮带缩成细线。真实方向可能是 27°，不一定刚好落在水平、垂直或对角线上；严谨实现会在相邻像素之间插值，简化实现则把方向量化为 0°、45°、90°、135°。这正是练习 <code>2-3</code> 中值得观察的误差来源。</p>
+<h3 id="第四步双阈值和滞后连接">第四步：双阈值和滞后连接</h3>
+<p>只用一个阈值很难兼顾：阈值高时边缘断，阈值低时噪声多。Canny 使用两个阈值：</p>
+<ul>
+<li>幅值 ≥ 高阈值：强边缘，直接保留；</li>
+<li>低阈值 ≤ 幅值 &lt; 高阈值：弱边缘，只有与强边缘连通才保留；</li>
+<li>幅值 &lt; 低阈值：丢弃。</li>
+</ul>
+<p>“连通”通常在 8 邻域中递归或用栈搜索。它利用了真实轮廓往往连续、随机噪点往往孤立这一先验。高低阈值不是概率，也不要求固定为某个比例；常用比例只是起点，最终要看图像动态范围和任务目标。</p>
+<div class="highlight"><pre><span></span><code><span class="n">edges</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Canny</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="n">threshold1</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">threshold2</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
+                  <span class="n">apertureSize</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">L2gradient</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<p><code>L2gradient=True</code> 使用 <code>sqrt(Gx²+Gy²)</code>；默认近似为 <code>|Gx|+|Gy|</code>，更快但方向一致性略差。传给 Canny 的通常是单通道 8 位图，若前面在浮点域处理，应先正确缩放而不是直接强转 <code>uint8</code>。</p>
+<hr />
+<h2 id="25-一个从图像到边缘的逐步例子">2.5 一个从图像到边缘的逐步例子</h2>
+<p>设一张灰度图中有浅灰背景和深色矩形，还叠加轻微高斯噪声。</p>
+<ol>
+<li><strong>先看原图直方图和局部剖面</strong>：矩形边界不是瞬间跳变，而是经过若干像素过渡。</li>
+<li><strong>高斯平滑</strong>：比较 <code>(3,3), σ=0.8</code> 与 <code>(7,7), σ=2.0</code>。后者噪声少，但相邻细边可能合并。</li>
+<li><strong>计算 <code>gx, gy</code></strong>：矩形左右边主要出现在 <code>|gx|</code>，上下边主要出现在 <code>|gy|</code>。</li>
+<li><strong>把方向映射到 HSV 的 H 通道</strong>：可直观看到四条边方向不同；亮度可用归一化后的幅值表示。</li>
+<li><strong>执行 NMS</strong>：统计非零像素数量应显著下降，但轮廓位置大体不变。</li>
+<li><strong>双阈值连接</strong>：提高高阈值会减少确定边，抬高低阈值会更容易造成断裂。</li>
+<li><strong>与 <code>cv2.Canny</code> 比较</strong>：不要只比较“像不像”，还要比较边缘像素数、连通段数量和边缘位置。</li>
+</ol>
+<p>下面的代码只搭建观察框架，没有替你完成 NMS 和滞后连接：</p>
+<div class="highlight"><pre><span></span><code><span class="n">blur</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">gx</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Sobel</span><span class="p">(</span><span class="n">blur</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_32F</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">gy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Sobel</span><span class="p">(</span><span class="n">blur</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CV_32F</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ksize</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">mag</span><span class="p">,</span> <span class="n">ang</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cartToPolar</span><span class="p">(</span><span class="n">gx</span><span class="p">,</span> <span class="n">gy</span><span class="p">,</span> <span class="n">angleInDegrees</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># 下一步：沿 ang 指定的方向比较 mag，并做双阈值连接</span>
+</code></pre></div>
+<hr />
+<h2 id="26-opencv-api-速查">2.6 OpenCV API 速查</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>目的</th>
+<th>API</th>
+<th>关键参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任意线性核</td>
+<td><code>cv2.filter2D</code></td>
+<td><code>ddepth</code>、<code>kernel</code>、<code>borderType</code></td>
+</tr>
+<tr>
+<td>高斯平滑</td>
+<td><code>cv2.GaussianBlur</code></td>
+<td><code>ksize</code>、<code>sigmaX</code>、<code>sigmaY</code></td>
+</tr>
+<tr>
+<td>Sobel 导数</td>
+<td><code>cv2.Sobel</code></td>
+<td><code>dx</code>、<code>dy</code>、<code>ksize</code>、<code>scale</code></td>
+</tr>
+<tr>
+<td>Scharr 导数</td>
+<td><code>cv2.Scharr</code></td>
+<td><code>dx</code>、<code>dy</code></td>
+</tr>
+<tr>
+<td>Laplacian</td>
+<td><code>cv2.Laplacian</code></td>
+<td><code>ddepth</code>、<code>ksize</code></td>
+</tr>
+<tr>
+<td>幅值与方向</td>
+<td><code>cv2.magnitude</code> / <code>cv2.cartToPolar</code></td>
+<td>输入应为浮点</td>
+</tr>
+<tr>
+<td>完整 Canny</td>
+<td><code>cv2.Canny</code></td>
+<td>两阈值、<code>apertureSize</code>、<code>L2gradient</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="27-常见误区">2.7 常见误区</h2>
+<ol>
+<li><strong>把梯度方向当成边缘走向</strong>：二者通常垂直。</li>
+<li><strong>在 <code>uint8</code> 中保存带符号导数</strong>：负数被截断，半边信息消失。</li>
+<li><strong>先 <code>abs</code> 再研究方向</strong>：绝对值已经抹掉亮到暗和暗到亮的区别。</li>
+<li><strong>认为核越大越准确</strong>：大核提高抗噪性，也降低定位精度并吞掉小结构。</li>
+<li><strong>Canny 阈值照抄一组固定数值</strong>：曝光、对比度或预处理一变，合适阈值就会变。</li>
+<li><strong>把边缘当作物体</strong>：边缘图只是局部变化集合；闭合轮廓、区域和语义还需后续处理。</li>
+<li><strong>忽略边界填充</strong>：图像四周的假响应有时正来自常数补零。</li>
+</ol>
+<hr />
+<h2 id="28-与配套练习怎么连接">2.8 与配套练习怎么连接</h2>
+<ul>
+<li><strong><code>2-1_手写卷积.py</code></strong>：先固定一个小矩阵和非对称核，手算中心像素，再决定你的函数实现卷积还是互相关。重点检查 padding、输出尺寸和浮点精度，不要直接调用 <code>filter2D</code> 代替核心循环。</li>
+<li><strong><code>2-2_Sobel方向可视化.py</code></strong>：分别保留 <code>gx</code>、<code>gy</code>、幅值和角度。尝试竖线、横线、斜线等合成图，解释颜色与方向的对应关系，而不只是生成一张彩色图。</li>
+<li><strong><code>2-3_Canny拆解.py</code></strong>：把四步中间结果都保存。NMS 可先用四方向量化，再思考插值版本；滞后连接可考虑栈或队列。最后与 OpenCV 输出比较差异原因，而不是追求逐像素完全相同。</li>
+</ul>
+<hr />
+<h2 id="动手前的检查清单">动手前的检查清单</h2>
+<ul>
+<li>[ ] 能解释 <code>filter2D</code> 为什么严格说是互相关吗？</li>
+<li>[ ] 能手算一个 3×3 邻域的加权和吗？</li>
+<li>[ ] 知道为什么导数结果应使用有符号浮点类型吗？</li>
+<li>[ ] 能说出 <code>Gx</code> 强时更可能对应哪种走向的边缘吗？</li>
+<li>[ ] 能从 Sobel 核中看出“一个方向求导、另一个方向平滑”吗？</li>
+<li>[ ] 知道 Scharr 相对 3×3 Sobel 改进了什么吗？</li>
+<li>[ ] 能解释 Laplacian 为什么比一阶梯度更怕噪声吗？</li>
+<li>[ ] 能用一句话说明 NMS 为什么让边缘变细吗？</li>
+<li>[ ] 能区分强边缘、可连接弱边缘和被丢弃响应吗？</li>
+<li>[ ] 调 Canny 前，会先检查输入 dtype、平滑尺度和图像对比度吗？</li>
+</ul>
+<p>确认完这些，再打开 <code>02_卷积与边缘/</code> 做练习。</p></article><nav class="prev-next"><a href="01.html">← 第 1 章 像素与色彩</a><a href="03.html">第 3 章 形态学 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#20-这一章要解决什么">2.0 这一章要解决什么</a></li><li><a href="#21-卷积让一个小模板在图像上巡逻">2.1 卷积：让一个小模板在图像上巡逻</a></li><li class="sub"><a href="#直觉每到一处问一个局部问题">直觉：每到一处，问一个局部问题</a></li><li class="sub"><a href="#一个-33-的逐步小例子">一个 3×3 的逐步小例子</a></li><li class="sub"><a href="#边界和输出尺寸">边界和输出尺寸</a></li><li class="sub"><a href="#代码层面的卷积">代码层面的卷积</a></li><li><a href="#22-图像梯度把微积分变成像素差">2.2 图像梯度：把微积分变成像素差</a></li><li class="sub"><a href="#sobel-在算什么">Sobel 在算什么</a></li><li class="sub"><a href="#scharr-为什么存在">Scharr 为什么存在</a></li><li class="sub"><a href="#laplacian不问方向的二阶变化">Laplacian：不问方向的二阶变化</a></li><li><a href="#23-从-roberts-到-canny改进的不是名字而是稳定性">2.3 从 Roberts 到 Canny：改进的不是名字，而是稳定性</a></li><li><a href="#24-canny-四步拆解">2.4 Canny 四步拆解</a></li><li class="sub"><a href="#第一步高斯平滑">第一步：高斯平滑</a></li><li class="sub"><a href="#第二步计算梯度幅值和方向">第二步：计算梯度幅值和方向</a></li><li class="sub"><a href="#第三步非极大值抑制nms">第三步：非极大值抑制（NMS）</a></li><li class="sub"><a href="#第四步双阈值和滞后连接">第四步：双阈值和滞后连接</a></li><li><a href="#25-一个从图像到边缘的逐步例子">2.5 一个从图像到边缘的逐步例子</a></li><li><a href="#26-opencv-api-速查">2.6 OpenCV API 速查</a></li><li><a href="#27-常见误区">2.7 常见误区</a></li><li><a href="#28-与配套练习怎么连接">2.8 与配套练习怎么连接</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

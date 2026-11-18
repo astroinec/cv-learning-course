@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 12 章 图像分割 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li class="current" data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 12 章 <span class="tag P3">P3</span> <span class="badge">原版讲义</span></div><h1>图像分割</h1><p class="scene"><b>用在哪：</b>需要缺陷的精确面积和形状时</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 8 小时</span><span class="chip"><b>深挖</b> 10 小时</span><span class="chip">前置：<a href="../lessons/09.html">第 9 章 CNN 核心</a></span></div><div class="meta-row"><span class="chip mono">验收：python 12_图像分割/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="12"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
+<p>配套练习：<code>DL-9 U-Net 细胞分割</code></p>
+<p>前置知识：第 9 天 CNN 与残差连接、第 10 天迁移学习、第 11 天检测的 IoU、数据标注和错误分析。</p>
+</blockquote>
+<hr />
+<h2 id="121-从框到像素为什么还需要分割">12.1 从框到像素：为什么还需要分割</h2>
+<p>目标检测用矩形框回答“目标大致在哪里”。但细胞面积、道路边界、零件缺陷、抠图轮廓都不能靠矩形精确表达。图像分割要为每个像素分配标签。</p>
+<p>对输入 <code>x∈R^(C×H×W)</code>，语义分割网络通常输出：</p>
+<div class="highlight"><pre><span></span><code>logits ∈ R^(K×H×W)
+</code></pre></div>
+<p>其中 <code>K</code> 是类别数。每个像素都有 K 个未归一化分数，取 <code>argmax</code> 得到类别。二分类也常只输出一个通道，用 sigmoid 得到“前景概率”。</p>
+<h3 id="三种分割任务">三种分割任务</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>任务</th>
+<th>问题</th>
+<th style="text-align: right;">同类实例是否分开</th>
+<th>典型输出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语义分割</td>
+<td>每个像素属于哪一类</td>
+<td style="text-align: right;">否</td>
+<td>天空/路/人</td>
+</tr>
+<tr>
+<td>实例分割</td>
+<td>每个目标实例的像素在哪</td>
+<td style="text-align: right;">是</td>
+<td>第 1 个人、第 2 个人</td>
+</tr>
+<tr>
+<td>全景分割</td>
+<td>所有像素是什么且属于谁</td>
+<td style="text-align: right;">“物体”类分开</td>
+<td>语义+实例统一图</td>
+</tr>
+</tbody>
+</table></div>
+<p>语义分割会把两个相邻的人都标成“人”；实例分割还要给不同 instance id。全景分割同时处理可数的 thing（人、车）与不可数的 stuff（天空、草地）。</p>
+<p>别把“二分类分割”理解成整张图二分类。它仍对每个像素分类，只是类别为背景/前景。</p>
+<hr />
+<h2 id="122-fcn把分类网络改造成像素预测器">12.2 FCN：把分类网络改造成像素预测器</h2>
+<p>经典分类 CNN 最后用全连接层输出一个类别，这会丢掉空间位置。FCN（Fully Convolutional Network）做了三件事：</p>
+<ol>
+<li>用卷积替代全连接，使网络接受不同尺寸输入；</li>
+<li>保留二维特征图，不把整图压成一个向量；</li>
+<li>把低分辨率预测上采样回原图大小。</li>
+</ol>
+<p>为什么全连接可改成卷积？假设进入全连接层的特征是 <code>C×h×w</code>，一个输出神经元与全部元素相连，这等价于用大小为 <code>h×w</code> 的卷积核做一次卷积。改成全卷积后，网络能在更大图像上滑动地产生空间输出。</p>
+<p>但下采样带来矛盾：分类希望特征对小位移不敏感，分割却要求边界精确。连续四次 <code>2×</code> 下采样后，特征图边长变成原来的 <code>1/16</code>，一个特征点对应原图大片区域。只把它插值放大，轮廓往往很粗。</p>
+<p>FCN 的解决方向是融合浅层细节与深层语义，这也引出了 U-Net 和后来的 FPN、DeepLab 等结构。</p>
+<hr />
+<h2 id="123-u-net为什么跳跃连接是分割标配">12.3 U-Net：为什么跳跃连接是分割标配</h2>
+<p>U-Net 像字母 U：左边编码，右边解码。</p>
+<div class="highlight"><pre><span></span><code>输入
+ ↓
+Encoder：卷积→下采样→语义越来越强、分辨率越来越低
+ ↓ bottleneck
+Decoder：上采样→与对应 Encoder 特征拼接→卷积融合
+ ↓
+像素级输出
+</code></pre></div>
+<p>Encoder 回答“这是什么”，Decoder 恢复“具体在哪里”。Skip Connection 把同尺度的浅层特征直接送到解码器，补回边缘、纹理和细小结构。</p>
+<p>这里的跳跃连接和 ResNet 不完全相同：</p>
+<ul>
+<li>ResNet 常做逐元素相加，目的是让梯度和恒等映射更顺畅；</li>
+<li>原始 U-Net 常在通道维拼接 <code>concat</code>，目的是同时保留编码特征与解码特征。</li>
+</ul>
+<h3 id="尺寸为什么经常对不上">尺寸为什么经常对不上</h3>
+<p>若输入边长不能被总下采样倍率整除，或卷积未使用 same padding，上采样后的尺寸可能与 skip 特征差 1 个像素。拼接前应显式检查：</p>
+<div class="highlight"><pre><span></span><code><span class="k">assert</span> <span class="n">up</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="n">skip</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">up</span><span class="p">,</span> <span class="n">skip</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+<p>工程上可把输入 pad 到 16 或 32 的倍数，推理后再裁回原尺寸。不要靠随意 resize 掩盖错位，否则标签边界和预测空间会悄悄偏移。</p>
+<h3 id="一个最小结构骨架">一个最小结构骨架</h3>
+<p>下面只展示模块关系，不是 DL-9 的完整答案：</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DoubleConv</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cin</span><span class="p">,</span> <span class="n">cout</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">cin</span><span class="p">,</span> <span class="n">cout</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">cout</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">cout</span><span class="p">,</span> <span class="n">cout</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">cout</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</code></pre></div>
+<p>完整 U-Net 还需要编码块、上采样块、skip 对齐和输出头，这些留给练习实现与验证。</p>
+<hr />
+<h2 id="124-上采样放大不等于恢复">12.4 上采样：放大不等于恢复</h2>
+<h3 id="双线性插值-卷积">双线性插值 + 卷积</h3>
+<p>插值是固定计算，不学习参数；后续卷积再学习如何融合。优点是稳定、尺寸可控，通常不易产生棋盘格。</p>
+<h3 id="转置卷积">转置卷积</h3>
+<p>转置卷积是可学习上采样。它不是普通卷积的逆运算，而是与卷积线性变换对应的转置操作。若 kernel、stride、padding 组合导致输出位置被不均匀覆盖，某些像素累加次数多、某些少，就可能出现棋盘效应。</p>
+<p>避免方法包括：</p>
+<ul>
+<li>选择能被 stride 整除的 kernel，如 <code>kernel=2,stride=2</code>；</li>
+<li>使用插值+卷积；</li>
+<li>检查输出图是否出现周期性纹理。</li>
+</ul>
+<h3 id="pixel-shuffle">Pixel Shuffle</h3>
+<p>先在通道维产生 <code>r²</code> 倍特征，再重排到空间维。超分辨率中常见，分割也可用，但需注意通道组织。</p>
+<p>重要直觉：上采样不能凭空恢复已经丢失的信息。U-Net 能得到细边界，是因为 skip connection 提供了高分辨率线索，而不只是“用了某种放大算法”。</p>
+<hr />
+<h2 id="125-分割损失为什么只用交叉熵可能不够">12.5 分割损失：为什么只用交叉熵可能不够</h2>
+<h3 id="像素交叉熵">像素交叉熵</h3>
+<p>多分类分割对每个像素做交叉熵：</p>
+<div class="highlight"><pre><span></span><code>L_CE = -Σ_i Σ_k y_ik log p_ik
+</code></pre></div>
+<p>它稳定、概率解释清楚，但每个像素权重近似相同。若前景只占 1%，模型把所有像素预测为背景也能得到 99% 像素准确率。</p>
+<h3 id="dice-系数与-dice-loss">Dice 系数与 Dice Loss</h3>
+<p>Dice 衡量两个集合的重叠：</p>
+<div class="highlight"><pre><span></span><code>Dice = 2|P∩G| / (|P|+|G|)
+</code></pre></div>
+<p>软 Dice 直接使用预测概率：</p>
+<div class="highlight"><pre><span></span><code>Dice = (2Σ p_i g_i + ε) / (Σ p_i + Σ g_i + ε)
+L_Dice = 1 - Dice
+</code></pre></div>
+<p>它关注整体重叠，对小前景更敏感。分子乘 2 是因为完全重合时，交集等于 P 和 G 各自大小的一半总和。</p>
+<p>实践中常用：</p>
+<div class="highlight"><pre><span></span><code>L = L_BCE/CE + λ L_Dice
+</code></pre></div>
+<p>CE 提供逐像素稳定梯度，Dice 优化全局重叠。若一个 batch 中某类完全不存在，要明确 Dice 的空类策略：跳过该类、视预测也为空时为 1，或加入平滑项。不同实现会显著改变指标。</p>
+<h3 id="其他损失">其他损失</h3>
+<ul>
+<li><strong>Focal Loss</strong>：降低易分类背景的权重；</li>
+<li><strong>Tversky Loss</strong>：分别控制 FP 与 FN，适合漏检代价更高的医学任务；</li>
+<li><strong>Boundary Loss</strong>：强调轮廓，但通常作为辅助项；</li>
+<li><strong>Lovász Loss</strong>：更直接近似优化 IoU。</li>
+</ul>
+<p>损失越复杂不一定越好。先用可解释的 CE/BCE+Dice 建立基线，再按明确失败模式增加项。</p>
+<hr />
+<h2 id="126-指标像素准确率为什么会骗人">12.6 指标：像素准确率为什么会骗人</h2>
+<h3 id="pixel-accuracy">Pixel Accuracy</h3>
+<div class="highlight"><pre><span></span><code>PA = 正确分类像素数 / 总像素数
+</code></pre></div>
+<p>背景占 99% 时，全背景模型也有 99%，所以必须结合类别指标。</p>
+<h3 id="iou-与-miou">IoU 与 mIoU</h3>
+<p>对类别 k：</p>
+<div class="highlight"><pre><span></span><code>IoU_k = TP_k / (TP_k + FP_k + FN_k)
+mIoU = 各类别 IoU 的平均
+</code></pre></div>
+<p>这里 TP/FP/FN 按像素统计。二分类时，前景 Dice 与 IoU 有确定关系：</p>
+<div class="highlight"><pre><span></span><code>Dice = 2IoU / (1+IoU)
+IoU = Dice / (2-Dice)
+</code></pre></div>
+<p>两者排序一致，但数值不同，不能混报。</p>
+<h3 id="boundary-iou-hausdorff-distance">Boundary IoU / Hausdorff Distance</h3>
+<p>两个预测可能区域重叠相近，但一个边界平滑，一个边界锯齿。医学、遥感、工业测量常需边界指标。Hausdorff Distance 关注两组边界点的最坏距离，对离群点敏感；HD95 用 95 分位减弱极端点影响。</p>
+<h3 id="实例与全景指标">实例与全景指标</h3>
+<p>实例分割常用 mask AP，与检测 AP 类似，只是 IoU 在掩码上计算。全景分割常用 PQ：</p>
+<div class="highlight"><pre><span></span><code>PQ = SQ × RQ
+</code></pre></div>
+<p>SQ 衡量匹配区域质量，RQ 衡量实例识别质量。评价前先确认任务类型，别拿语义 mIoU 评价实例是否分开。</p>
+<hr />
+<h2 id="127-数据与掩码最容易出错的地方">12.7 数据与掩码：最容易出错的地方</h2>
+<h3 id="掩码不是普通图片">掩码不是普通图片</h3>
+<p>类别掩码中的像素值是离散 id，不是亮度。对 mask resize 必须用最近邻插值：</p>
+<div class="highlight"><pre><span></span><code><span class="n">mask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">interpolation</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">INTER_NEAREST</span><span class="p">)</span>
+</code></pre></div>
+<p>若用双线性插值，类别 0 和 2 之间会产生 1，凭空制造新类别。也不要对 mask 做颜色抖动或归一化。</p>
+<h3 id="二分类张量形状">二分类张量形状</h3>
+<p>常见约定：</p>
+<div class="highlight"><pre><span></span><code>logits: [N,1,H,W]，float
+mask:   [N,1,H,W]，float，值为 0/1
+loss:   BCEWithLogitsLoss（内部含 sigmoid）
+</code></pre></div>
+<p>此时训练前不要手动 sigmoid，否则会重复压缩并影响数值稳定性。推理时才 <code>sigmoid(logits)&gt;threshold</code>。</p>
+<p>多分类通常是：</p>
+<div class="highlight"><pre><span></span><code>logits: [N,K,H,W]，float
+mask:   [N,H,W]，long，值为 0...K-1
+loss:   CrossEntropyLoss（内部含 log-softmax）
+</code></pre></div>
+<p>形状、dtype 或取值错一个，可能直接报错，也可能更糟——代码能跑但学不对。</p>
+<h3 id="同步增强">同步增强</h3>
+<p>图像和 mask 必须使用同一组随机几何参数。若分别调用随机裁剪，二者会错位。可用支持多目标同步变换的库，或先采样参数再同时应用。</p>
+<div class="highlight"><pre><span></span><code>可只作用于图像：亮度、对比度、噪声
+必须同步作用：翻转、旋转、裁剪、缩放、仿射
+</code></pre></div>
+<h3 id="标签质量">标签质量</h3>
+<p>边界是否包含模糊像素、孔洞是否保留、相邻实例如何分隔，都要有统一规则。模型不可能学会标注者之间都无法统一的边界。</p>
+<hr />
+<h2 id="128-从一张样本到训练闭环">12.8 从一张样本到训练闭环</h2>
+<p>以细胞二分类分割为例：</p>
+<ol>
+<li>读取 RGB 图像和单通道 mask；</li>
+<li>可视化叠加，确认前景位置一致；</li>
+<li>同步 resize/crop/flip；</li>
+<li>图像转 <code>float32</code> 并按预训练模型要求归一化；</li>
+<li>mask 转 0/1，保持最近邻变换；</li>
+<li>前向得到 <code>[N,1,H,W]</code> logits；</li>
+<li>计算 BCE+Dice；</li>
+<li>反向传播；</li>
+<li>验证时累计全数据集混淆统计；</li>
+<li>保存最佳验证指标对应权重，而非最后一个 epoch。</li>
+</ol>
+<p>一个训练步的轮廓：</p>
+<div class="highlight"><pre><span></span><code><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+<span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>
+<span class="n">bce</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+<span class="n">probs</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">()</span>
+<span class="n">intersection</span> <span class="o">=</span> <span class="p">(</span><span class="n">probs</span> <span class="o">*</span> <span class="n">masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">dice</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">intersection</span> <span class="o">+</span> <span class="mf">1e-6</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+    <span class="n">probs</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="n">masks</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="mf">1e-6</span>
+<span class="p">)</span>
+<span class="n">loss</span> <span class="o">=</span> <span class="n">bce</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">dice</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</code></pre></div>
+<p>这段用于理解损失连接方式，不包含完整 Dataset、U-Net、验证和保存逻辑，因此不是 DL-9 完整答案。</p>
+<h3 id="先做小样本过拟合">先做小样本过拟合</h3>
+<p>取 2～8 张图，关闭强增强，训练到预测几乎贴合标签。若失败，依次检查：</p>
+<ul>
+<li>输入和 mask 是否对齐；</li>
+<li>mask 值是否真为 0/1 或合法类别 id；</li>
+<li>logits 与标签 shape 是否一致；</li>
+<li>输出是否被错误 sigmoid 两次；</li>
+<li>学习率与梯度是否正常；</li>
+<li>模型输出尺寸是否正确。</li>
+</ul>
+<p>这比直接训练几千张图更快定位管线错误。</p>
+<hr />
+<h2 id="129-推理大图阈值与后处理">12.9 推理：大图、阈值与后处理</h2>
+<p>显微、遥感图可能远大于训练尺寸。直接缩小会丢小结构，可采用滑窗：把大图切成有重叠的小块，分别预测，再在重叠区平均概率或加权融合。切片不能按图片随机划分训练/验证，否则同一原图邻近块泄漏；应先按原图划分，再切片。</p>
+<p>二分类默认阈值 0.5 不一定最优。应在验证集上绘制不同阈值的 Precision、Recall、Dice，按业务代价选择，不能在测试集上调阈值。</p>
+<p>后处理可使用第 3 天的传统 CV：</p>
+<ul>
+<li>连通域删除极小噪点；</li>
+<li>闭运算填小孔；</li>
+<li>分水岭拆分粘连实例；</li>
+<li>轮廓提取计算面积与周长。</li>
+</ul>
+<p>深度学习和传统 CV 不是互斥路线。模型负责复杂语义，确定性的形态学规则负责可解释清理。但后处理参数也必须在验证集确定并记录。</p>
+<hr />
+<h2 id="1210-常见坑与错误分析">12.10 常见坑与错误分析</h2>
+<h3 id="全部预测为背景">全部预测为背景</h3>
+<p>常见原因是前景稀少、mask 读取错、损失不匹配或阈值过高。先看 sigmoid 概率分布，不要只看二值结果；若概率整体在 0.3～0.4，模型并非“完全没学”，可能是校准或阈值问题。</p>
+<h3 id="边界模糊">边界模糊</h3>
+<p>检查输出 stride、输入分辨率、skip connection 和标签边界质量。可增加边界辅助损失，但先排除图像/mask 插值错误。</p>
+<h3 id="小物体消失">小物体消失</h3>
+<p>下采样后尺寸可能小于一个特征点。可减少下采样、提高输入尺寸、采样含前景 patch，或使用多尺度特征。随机裁剪若大部分都是纯背景，会进一步恶化。</p>
+<h3 id="验证-dice-波动大">验证 Dice 波动大</h3>
+<p>样本少或每图前景比例差异大时，按 batch 平均 Dice 方差很高。应明确是“逐图平均”还是“全数据集累计交并后计算”，二者数值不同。</p>
+<h3 id="训练很好但外部图崩溃">训练很好但外部图崩溃</h3>
+<p>可能学了染色风格、设备噪声、固定背景等捷径。按设备、医院、拍摄批次分组验证，并检查第 10 天讲过的域偏移和 shortcut learning。</p>
+<h3 id="预测-mask-有奇怪类别">预测 mask 有奇怪类别</h3>
+<p>优先检查 mask resize 是否用了线性插值、调色板 PNG 是否被错误转成 RGB、忽略标签 <code>ignore_index</code> 是否配置一致。</p>
+<hr />
+<h2 id="1211-与-dl-7dl-12-的衔接">12.11 与 DL-7～DL-12 的衔接</h2>
+<ul>
+<li><strong>DL-7/8</strong>：检测先给出目标框，分割可在框内细化；IoU 思想从框集合扩展到了像素集合。</li>
+<li><strong>DL-9 U-Net 细胞分割</strong>：本章提供结构、损失、数据检查和最小过拟合路线；完整网络与实验由你完成。</li>
+<li><strong>DL-10 AutoEncoder</strong>：编码器—解码器结构与 U-Net 相似，但目标是重建输入，不是输出语义 mask。</li>
+<li><strong>DL-11 SimCLR</strong>：可先用无标签图预训练 encoder，再用少量 mask 微调。</li>
+<li><strong>DL-12 综合项目</strong>：检测负责找桌面物体，分割负责精确轮廓；要统一坐标变换、评估口径与部署接口。</li>
+</ul>
+<hr />
+<h2 id="章末检查清单">章末检查清单</h2>
+<ul>
+<li>[ ] 能区分语义、实例和全景分割。</li>
+<li>[ ] 能解释分类 CNN 如何改成 FCN。</li>
+<li>[ ] 能画出 U-Net，并说清 skip connection 提供了什么。</li>
+<li>[ ] 知道转置卷积棋盘效应的来源。</li>
+<li>[ ] 能写出 Dice 与 IoU，并解释它们的关系。</li>
+<li>[ ] 能根据二分类/多分类选择输出 shape、dtype 和损失。</li>
+<li>[ ] 知道 mask resize 必须使用最近邻插值。</li>
+<li>[ ] 能保证随机几何增强对图像和 mask 同步。</li>
+<li>[ ] 会用 2～8 张图做最小过拟合测试。</li>
+<li>[ ] 不会被高 Pixel Accuracy 欺骗，会查看 mIoU、Dice 和边界错误。</li>
+<li>[ ] 知道滑窗切片应在原图划分之后进行。</li>
+<li>[ ] 能把形态学后处理作为可记录、可验证的管线步骤。</li>
+</ul></article><nav class="prev-next"><a href="11.html">← 第 11 章 目标检测</a><a href="13.html">第 13 章 生成与自监督 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#121-从框到像素为什么还需要分割">12.1 从框到像素：为什么还需要分割</a></li><li class="sub"><a href="#三种分割任务">三种分割任务</a></li><li><a href="#122-fcn把分类网络改造成像素预测器">12.2 FCN：把分类网络改造成像素预测器</a></li><li><a href="#123-u-net为什么跳跃连接是分割标配">12.3 U-Net：为什么跳跃连接是分割标配</a></li><li class="sub"><a href="#尺寸为什么经常对不上">尺寸为什么经常对不上</a></li><li class="sub"><a href="#一个最小结构骨架">一个最小结构骨架</a></li><li><a href="#124-上采样放大不等于恢复">12.4 上采样：放大不等于恢复</a></li><li class="sub"><a href="#双线性插值-卷积">双线性插值 + 卷积</a></li><li class="sub"><a href="#转置卷积">转置卷积</a></li><li class="sub"><a href="#pixel-shuffle">Pixel Shuffle</a></li><li><a href="#125-分割损失为什么只用交叉熵可能不够">12.5 分割损失：为什么只用交叉熵可能不够</a></li><li class="sub"><a href="#像素交叉熵">像素交叉熵</a></li><li class="sub"><a href="#dice-系数与-dice-loss">Dice 系数与 Dice Loss</a></li><li class="sub"><a href="#其他损失">其他损失</a></li><li><a href="#126-指标像素准确率为什么会骗人">12.6 指标：像素准确率为什么会骗人</a></li><li class="sub"><a href="#pixel-accuracy">Pixel Accuracy</a></li><li class="sub"><a href="#iou-与-miou">IoU 与 mIoU</a></li><li class="sub"><a href="#boundary-iou-hausdorff-distance">Boundary IoU / Hausdorff Distance</a></li><li class="sub"><a href="#实例与全景指标">实例与全景指标</a></li><li><a href="#127-数据与掩码最容易出错的地方">12.7 数据与掩码：最容易出错的地方</a></li><li class="sub"><a href="#掩码不是普通图片">掩码不是普通图片</a></li><li class="sub"><a href="#二分类张量形状">二分类张量形状</a></li><li class="sub"><a href="#同步增强">同步增强</a></li><li class="sub"><a href="#标签质量">标签质量</a></li><li><a href="#128-从一张样本到训练闭环">12.8 从一张样本到训练闭环</a></li><li class="sub"><a href="#先做小样本过拟合">先做小样本过拟合</a></li><li><a href="#129-推理大图阈值与后处理">12.9 推理：大图、阈值与后处理</a></li><li><a href="#1210-常见坑与错误分析">12.10 常见坑与错误分析</a></li><li class="sub"><a href="#全部预测为背景">全部预测为背景</a></li><li class="sub"><a href="#边界模糊">边界模糊</a></li><li class="sub"><a href="#小物体消失">小物体消失</a></li><li class="sub"><a href="#验证-dice-波动大">验证 Dice 波动大</a></li><li class="sub"><a href="#训练很好但外部图崩溃">训练很好但外部图崩溃</a></li><li class="sub"><a href="#预测-mask-有奇怪类别">预测 mask 有奇怪类别</a></li><li><a href="#1211-与-dl-7dl-12-的衔接">12.11 与 DL-7～DL-12 的衔接</a></li><li><a href="#章末检查清单">章末检查清单</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

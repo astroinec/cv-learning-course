@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 18 章 传统缺陷检测 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li class="current" data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 18 章 <span class="tag P0">P0</span> <span class="badge">原版讲义</span></div><h1>传统缺陷检测</h1><p class="scene"><b>用在哪：</b>金模板比对流水线，新人最先接触的检测算法</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 12 小时</span><span class="chip"><b>深挖</b> 18 小时</span><span class="chip">前置：<a href="../lessons/03.html">第 3 章 形态学</a>、<a href="../lessons/16.html">第 16 章 图像对齐与亚像素</a></span></div><div class="meta-row"><span class="chip mono">验收：python 18_传统缺陷检测/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="18"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><h2 id="1-一条检测流水线长什么样">1. 一条检测流水线长什么样</h2>
+<div class="highlight"><pre><span></span><code>采图 → 预处理 → 对齐 → 和参考图比对 → 差异阈值 → 连通域 → 缺陷特征 → 过滤和分类 → 统计与报告
+</code></pre></div>
+<p>每一步都会影响最终的检出和误报，排查问题时要逐段看中间结果，而不是只盯最后的数字。</p>
+<h2 id="2-参考图从哪来">2. 参考图从哪来</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>比对方式</th>
+<th>参考图</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>die-to-die（双比）</td>
+<td>相邻 die</td>
+<td>简单，自动抵消缓慢变化的工艺和照明差异</td>
+<td>参考 die 自己有缺陷时会在两边都报差异，分不清是谁的</td>
+</tr>
+<tr>
+<td>三比（仲裁）</td>
+<td>左右两个相邻 die</td>
+<td>三张图两两比较，谁和另外两张都不同，缺陷就在谁身上</td>
+<td>需要至少三个 die，耗时增加</td>
+</tr>
+<tr>
+<td>多 die 金模板</td>
+<td>很多良品 die 的统计（中位数）</td>
+<td>噪声低，单张坏图影响小</td>
+<td>要先有足够的良品，对缓慢漂移敏感</td>
+</tr>
+<tr>
+<td>die-to-database</td>
+<td>设计版图渲染图</td>
+<td>能抓出所有 die 都有的系统性缺陷（重复缺陷）</td>
+<td>渲染要模拟光学成像，难度大（第 21、22 章）</td>
+</tr>
+<tr>
+<td>阵列比对（cell-to-cell）</td>
+<td>同一 die 内相邻的周期单元</td>
+<td>存储阵列这类重复结构的标准做法</td>
+<td>只适用于周期区域</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>重复缺陷</strong>是比对方法的盲区：如果光罩上有缺陷，每个 die 同一位置都会有，die-to-die 比不出来，只有 die-to-database 或者光罩检测能发现。</p>
+<h2 id="3-阈值为什么不能用固定灰度差">3. 阈值：为什么不能用固定灰度差</h2>
+<p>最朴素的做法是 <code>|test - ref| &gt; T</code>。问题在于不同区域的噪声水平不一样：</p>
+<ul>
+<li>图形边缘对微小错位极其敏感，差值天然大。</li>
+<li>亮区散粒噪声大（泊松噪声方差等于均值，见第 22 章）。</li>
+<li>平坦暗区噪声小，很小的差异就很可疑。</li>
+</ul>
+<p>固定 T 要么在边缘误报一片，要么在平坦区漏掉弱缺陷。</p>
+<p><strong>按像素建噪声模型</strong>：用多张良品估计每个像素的中心值和离散程度，再算 z-score：</p>
+<div class="highlight"><pre><span></span><code>z = |test - median| / sigma
+</code></pre></div>
+<p>z &gt; k 才算异常。k 有了统计含义：高斯噪声下 k=5 的单像素误报概率约 6e-7。</p>
+<h3 id="鲁棒统计中位数和-mad">鲁棒统计：中位数和 MAD</h3>
+<p>良品里难免混进坏图或者离群像素。均值和标准差会被它们拉偏，中位数和 MAD（中位数绝对偏差）不会：</p>
+<div class="highlight"><pre><span></span><code>median = 逐像素中位数
+MAD    = median(|x - median|)
+sigma  ≈ 1.4826 × MAD      （对高斯分布，这个系数让 sigma 和标准差一致）
+</code></pre></div>
+<p>还要给 sigma 设下限：完全稳定的像素 MAD 可能为 0，z 会变成无穷大，任何微小差异都报警。</p>
+<h3 id="分区阈值">分区阈值</h3>
+<p>更进一步，工业设备会把 die 按图形类型分区（阵列区、逻辑区、空白区、边缘区），每个区单独设阈值和灵敏度。这一套设置叫检测配方（recipe），调配方是检测工程师的日常工作。</p>
+<h2 id="4-连通域和缺陷特征">4. 连通域和缺陷特征</h2>
+<p>阈值之后得到的是像素级的候选，要合并成“缺陷”：</p>
+<ul>
+<li><strong>连通性</strong>：8 连通把对角相邻也算一起，4 连通只算上下左右。8 连通更符合缺陷形状，但两个挨得很近的缺陷可能被合成一个。</li>
+<li><strong>面积过滤</strong>：去掉单像素噪声点，<code>min_area</code> 是最常用、最有效的误报过滤器。</li>
+<li><strong>形态学</strong>：开运算去毛刺，闭运算把断开的划痕连起来（第 3 章）。</li>
+</ul>
+<p>每个缺陷提取特征，供后续过滤和分类：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>特征</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>面积、外接框</td>
+<td>尺寸分级，按尺寸设报警门槛</td>
+</tr>
+<tr>
+<td>质心（可以按 z 加权）</td>
+<td>定位、和复查结果匹配</td>
+</tr>
+<tr>
+<td>最大 z、平均 z</td>
+<td>信号强度，区分真缺陷和噪声</td>
+</tr>
+<tr>
+<td>极性（比参考亮还是暗）</td>
+<td>区分颗粒（多为亮）和缺失（多为暗）</td>
+</tr>
+<tr>
+<td>长宽比、方向</td>
+<td>识别划痕</td>
+</tr>
+<tr>
+<td>所在区域类型</td>
+<td>不同区域的缺陷影响不同</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="5-工业指标">5. 工业指标</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检出率（capture rate）</td>
+<td>真缺陷中被检出的比例</td>
+</tr>
+<tr>
+<td>漏检（escape）</td>
+<td>真缺陷没被检出</td>
+</tr>
+<tr>
+<td>误报（nuisance / false alarm）</td>
+<td>报出来的不是真缺陷，或者是不关心的缺陷</td>
+</tr>
+<tr>
+<td>过检（overkill）</td>
+<td>良品被判为不良</td>
+</tr>
+<tr>
+<td>DOI（defect of interest）</td>
+<td>关心的缺陷类型，检测灵敏度围绕它调</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>代价不对称</strong>：漏检意味着坏芯片流到后道甚至客户，代价很高；过检意味着良品被报废或者送去人工复查，代价是成本和产能。所以产线一般先定漏检上限，在满足上限的前提下压低过检。第 19 章的 <code>threshold_at_escape</code> 就是这个思路。</p>
+<p><strong>怎么报告</strong>：不要只给一个准确率。给出检出率和误报率随阈值变化的曲线，标出当前工作点，并说明测试集有多少缺陷、分别是什么类型。缺陷样本少时要报置信区间。</p>
+<p><strong>匹配规则</strong>要提前定好：预测和真值距离多少以内算命中？一个真值能不能被多个预测命中？作业里的贪心一对一匹配是常用做法。规则不同，指标可以差很多。</p>
+<h2 id="6-典型误报来源">6. 典型误报来源</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>误报</th>
+<th>根因</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>沿图形边缘的细长误报</td>
+<td>对齐残差</td>
+<td>提高对齐精度，边缘区降灵敏度</td>
+</tr>
+<tr>
+<td>整片区域报警</td>
+<td>照明或膜厚漂移导致整体亮度变化</td>
+<td>比对前做亮度归一化</td>
+</tr>
+<tr>
+<td>散落的单像素点</td>
+<td>噪声</td>
+<td>面积过滤、提高 k</td>
+</tr>
+<tr>
+<td>颜色差（color variation）</td>
+<td>薄膜厚度变化引起干涉颜色不同，但不是缺陷</td>
+<td>分区阈值、用更多参考</td>
+</tr>
+<tr>
+<td>图像边界报警</td>
+<td>对齐后边界无数据</td>
+<td>去掉边界一圈</td>
+</tr>
+</tbody>
+</table></div>
+<p>第 24 章的综合项目会让你亲手遇到前两种。</p>
+<h2 id="自测问题">自测问题</h2>
+<ol>
+<li>双比法报出一个差异，怎样判断缺陷在待检 die 还是参考 die 上？</li>
+<li>光罩缺陷为什么 die-to-die 检测不出来？</li>
+<li>为什么 MAD 要乘 1.4826？</li>
+<li>k 从 4 提到 6，检出率和误报率大致怎么变？</li>
+<li>同一批数据，两个人报出的检出率差很多，最先该核对什么？</li>
+</ol></article><nav class="prev-next"><a href="17.html">← 第 17 章 相机标定</a><a href="19.html">第 19 章 异常检测与深度缺陷检测 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#1-一条检测流水线长什么样">1. 一条检测流水线长什么样</a></li><li><a href="#2-参考图从哪来">2. 参考图从哪来</a></li><li><a href="#3-阈值为什么不能用固定灰度差">3. 阈值：为什么不能用固定灰度差</a></li><li class="sub"><a href="#鲁棒统计中位数和-mad">鲁棒统计：中位数和 MAD</a></li><li class="sub"><a href="#分区阈值">分区阈值</a></li><li><a href="#4-连通域和缺陷特征">4. 连通域和缺陷特征</a></li><li><a href="#5-工业指标">5. 工业指标</a></li><li><a href="#6-典型误报来源">6. 典型误报来源</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

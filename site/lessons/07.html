@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 7 章 相机与三维视觉 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li class="current" data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 7 章 <span class="tag P1">P1</span> <span class="badge">原版讲义</span></div><h1>相机与三维视觉</h1><p class="scene"><b>用在哪：</b>标定、位姿估计、渲染共用的相机模型</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 6 小时</span><span class="chip"><b>深挖</b> 7 小时</span><span class="chip">前置：<a href="../lessons/04.html">第 4 章 几何变换</a></span></div><div class="meta-row"><span class="chip mono">验收：python 07_传统CV综合/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="07"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
+<p>配套练习：<a href="../../视觉算法学习计划.md#题-7-1ar-标记检测与叠加最终关卡">题 7-1：AR 标记检测与叠加（最终关卡）</a></p>
+<p>本章目标：把前面学过的特征、匹配、RANSAC 和几何变换串成一条三维视觉链路。读完后，你应该能解释“一个三维点怎样落到像素上”，并能用 OpenCV 完成位姿估计与虚拟物体叠加。</p>
+</blockquote>
+<hr />
+<h2 id="71-针孔相机把三维世界压到二维平面">7.1 针孔相机：把三维世界压到二维平面</h2>
+<h3 id="先建立直觉">先建立直觉</h3>
+<p>相机最核心的动作不是“拍照”，而是<strong>投影</strong>：从三维点发出的光线穿过一个小孔，在成像平面上留下二维位置。真实镜头很复杂，但只要暂时忽略畸变，就能用针孔模型描述大部分几何关系。</p>
+<p>设三维点在相机坐标系中为 <code>P_c=(X_c,Y_c,Z_c)</code>，其归一化图像坐标为 <code>(x,y)</code>。相似三角形给出：</p>
+<div class="highlight"><pre><span></span><code>x = X_c / Z_c
+y = Y_c / Z_c
+</code></pre></div>
+<p>这两式很重要：同一个物体离相机越远，<code>Z_c</code> 越大，投影越小；当 <code>Z_c&lt;=0</code> 时，点在相机后方，通常不应显示。透视近大远小，不是额外特效，而是除以深度 <code>Z_c</code> 的自然结果。</p>
+<p>归一化坐标还不是像素。相机要用焦距和主点把它换成 <code>(u,v)</code>：</p>
+<div class="highlight"><pre><span></span><code>u = f_x * x + c_x
+v = f_y * y + c_y
+</code></pre></div>
+<p>写成齐次矩阵：</p>
+<div class="highlight"><pre><span></span><code>s [u v 1]^T = K [X_c Y_c Z_c]^T
+
+K = [f_x  0   c_x
+      0   f_y c_y
+      0   0    1 ]
+</code></pre></div>
+<p><code>K</code> 是<strong>内参矩阵</strong>。<code>f_x、f_y</code> 是以像素计的焦距，可能不同；<code>(c_x,c_y)</code> 是主点，通常接近图像中心，但不能想当然地固定为中心；<code>s</code> 在这里等于深度 <code>Z_c</code>。内参描述“相机自身怎样成像”，换了分辨率或缩放图像后也要相应调整。</p>
+<h3 id="必须分清的四个坐标系">必须分清的四个坐标系</h3>
+<p>一条完整链路是：</p>
+<div class="highlight"><pre><span></span><code>世界坐标 P_w --[R|t]--&gt; 相机坐标 P_c --除以 Z--&gt; 归一化图像坐标
+               --K--&gt; 像素坐标 (u,v)
+</code></pre></div>
+<ol>
+<li><strong>世界坐标系</strong>：人为选择的三维参考系，例如令 AR 标记左上角为原点。</li>
+<li><strong>相机坐标系</strong>：原点在光心，OpenCV 常用 <code>x</code> 向右、<code>y</code> 向下、<code>z</code> 向前。</li>
+<li><strong>图像坐标系</strong>：成像平面上的连续坐标，单位不是像素。</li>
+<li><strong>像素坐标系</strong>：数组中的离散位置 <code>(u,v)</code>；读取数组仍写 <code>img[v, u]</code>，即先行后列。</li>
+</ol>
+<p>外参满足：</p>
+<div class="highlight"><pre><span></span><code>P_c = R P_w + t
+s p = K [R|t] P_w_h
+</code></pre></div>
+<p>其中 <code>R</code> 是 <code>3×3</code> 旋转矩阵，<code>t</code> 是 <code>3×1</code> 平移向量，<code>P_w_h=[X,Y,Z,1]^T</code>。一个常见误解是“<code>t</code> 就是相机在世界中的位置”。并不直接是：上式描述的是<strong>世界点变到相机坐标系</strong>，相机中心在世界坐标系中的位置为 <code>C_w=-R^T t</code>。</p>
+<h3 id="畸变为什么直线到了图像边缘会弯">畸变：为什么直线到了图像边缘会弯</h3>
+<p>针孔模型假设理想镜头，真实镜头还会产生：</p>
+<ul>
+<li><strong>径向畸变</strong>：桶形或枕形，离中心越远越明显，常用 <code>k1,k2,k3</code> 描述；</li>
+<li><strong>切向畸变</strong>：镜头与传感器不完全平行，常用 <code>p1,p2</code> 描述。</li>
+</ul>
+<p>OpenCV 常见畸变向量 shape 为 <code>(5,)</code> 或 <code>(1,5)</code>：</p>
+<div class="highlight"><pre><span></span><code>dist = [k1, k2, p1, p2, k3]
+</code></pre></div>
+<p>标定的本质，是用多张已知尺寸的棋盘格图像，同时估计 <code>K</code>、畸变系数以及每张图的外参。拍标定图时要覆盖画面四角、改变角度和距离；只在中央正对着拍很多张，数量虽多，约束却很弱。</p>
+<div class="highlight"><pre><span></span><code><span class="n">ok</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">calibrateCamera</span><span class="p">(</span>
+    <span class="n">object_points</span><span class="p">,</span> <span class="n">image_points</span><span class="p">,</span> <span class="n">image_size</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+<span class="p">)</span>
+<span class="c1"># object_points: 每张图一个 (N, 3) float32</span>
+<span class="c1"># image_points:  每张图一个 (N, 1, 2) float32</span>
+<span class="c1"># image_size: (width, height)，不是 image.shape[:2]</span>
+</code></pre></div>
+<p>判断标定好坏不能只看函数是否返回。应把三维角点重新投影，计算<strong>重投影误差</strong>：预测像素与检测像素之间的平均距离。误差小意味着当前数据被模型解释得好，但若标定姿态单一，参数仍可能泛化很差。</p>
+<hr />
+<h2 id="72-pnp从-3d2d-对应关系反推相机位姿">7.2 PnP：从 3D—2D 对应关系反推相机位姿</h2>
+<p>PnP（Perspective-n-Point）的问题是：已知若干世界点 <code>P_w</code>、对应像素 <code>p</code>、内参 <code>K</code> 和畸变，求 <code>R,t</code>，使重投影误差最小：</p>
+<div class="highlight"><pre><span></span><code>min Σ || p_i - project(K, R, t, P_i) ||²
+</code></pre></div>
+<p>直觉上，你拿着一张已知尺寸的标记在镜头前转动；程序知道标记四角在标记坐标系中的三维位置，也检测到了四个像素位置，于是倒推出标记相对相机的姿态。</p>
+<h3 id="一个逐步例子平面标记上画立方体">一个逐步例子：平面标记上画立方体</h3>
+<p>假设标记边长为 <code>L=0.05m</code>，把标记平面设为 <code>Z=0</code>：</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">L</span> <span class="o">=</span> <span class="mf">0.05</span>
+<span class="n">object_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">L</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>                         <span class="c1"># (4, 3)</span>
+
+<span class="n">image_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">312</span><span class="p">,</span> <span class="mi">211</span><span class="p">],</span> <span class="p">[</span><span class="mi">441</span><span class="p">,</span> <span class="mi">220</span><span class="p">],</span> <span class="p">[</span><span class="mi">430</span><span class="p">,</span> <span class="mi">349</span><span class="p">],</span> <span class="p">[</span><span class="mi">301</span><span class="p">,</span> <span class="mi">338</span><span class="p">]</span>
+<span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>                         <span class="c1"># (4, 2)</span>
+
+<span class="n">ok</span><span class="p">,</span> <span class="n">rvec</span><span class="p">,</span> <span class="n">tvec</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">solvePnP</span><span class="p">(</span>
+    <span class="n">object_pts</span><span class="p">,</span> <span class="n">image_pts</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span>
+    <span class="n">flags</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">SOLVEPNP_IPPE_SQUARE</span>
+<span class="p">)</span>
+<span class="c1"># rvec: (3,1)，Rodrigues 旋转向量；tvec: (3,1)</span>
+<span class="n">R</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Rodrigues</span><span class="p">(</span><span class="n">rvec</span><span class="p">)</span>                  <span class="c1"># (3,3)</span>
+</code></pre></div>
+<p><code>rvec</code> 不是欧拉角。它的方向表示旋转轴，模长表示旋转角（弧度）。不要把三个分量当作绕 x、y、z 的角度直接解释。</p>
+<p>接着定义立方体 8 个顶点。若希望立方体“朝标记上方”而不是钻进标记，要注意 OpenCV 相机坐标的方向以及你选择的标记坐标约定；这里用负 <code>Z</code> 表示从标记平面向外：</p>
+<div class="highlight"><pre><span></span><code><span class="n">cube</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">L</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">L</span><span class="p">,</span><span class="n">L</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">L</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="n">L</span><span class="p">],</span> <span class="p">[</span><span class="n">L</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="n">L</span><span class="p">],</span> <span class="p">[</span><span class="n">L</span><span class="p">,</span><span class="n">L</span><span class="p">,</span><span class="o">-</span><span class="n">L</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">L</span><span class="p">,</span><span class="o">-</span><span class="n">L</span><span class="p">]</span>
+<span class="p">])</span>                                           <span class="c1"># (8, 3)</span>
+
+<span class="n">pixels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">projectPoints</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">rvec</span><span class="p">,</span> <span class="n">tvec</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">dist</span><span class="p">)</span>
+<span class="n">pixels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">pixels</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>  <span class="c1"># (8,2)</span>
+</code></pre></div>
+<p>最后连接底面、顶面和四条竖边。此处 <code>projectPoints</code> 会自动完成外参变换、透视除法、内参映射和畸变，因此比自己拼公式更不易漏项。</p>
+<h3 id="pnp-的几个现实问题">PnP 的几个现实问题</h3>
+<ul>
+<li>四点共面时可能存在多个几何上合理的姿态；方形标记优先考虑 <code>IPPE_SQUARE</code>，并保证点顺序符合 API 约定。</li>
+<li>检测点顺序必须和三维点顺序一一对应。左上、右上、右下、左下一旦错位，函数可能仍返回结果，但立方体会翻转或乱跳。</li>
+<li>有离群匹配时，用 <code>cv2.solvePnPRansac()</code>；它反复抽样位姿，再用重投影误差判断内点。</li>
+<li>单目只能从已知尺度恢复绝对尺度。若把标记边长从 <code>0.05</code> 错写成 <code>5</code>，旋转近似不变，平移尺度会放大约 100 倍。</li>
+</ul>
+<hr />
+<h2 id="73-对极几何两台相机怎样互相约束">7.3 对极几何：两台相机怎样互相约束</h2>
+<p>如果同一个三维点分别出现在左右图像中，那么左图一个点并不会告诉你右图的唯一对应点，却能把搜索范围从整个二维图像缩小到一条<strong>对极线</strong>。这就是双目匹配能从二维搜索降成一维搜索的原因。</p>
+<p>对归一化坐标 <code>x1,x2</code>，有：</p>
+<div class="highlight"><pre><span></span><code>x2^T E x1 = 0
+E = [t]_x R
+</code></pre></div>
+<p><code>E</code> 是<strong>本质矩阵</strong>，只和两台已标定相机之间的相对旋转、平移方向有关；<code>[t]_x</code> 是由 <code>t</code> 构造的反对称矩阵，使 <code>[t]_x a = t × a</code>。因为整体乘任意非零尺度仍满足约束，所以仅由两幅图通常只能恢复平移方向，不能恢复真实长度。</p>
+<p>若使用像素坐标 <code>p1,p2</code>，内参也要被吸收进去：</p>
+<div class="highlight"><pre><span></span><code>p2^T F p1 = 0
+F = K2^{-T} E K1^{-1}
+</code></pre></div>
+<p><code>F</code> 是<strong>基础矩阵</strong>。一句话区分：<code>E</code> 服务于去除内参后的归一化坐标，<code>F</code> 服务于原始像素坐标。</p>
+<p>OpenCV 的典型流程如下：</p>
+<div class="highlight"><pre><span></span><code><span class="n">E</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findEssentialMat</span><span class="p">(</span>
+    <span class="n">pts1</span><span class="p">,</span> <span class="n">pts2</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">RANSAC</span><span class="p">,</span>
+    <span class="n">prob</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">1.0</span>
+<span class="p">)</span>
+<span class="n">inliers</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">pose_mask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">recoverPose</span><span class="p">(</span><span class="n">E</span><span class="p">,</span> <span class="n">pts1</span><span class="p">,</span> <span class="n">pts2</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
+</code></pre></div>
+<p>shape 通常为 <code>pts1, pts2: (N,2)</code>，<code>R: (3,3)</code>，<code>t: (3,1)</code>。<code>recoverPose</code> 会利用“正确三维点应位于两台相机前方”的正深度条件，从多组候选位姿中选择一组。之后可用 <code>cv2.triangulatePoints()</code> 三角化，但要先准备两台相机的 <code>3×4</code> 投影矩阵，并把齐次结果除以最后一行。</p>
+<p>要注意：相机几乎只旋转而没有平移、场景点近似共面、基线太短或匹配点集中在很小区域时，三维恢复会退化。公式没有报错，不等于几何条件足够好。</p>
+<hr />
+<h2 id="74-一条完整的传统三维视觉-pipeline">7.4 一条完整的传统三维视觉 pipeline</h2>
+<p>以 AR 标记为例，把前六天知识串起来：</p>
+<ol>
+<li><strong>标定</strong>：得到 <code>K</code> 和 <code>dist</code>，保存为 <code>npz/yaml</code>，不要每帧重算。</li>
+<li><strong>检测</strong>：找 ArUco 角点，或用阈值、轮廓、特征匹配找到平面标记。</li>
+<li><strong>过滤</strong>：检查角点顺序、面积、凸性；特征匹配场景可用 RANSAC 去离群点。</li>
+<li><strong>位姿估计</strong>：<code>solvePnP</code> 得到 <code>rvec,tvec</code>。</li>
+<li><strong>重投影验证</strong>：计算误差；误差过大就拒绝本帧，避免虚拟物体乱飞。</li>
+<li><strong>渲染</strong>：<code>projectPoints</code> 把虚拟三维点变为像素，调用 <code>line/fillPoly</code> 绘制。</li>
+<li><strong>时序平滑</strong>：视频中可对位姿做低通滤波，但不要用平滑掩盖检测错误。</li>
+</ol>
+<p>传统 CV 的优势是几何关系清楚、数据需求小、结果可解释；只要场景满足假设，它可以非常精确。边界也同样清楚：纹理太少、重复纹理、强反光、遮挡、光照巨变都会破坏人工特征与匹配；标定误差会沿整条链路传播；面对开放世界语义，“这是什么东西”通常不是纯几何擅长的问题。深度学习不是把几何作废，而是补上鲁棒特征和语义理解；现代系统常见组合仍是“网络找点/找物体，几何求位姿”。</p>
+<hr />
+<h2 id="常见坑速查">常见坑速查</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>常见原因</th>
+<th>排查方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>投影点整体偏移</td>
+<td><code>K</code> 与当前分辨率不匹配</td>
+<td>图像缩放多少，<code>f_x,f_y,c_x,c_y</code> 同比例缩放</td>
+</tr>
+<tr>
+<td>立方体翻转或扭曲</td>
+<td>2D/3D 点顺序不一致</td>
+<td>在原图逐点编号后再传入</td>
+</tr>
+<tr>
+<td>位姿突然跳变</td>
+<td>平面 PnP 多解、角点抖动</td>
+<td>使用合适 flag，并检查重投影误差与连续性</td>
+</tr>
+<tr>
+<td>距离差 100 倍</td>
+<td>世界点单位混用</td>
+<td>全程统一米或毫米，记录单位</td>
+</tr>
+<tr>
+<td>去畸变后反而更弯</td>
+<td><code>image_size</code> 写反或标定覆盖不足</td>
+<td>OpenCV 尺寸参数用 <code>(width,height)</code></td>
+</tr>
+<tr>
+<td><code>recoverPose</code> 的 <code>t</code> 不是真实米数</td>
+<td>双目相对位姿缺少尺度</td>
+<td>引入已知基线或已知尺寸</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="配套练习连接7-1-ar-标记检测与叠加">配套练习连接：7-1 AR 标记检测与叠加</h2>
+<p>练习入口：<a href="../../视觉算法学习计划.md#题-7-1ar-标记检测与叠加最终关卡">视觉算法学习计划中的题 7-1</a>。建议按以下里程碑完成，而不是一次写到底：</p>
+<ol>
+<li>用标定参数去畸变，并确认直线在画面边缘恢复正常；</li>
+<li>只画检测到的四个角点和编号，确认顺序稳定；</li>
+<li><code>solvePnP</code> 后打印 <code>tvec</code>，移动标记时观察三个轴是否符合预期；</li>
+<li>先投影并绘制三根坐标轴，再升级为 8 点立方体；</li>
+<li>记录每帧重投影误差，给异常帧设置拒绝阈值。</li>
+</ol>
+<hr />
+<h2 id="动手前的检查清单">动手前的检查清单</h2>
+<ul>
+<li>[ ] 能从 <code>X_c/Z_c</code> 解释近大远小，而不是只背投影公式。</li>
+<li>[ ] 能写出 <code>s p = K[R|t]P_w</code>，并说清每个矩阵的 shape。</li>
+<li>[ ] 知道 <code>(u,v)</code> 对应数组索引 <code>img[v,u]</code>。</li>
+<li>[ ] 能区分内参、外参和畸变参数；知道缩放图像后应修改内参。</li>
+<li>[ ] 知道 <code>rvec</code> 是轴角向量，不是三个欧拉角。</li>
+<li>[ ] 能解释 PnP 的输入、输出和重投影误差。</li>
+<li>[ ] 能区分本质矩阵 <code>E</code> 与基础矩阵 <code>F</code>。</li>
+<li>[ ] 知道两幅单目图恢复的平移通常只有方向、没有绝对尺度。</li>
+<li>[ ] 能列出至少三种退化情况：纯旋转、短基线、共面或低纹理。</li>
+<li>[ ] 已准备好相机标定参数，再开始练习 7-1。</li>
+</ul></article><nav class="prev-next"><a href="06.html">← 第 6 章 光流与运动</a><a href="08.html">第 8 章 神经网络基础 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#71-针孔相机把三维世界压到二维平面">7.1 针孔相机：把三维世界压到二维平面</a></li><li class="sub"><a href="#先建立直觉">先建立直觉</a></li><li class="sub"><a href="#必须分清的四个坐标系">必须分清的四个坐标系</a></li><li class="sub"><a href="#畸变为什么直线到了图像边缘会弯">畸变：为什么直线到了图像边缘会弯</a></li><li><a href="#72-pnp从-3d2d-对应关系反推相机位姿">7.2 PnP：从 3D—2D 对应关系反推相机位姿</a></li><li class="sub"><a href="#一个逐步例子平面标记上画立方体">一个逐步例子：平面标记上画立方体</a></li><li class="sub"><a href="#pnp-的几个现实问题">PnP 的几个现实问题</a></li><li><a href="#73-对极几何两台相机怎样互相约束">7.3 对极几何：两台相机怎样互相约束</a></li><li><a href="#74-一条完整的传统三维视觉-pipeline">7.4 一条完整的传统三维视觉 pipeline</a></li><li><a href="#常见坑速查">常见坑速查</a></li><li><a href="#配套练习连接7-1-ar-标记检测与叠加">配套练习连接：7-1 AR 标记检测与叠加</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 13 章 生成与自监督 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li class="current" data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 13 章 <span class="tag P3">P3</span> <span class="badge">原版讲义</span></div><h1>生成与自监督</h1><p class="scene"><b>用在哪：</b>无标注预训练和合成数据的入门，第 20 章的前置</p><div class="meta-row"><span class="chip"><b>速通</b> 2 小时</span><span class="chip"><b>标准</b> 7 小时</span><span class="chip"><b>深挖</b> 9 小时</span><span class="chip">前置：<a href="../lessons/09.html">第 9 章 CNN 核心</a></span></div><div class="meta-row"><span class="chip mono">验收：python 13_生成与自监督/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="13"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><p>本章面向学过概率、线性代数和基础神经网络，但细节已有些模糊的读者。生成模型和自监督学习常被放在一起讨论：前者试图学习数据分布，进而生成新样本；后者不依赖人工标签，而是从数据本身构造监督信号。二者并不等价，却共享一个核心问题：怎样迫使模型学到可迁移、可解释或可采样的表示？</p>
+<h2 id="1-autoencoder先学会压缩再学会还原">1. AutoEncoder：先学会压缩，再学会还原</h2>
+<p>AutoEncoder（自编码器，AE）由两部分组成。编码器将输入映射为低维表示：</p>
+<div class="arithmatex">\[
+z=f_\theta(x),
+\]</div>
+<p>解码器再从表示重建输入：</p>
+<div class="arithmatex">\[
+\hat{x}=g_\phi(z).
+\]</div>
+<p>训练时没有额外标签，目标就是让 <span class="arithmatex">\(\hat{x}\)</span> 尽量接近 <span class="arithmatex">\(x\)</span>。连续值或归一化图像常用均方误差：</p>
+<div class="arithmatex">\[
+\mathcal L_{rec}=\frac{1}{N}\sum_i\|x_i-\hat{x}_i\|_2^2.
+\]</div>
+<p>若每个像素可理解为伯努利变量，也可用二元交叉熵。损失并非越“高级”越好：MSE倾向于平均多个可能答案，因此图像可能偏平滑；交叉熵要求输出和数据范围匹配；面向感知质量时还可使用特征空间损失，但它优化的已不再是逐像素一致。</p>
+<p>中间的 <span class="arithmatex">\(z\)</span> 所在空间称为 latent space（潜在空间）。如果瓶颈足够窄，模型无法机械复制每个像素，只能保留较重要的信息，如轮廓、姿态和纹理。潜在空间中的邻近点通常对应相似样本，方向有时还会呈现语义变化。可视化或对 <span class="arithmatex">\(z\)</span> 做分类、聚类，都是检查表示质量的方法。</p>
+<p>但普通AE不是严格的生成模型。训练只保证“由真实样本编码得到的那些点”能被解码，没有约束潜在空间的空白区域。随便从高斯分布采一个 <span class="arithmatex">\(z\)</span>，可能落在解码器从未见过的位置，产生无意义结果。若瓶颈过宽、模型过强，它还可能学成近似恒等映射，重建很好却没有抽取有用语义。</p>
+<h2 id="2-vae把潜在表示变成概率分布">2. VAE：把潜在表示变成概率分布</h2>
+<p>Variational AutoEncoder（变分自编码器，VAE）不再把一个输入编码成确定点，而是编码成一个条件分布，常设为对角高斯：</p>
+<div class="arithmatex">\[
+q_\theta(z|x)=\mathcal N\big(\mu_\theta(x),\operatorname{diag}(\sigma_\theta^2(x))\big).
+\]</div>
+<p>编码器输出 <span class="arithmatex">\(\mu\)</span> 和 <span class="arithmatex">\(\log\sigma^2\)</span>，从该分布采样 <span class="arithmatex">\(z\)</span>，解码器建模 <span class="arithmatex">\(p_\phi(x|z)\)</span>。同时预先规定简单先验 <span class="arithmatex">\(p(z)=\mathcal N(0,I)\)</span>。训练目标可写成负证据下界：</p>
+<div class="arithmatex">\[
+\mathcal L_{VAE}=\mathcal L_{rec}+\beta D_{KL}\big(q_\theta(z|x)\|p(z)\big).
+\]</div>
+<p>重建项要求 <span class="arithmatex">\(z\)</span> 留住当前样本的信息；KL项要求每个样本的潜在分布不要离标准高斯太远。直觉上，重建项像“记清楚自己是谁”，KL项像“大家仍住在同一个整齐社区”。只有重建项，潜在空间可能碎成互不相连的小岛；只有KL项，所有样本又可能挤在一起，失去区分度。<span class="arithmatex">\(\beta\)</span> 控制二者权衡，过大可能导致 posterior collapse：解码器忽略 <span class="arithmatex">\(z\)</span>，编码器输出几乎都等于先验。</p>
+<p>直接执行随机采样会阻断梯度，因为“从某分布抽一个数”不是普通可微函数。重参数技巧把随机性移到与参数无关的噪声中：</p>
+<div class="arithmatex">\[
+\epsilon\sim\mathcal N(0,I),\qquad z=\mu+\sigma\odot\epsilon.
+\]</div>
+<p>这样 <span class="arithmatex">\(\epsilon\)</span> 只是外部随机输入，梯度可以沿 <span class="arithmatex">\(z\rightarrow\mu,\sigma\)</span> 传播。实现时通常输出 <code>logvar</code>，再计算 <code>std = exp(0.5 * logvar)</code>，比直接预测可能为负的标准差稳定。训练完成后，可从 <span class="arithmatex">\(\mathcal N(0,I)\)</span> 采样并解码，因此VAE比普通AE更适合生成。它的潜在空间连续、插值自然，但像素级似然常使样本偏模糊。</p>
+<h2 id="3-gan生成器与判别器的对抗博弈">3. GAN：生成器与判别器的对抗博弈</h2>
+<p>Generative Adversarial Network（生成对抗网络，GAN）包含生成器 <span class="arithmatex">\(G\)</span> 和判别器 <span class="arithmatex">\(D\)</span>。生成器把随机噪声 <span class="arithmatex">\(z\)</span> 变成假样本 <span class="arithmatex">\(G(z)\)</span>，判别器判断输入来自真实数据还是生成器。经典目标是极小极大博弈：</p>
+<div class="arithmatex">\[
+\min_G\max_D\;\mathbb E_{x\sim p_{data}}[\log D(x)]
++\mathbb E_{z\sim p(z)}[\log(1-D(G(z)))].
+\]</div>
+<p>判别器希望增大目标，生成器希望减小目标。理想平衡下，生成分布等于真实分布，判别器对任何样本都只能输出约 <span class="arithmatex">\(1/2\)</span>。实际训练中常用非饱和生成器损失 <span class="arithmatex">\(-\log D(G(z))\)</span>，因为训练早期判别器太强时，原始生成器目标可能梯度很小。</p>
+<p>GAN的优势是可以生成锐利图像，不必显式写出数据似然；困难是训练不是单一目标下降，而是两个网络不断改变彼此的损失地形。若判别器学得过快，生成器拿不到有效梯度；若生成器过强，判别器又无法提供细致反馈。学习率、更新次数、归一化方式和网络结构都很敏感，损失数值也不一定与视觉质量同步。</p>
+<p>mode collapse（模式崩塌）指生成器把许多不同噪声映射到少数几类样本。例如真实数据含十种数字，生成器却反复输出最容易骗过判别器的“1”。此时单张图可能很真，但多样性很差。常见缓解思路包括WGAN类距离、梯度惩罚、谱归一化、合理的数据增强，以及监控生成样本覆盖度。不要仅展示“最好看的九张图”，应固定噪声观察训练演化，并检查批次间多样性。</p>
+<h2 id="4-ddpm逐步加噪再逐步学会去噪">4. DDPM：逐步加噪，再逐步学会去噪</h2>
+<p>Denoising Diffusion Probabilistic Model（去噪扩散概率模型，DDPM）把复杂生成任务拆成许多简单的小步。前向过程是固定的：从真实样本 <span class="arithmatex">\(x_0\)</span> 开始，每一步加入少量高斯噪声，最终得到近似标准高斯的 <span class="arithmatex">\(x_T\)</span>：</p>
+<div class="arithmatex">\[
+q(x_t|x_{t-1})=\mathcal N(\sqrt{1-\beta_t}x_{t-1},\beta_t I).
+\]</div>
+<p>记 <span class="arithmatex">\(\alpha_t=1-\beta_t\)</span>，<span class="arithmatex">\(\bar\alpha_t=\prod_{s=1}^t\alpha_s\)</span>，则无需真的循环加噪，可一步得到任意时刻：</p>
+<div class="arithmatex">\[
+x_t=\sqrt{\bar\alpha_t}x_0+\sqrt{1-\bar\alpha_t}\epsilon,
+\quad \epsilon\sim\mathcal N(0,I).
+\]</div>
+<p>反向过程要从噪声恢复数据。神经网络通常接收 <span class="arithmatex">\(x_t\)</span> 和时间步 <span class="arithmatex">\(t\)</span>，预测本次混入的噪声 <span class="arithmatex">\(\epsilon_\theta(x_t,t)\)</span>，使用简单MSE：</p>
+<div class="arithmatex">\[
+\mathcal L=\mathbb E_{x_0,t,\epsilon}
+\|\epsilon-\epsilon_\theta(x_t,t)\|_2^2.
+\]</div>
+<p>为什么预测噪声等价于学习去噪？因为给定 <span class="arithmatex">\(x_t\)</span>、时间步和噪声估计，就能由上式推回对 <span class="arithmatex">\(x_0\)</span> 或反向均值的估计。网络实际学的是：在不同噪声强度下，数据应朝哪个方向移动才能更像真实样本。时间嵌入很重要，否则网络无法区分“几乎干净”和“几乎全是噪声”的输入。</p>
+<p>训练与采样必须分清。训练时，从数据集中取 <span class="arithmatex">\(x_0\)</span>，随机抽一个 <span class="arithmatex">\(t\)</span> 和一份 <span class="arithmatex">\(\epsilon\)</span>，直接构造 <span class="arithmatex">\(x_t\)</span>，一次前向和反向传播即可；不需要从1走到 <span class="arithmatex">\(T\)</span>。采样时没有真实 <span class="arithmatex">\(x_0\)</span>，只能从 <span class="arithmatex">\(x_T\sim\mathcal N(0,I)\)</span> 开始，按 <span class="arithmatex">\(T,T-1,\ldots,1\)</span> 多次调用网络，逐步去噪。因而DDPM训练可并行抽时间步，采样却往往较慢。减少采样步数或使用DDIM等方法能加速，但改变了采样过程，不等于“训练时少加几次噪声”。</p>
+<p>扩散模型通常比GAN稳定、覆盖模式更好，生成质量也高；代价是采样计算量大。噪声调度、数据归一化和反向方差设置都会影响结果。图像常归一化到 <code>[-1, 1]</code>，生成后再反归一化显示，若范围搞错，模型和可视化都可能看似异常。</p>
+<h2 id="5-自监督学习标签来自数据本身">5. 自监督学习：标签来自数据本身</h2>
+<p>自监督学习不是“完全没有监督信号”，而是不依赖人工标注，监督目标由原始数据自动构造。例如遮住图像块再预测、把同一图片的两种增强视为正样本、把图像与其原始文本配对。预训练得到编码器后，可进行线性探测、微调或直接用于检索。它与无监督学习边界有交叉，但“自己构造可计算的目标”是更实用的定义。</p>
+<h3 id="51-simclr让同一图片的两种视图靠近">5.1 SimCLR：让同一图片的两种视图靠近</h3>
+<p>SimCLR对每张图片独立做两次随机增强，形成正样本对；同一批次中其他图片的视图通常作为负样本。增强不是附属细节，而是在定义模型应忽略什么：随机裁剪鼓励位置和尺度不变性，颜色抖动减少对颜色捷径的依赖，翻转是否合理则取决于任务。数字识别若随意上下翻转，可能改变语义。</p>
+<p>两种视图先经过共享编码器 <span class="arithmatex">\(f\)</span> 得到表示 <span class="arithmatex">\(h\)</span>，再经过投影头 <span class="arithmatex">\(g\)</span> 得到 <span class="arithmatex">\(z=g(h)\)</span>。对比损失施加在 <span class="arithmatex">\(z\)</span> 上，而下游任务通常使用投影前的 <span class="arithmatex">\(h\)</span>。投影头允许模型把“为对比目标服务的信息”与“可迁移表示”适当分开，训练后常丢弃。</p>
+<p>NT-Xent损失先对向量归一化，用余弦相似度衡量正对相似程度。对锚点 <span class="arithmatex">\(i\)</span> 及其正样本 <span class="arithmatex">\(j\)</span>：</p>
+<div class="arithmatex">\[
+\ell_{i,j}=-\log
+\frac{\exp(\operatorname{sim}(z_i,z_j)/\tau)}
+{\sum_{k\ne i}\exp(\operatorname{sim}(z_i,z_k)/\tau)}.
+\]</div>
+<p>温度 <span class="arithmatex">\(\tau\)</span> 控制分布尖锐度。分母包含正样本，也包含所有允许的负样本，但排除锚点自身。一个原始批次大小为 <span class="arithmatex">\(B\)</span>，增强后通常有 <span class="arithmatex">\(2B\)</span> 个向量。实现中最常见错误是正样本索引错位、忘记去掉对角线，或没做L2归一化。大批次提供更多负样本，但显存需求也随相似度矩阵快速增长。</p>
+<h3 id="52-mae遮住大部分图像再重建缺失块">5.2 MAE：遮住大部分图像，再重建缺失块</h3>
+<p>Masked Autoencoder（MAE）把图像切成patch，随机遮住很高比例，只把可见patch送入编码器；轻量解码器接收编码结果、掩码标记和位置信息，重建被遮住的像素。损失通常只在被遮住部分计算，防止模型把精力浪费在复制已知输入。</p>
+<p>高遮挡率之所以可行，是因为自然图像存在强冗余；同时它迫使编码器利用全局结构，而不是从相邻像素做简单插值。只编码可见patch还能显著降低预训练计算。MAE与普通AE都做重建，但MAE的关键瓶颈来自“缺失内容”，重点是学表示；普通AE通常把完整输入压进连续潜变量，重点是低维重建。</p>
+<h3 id="53-clip把图像和文本放到同一个语义空间">5.3 CLIP：把图像和文本放到同一个语义空间</h3>
+<p>CLIP使用图像编码器和文本编码器，把一批匹配的图文对映射到共享向量空间。真实配对为正样本，批内错配为负样本，并同时优化“图找文”和“文找图”的对称对比损失。训练后，一张图可与多条文本比较；也可把类别写成提示词，如“一张猫的照片”，编码后与图像向量计算相似度，实现零样本分类。</p>
+<p>CLIP学到的是跨模态对齐，不是像素级生成。其能力依赖大规模且多样的图文数据，文本噪声、数据偏差和提示词措辞都会影响结果。相似度高表示在训练语义空间中更匹配，不等于模型给出了严格概率，更不保证细粒度计数、空间关系或事实判断正确。</p>
+<h2 id="6-方法对比该选哪一种">6. 方法对比：该选哪一种</h2>
+<ul>
+<li><strong>AE</strong>：结构最简单，适合降维、去噪、异常检测和理解编码器—解码器；普通版本不适合直接从先验采样。</li>
+<li><strong>VAE</strong>：需要连续潜在空间、可解释插值或概率生成时优先；训练相对稳定，但样本可能偏平滑。</li>
+<li><strong>GAN</strong>：重视锐利度、采样速度快且有足够调参经验时可选；需要特别监控不稳定和模式崩塌。</li>
+<li><strong>DDPM</strong>：重视生成质量、分布覆盖和训练稳定性，且能接受较慢采样时合适；条件生成也很自然。</li>
+<li><strong>SimCLR</strong>：有大量无标签图像，希望得到通用分类表示时合适；效果高度依赖增强、批大小和负样本设计。</li>
+<li><strong>MAE</strong>：适合视觉Transformer和高分辨率图像预训练，计算重点放在可见patch；若下游更关心全局视觉结构，通常很有竞争力。</li>
+<li><strong>CLIP</strong>：任务需要图文检索、零样本分类或开放词汇语义时优先；前提是有合适的图文配对或可用预训练模型。</li>
+</ul>
+<p>选择时先问目标：要“生成新样本”，还是“学好表示”？要逐像素还原、概率潜变量、视觉逼真度，还是跨模态语义？不要只按流行度选模型。数据规模、算力、延迟、是否有配对文本，以及评价指标，往往比模型名字更决定结果。</p>
+<h2 id="7-pytorch-与-mps-实践注意">7. PyTorch 与 MPS 实践注意</h2>
+<p>在Apple Silicon上可用 <code>device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")</code>。模型、输入、标签、时间步和随机噪声必须在同一设备；新建张量时最好从现有张量派生，或显式指定 <code>device</code>。训练循环使用 <code>optimizer.zero_grad(set_to_none=True)</code>、<code>loss.backward()</code>、<code>optimizer.step()</code>，验证和采样使用 <code>torch.no_grad()</code>。</p>
+<p>MPS对部分算子、数据类型或第三方扩展的支持可能与CUDA不同。优先使用 <code>float32</code> 建立正确基线，不要默认所有混合精度代码都可原样迁移。遇到设备算子报错，先缩小到具体操作并核对张量的 <code>dtype</code>、<code>shape</code>、<code>device</code>，而不是立刻把整个训练静默回退到CPU。固定 <code>torch.manual_seed</code> 有助复现，但随机增强、DataLoader和设备后端仍可能带来差异。</p>
+<p>生成任务中要定期保存固定输入的结果：AE/VAE固定验证图片，GAN固定噪声，DDPM固定初始噪声。对比学习应同时记录损失和线性探测准确率，因为低对比损失不保证下游表示最好。MPS统一内存并不等于无限显存；SimCLR的相似度矩阵、扩散模型的中间特征都可能占用大量内存，应先减小批次或图像尺寸。采样时及时切换 <code>model.eval()</code>；回到训练前再 <code>model.train()</code>。</p>
+<h2 id="8-与-dl-10-dl-11-练习的连接">8. 与 DL-10 / DL-11 练习的连接</h2>
+<p><strong>DL-10建议按“重建—概率化—对抗—扩散”推进。</strong>先实现AE，观察瓶颈维度变化对重建和潜在空间的影响；再把编码器改为输出 <code>mu/logvar</code>，加入重参数和KL项，比较不同 <span class="arithmatex">\(\beta\)</span> 下的重建、随机采样与插值。随后在小型数据集上训练GAN，用固定噪声记录样本演化，并主动检查是否只生成少数模式。最后实现DDPM的随机时间步训练：验证闭式加噪公式、噪声预测损失，以及从纯噪声逐步采样的区别。练习重点不是堆大模型，而是确保每个损失与张量形状都能解释。</p>
+<p><strong>DL-11建议按“对比—遮挡—跨模态”推进。</strong>SimCLR中先可视化两次增强，确认语义未被破坏，再实现正样本索引和NT-Xent；预训练后冻结编码器做线性探测。MAE中检查patch切分、mask索引、位置编码和“只在遮挡处算损失”。CLIP练习可在小型图文对上实现双向相似度矩阵与对称交叉熵，再尝试文本到图像检索和提示词分类。DL-10关注“如何生成或重建”，DL-11关注“如何从数据自身获得迁移表示”，二者都应通过可视化与下游指标验证，而非只看训练损失。</p>
+<h2 id="9-常见误区">9. 常见误区</h2>
+<ol>
+<li><strong>“重建好就代表表示好。”</strong> 宽瓶颈AE可能只会复制；应增加下游分类、聚类或线性探测。</li>
+<li><strong>“VAE的KL越小越好。”</strong> KL接近零可能意味着潜变量被忽略，应同时看重建和潜变量使用情况。</li>
+<li><strong>“GAN损失下降就一定生成更好。”</strong> 对抗损失是相对博弈结果，必须查看质量与多样性。</li>
+<li><strong>“扩散训练要完整走完所有时间步。”</strong> 训练通常随机抽单个 <span class="arithmatex">\(t\)</span>；完整反向链主要发生在采样阶段。</li>
+<li><strong>“预测噪声只是辅助任务。”</strong> 在DDPM参数化中，它直接决定反向去噪方向。</li>
+<li><strong>“自监督等于无损压缩。”</strong> 自监督目标应服务于有用不变性，不要求保存所有输入细节。</li>
+<li><strong>“增强越强越好。”</strong> 若增强改变语义，SimCLR会被迫把不同类别拉近。</li>
+<li><strong>“投影头输出就是最佳下游特征。”</strong> SimCLR通常使用投影前表示，需通过实验比较。</li>
+<li><strong>“MAE和普通AE只是mask不同。”</strong> MAE只编码可见patch、主要在缺失处重建，计算路径和学习压力都不同。</li>
+<li><strong>“CLIP会生成图片或理解所有文字事实。”</strong> CLIP核心是对齐与检索，相似度不是事实验证器。</li>
+<li><strong>“MPS与CUDA行为完全一致。”</strong> 算子支持、精度和性能可能不同，先做小批次正确性检查。</li>
+</ol>
+<h2 id="10-章末检查清单">10. 章末检查清单</h2>
+<ul>
+<li>[ ] 能画出AE的编码器、潜在变量、解码器，并解释重建损失的选择。</li>
+<li>[ ] 能说明普通AE为何不能保证从标准高斯采样有效。</li>
+<li>[ ] 能写出VAE的 <code>mu</code>、<code>logvar</code>、重参数公式，并用自己的话解释KL项。</li>
+<li>[ ] 能解释VAE中重建质量与潜在空间规整性的权衡。</li>
+<li>[ ] 能写出GAN极小极大目标，说明训练不稳定与mode collapse的表现。</li>
+<li>[ ] 能区分DDPM前向加噪、反向去噪、噪声预测，以及训练和采样流程。</li>
+<li>[ ] 能给出自监督学习的定义，并说明监督信号来自哪里。</li>
+<li>[ ] 能完整描述SimCLR的增强、共享编码器、投影头和NT-Xent。</li>
+<li>[ ] 能说明MAE为什么采用高掩码率、为何主要在掩码patch上计算损失。</li>
+<li>[ ] 能解释CLIP如何用双向对比学习完成图文对齐和零样本分类。</li>
+<li>[ ] 能根据生成质量、表示迁移、数据类型、算力和延迟选择方法。</li>
+<li>[ ] 能在PyTorch/MPS中正确管理设备、数据类型、训练/评估模式和内存。</li>
+<li>[ ] 已将DL-10中的生成流程与DL-11中的自监督流程分别跑通，并用可视化或下游指标验证。</li>
+</ul></article><nav class="prev-next"><a href="12.html">← 第 12 章 图像分割</a><a href="14.html">第 14 章 综合项目与部署 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#1-autoencoder先学会压缩再学会还原">1. AutoEncoder：先学会压缩，再学会还原</a></li><li><a href="#2-vae把潜在表示变成概率分布">2. VAE：把潜在表示变成概率分布</a></li><li><a href="#3-gan生成器与判别器的对抗博弈">3. GAN：生成器与判别器的对抗博弈</a></li><li><a href="#4-ddpm逐步加噪再逐步学会去噪">4. DDPM：逐步加噪，再逐步学会去噪</a></li><li><a href="#5-自监督学习标签来自数据本身">5. 自监督学习：标签来自数据本身</a></li><li class="sub"><a href="#51-simclr让同一图片的两种视图靠近">5.1 SimCLR：让同一图片的两种视图靠近</a></li><li class="sub"><a href="#52-mae遮住大部分图像再重建缺失块">5.2 MAE：遮住大部分图像，再重建缺失块</a></li><li class="sub"><a href="#53-clip把图像和文本放到同一个语义空间">5.3 CLIP：把图像和文本放到同一个语义空间</a></li><li><a href="#6-方法对比该选哪一种">6. 方法对比：该选哪一种</a></li><li><a href="#7-pytorch-与-mps-实践注意">7. PyTorch 与 MPS 实践注意</a></li><li><a href="#8-与-dl-10-dl-11-练习的连接">8. 与 DL-10 / DL-11 练习的连接</a></li><li><a href="#9-常见误区">9. 常见误区</a></li><li><a href="#10-章末检查清单">10. 章末检查清单</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

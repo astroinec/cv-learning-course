@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 3 章 形态学 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li class="current" data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 3 章 <span class="tag P0">P0</span> <span class="badge">原版讲义</span></div><h1>形态学</h1><p class="scene"><b>用在哪：</b>缺陷候选的清理和计数：去噪点、填孔洞、连通域</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 6 小时</span><span class="chip"><b>深挖</b> 8 小时</span><span class="chip">前置：<a href="../lessons/01.html">第 1 章 像素与色彩</a></span></div><div class="meta-row"><span class="chip mono">验收：python 03_形态学/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="03"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><div class="callout callout-note"><div class="callout-title">说明</div><p>这一章还是原版讲义，内容完整，配图、推导、小测和交互演示会按第 16 章的样式补上。</p></div><article class="prose"><blockquote>
+<p>配套练习：<code>3-1_车牌区域提取.py</code> | <code>3-2_手写腐蚀膨胀.py</code></p>
+</blockquote>
+<hr />
+<h2 id="30-从像素值走向物体形状">3.0 从“像素值”走向“物体形状”</h2>
+<p>前两章主要关心灰度和梯度。形态学换了一个视角：先把前景看成像素集合，再问它的<strong>形状、连接和尺度</strong>。例如文字识别前，常需要去掉孤立黑点、连接断笔；车牌定位时，常需要把密集字符连接成较大的矩形区域。</p>
+<p>一条典型处理链是：</p>
+<div class="highlight"><pre><span></span><code>灰度图 → 二值化 → 形态学清理 → 连通域/轮廓 → 几何筛选
+</code></pre></div>
+<p>这里最重要的约定是：通常把非零像素当作前景，0 当作背景。若你要找的是黑色文字，往往先用反向阈值让文字变白。<strong>膨胀和腐蚀针对的是前景集合，不天然等于“让画面变亮或变暗”。</strong></p>
+<hr />
+<h2 id="31-二值化先决定谁属于前景">3.1 二值化：先决定谁属于前景</h2>
+<h3 id="全局阈值">全局阈值</h3>
+<p>最简单的规则是：</p>
+<div class="arithmatex">\[
+B(x,y)=
+\begin{cases}
+255,&amp;I(x,y)&gt;T\\
+0,&amp;I(x,y)\le T
+\end{cases}
+\]</div>
+<div class="highlight"><pre><span></span><code><span class="n">_</span><span class="p">,</span> <span class="n">binary</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">threshold</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_BINARY</span><span class="p">)</span>
+</code></pre></div>
+<p>当目标和背景的灰度分布分得开、照明较均匀时，全局阈值简单可靠。若目标较暗，可用 <code>THRESH_BINARY_INV</code>。很多“形态学没效果”的问题，根源其实是前景极性反了。</p>
+<h3 id="otsu用类间可分性选阈值">Otsu：用类间可分性选阈值</h3>
+<p>Otsu 假设直方图大体可分成前景与背景两类。对每个候选阈值 <code>t</code>，把像素分为 <code>C0=[0,t]</code> 和 <code>C1=[t+1,L-1]</code>，计算两类权重 <code>ω0,ω1</code> 和均值 <code>μ0,μ1</code>。类间方差为：</p>
+<div class="arithmatex">\[
+\sigma_b^2(t)=\omega_0(t)\omega_1(t)[\mu_0(t)-\mu_1(t)]^2
+\]</div>
+<p>选择让 <code>σb²</code> 最大的阈值。直觉是：两组内部尽量集中、组间尽量分开。总方差满足“类内方差 + 类间方差”，总方差固定时，最大化类间方差等价于尽量减小类内混杂。</p>
+<div class="highlight"><pre><span></span><code><span class="n">T</span><span class="p">,</span> <span class="n">binary</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">threshold</span><span class="p">(</span>
+    <span class="n">gray</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_BINARY</span> <span class="o">+</span> <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_OTSU</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>返回值 <code>T</code> 是自动选择的阈值。Otsu 不是万能自动模式：强阴影、渐变背景、前景占比极小或直方图没有双峰时，它可能给出不符合任务的分割。</p>
+<h3 id="自适应阈值每个位置用自己的局部背景">自适应阈值：每个位置用自己的局部背景</h3>
+<p>光照不均时，可用局部邻域均值或高斯加权均值减去常数 <code>C</code>：</p>
+<div class="arithmatex">\[
+T(x,y)=\operatorname{localMean}(x,y)-C
+\]</div>
+<div class="highlight"><pre><span></span><code><span class="n">binary</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">adaptiveThreshold</span><span class="p">(</span>
+    <span class="n">gray</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span>
+    <span class="n">cv2</span><span class="o">.</span><span class="n">ADAPTIVE_THRESH_GAUSSIAN_C</span><span class="p">,</span>
+    <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_BINARY_INV</span><span class="p">,</span>
+    <span class="n">blockSize</span><span class="o">=</span><span class="mi">31</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mi">8</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><code>blockSize</code> 必须是大于 1 的奇数，它应大于目标笔画宽度，却小于明显光照变化的尺度。窗口过小会把纹理当目标，过大则退化得接近全局阈值。<code>C</code> 增大时，阈值降低或提高所产生的前景变化还取决于使用正向还是反向阈值，调参时应直接观察前景占比。</p>
+<h3 id="怎么选">怎么选</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>首选起点</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>棚拍、扫描件、光照均匀</td>
+<td>固定阈值或 Otsu</td>
+<td>简单、结果稳定</td>
+</tr>
+<tr>
+<td>明暗分布双峰明显</td>
+<td>Otsu</td>
+<td>数据驱动选一个全局阈值</td>
+</tr>
+<tr>
+<td>文档有阴影、背景渐变</td>
+<td>自适应阈值</td>
+<td>局部估计背景</td>
+</tr>
+<tr>
+<td>目标颜色明确</td>
+<td>先在 HSV 等空间分割</td>
+<td>灰度可能丢掉可分信息</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="32-结构元素一把带形状和尺度的尺子">3.2 结构元素：一把带形状和尺度的尺子</h2>
+<p>结构元素 <code>B</code> 是一个小的二值模板，常见为矩形、椭圆和十字形。它同时表达两个先验：</p>
+<ol>
+<li><strong>形状先验</strong>：你关心各向同性小斑点、水平笔画，还是十字连接？</li>
+<li><strong>尺度先验</strong>：小于多大算噪声，大于多大应保留？</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="n">rect</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getStructuringElement</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_RECT</span><span class="p">,</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">ellipse</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getStructuringElement</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_ELLIPSE</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">cross</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getStructuringElement</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_CROSS</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<p>注意尺寸参数是 <code>(width, height)</code>。<code>(15, 3)</code> 是横向长条，适合连接水平方向邻近结构；反过来的 <code>(3, 15)</code> 会产生完全不同的结果。默认锚点在中心，也可通过 <code>anchor</code> 改变，但日常任务通常不需要。</p>
+<hr />
+<h2 id="33-腐蚀与膨胀集合论里的包含与触碰">3.3 腐蚀与膨胀：集合论里的包含与触碰</h2>
+<p>设前景像素集合为 <code>A</code>，结构元素为 <code>B</code>。</p>
+<h3 id="腐蚀模板完全放得下才保留">腐蚀：模板完全放得下才保留</h3>
+<div class="arithmatex">\[
+A\ominus B=\{z\mid B_z\subseteq A\}
+\]</div>
+<p>把结构元素中心放在位置 <code>z</code>，只有 <code>B</code> 覆盖到的位置全部属于前景，输出才是前景。因此腐蚀会：</p>
+<ul>
+<li>收缩白色前景；</li>
+<li>去掉比结构元素小的白色噪点；</li>
+<li>断开狭窄连接；</li>
+<li>扩大前景内部的黑孔。</li>
+</ul>
+<p>对平坦结构元素和二值图，代码层面可理解为邻域取最小值：只要窗口里出现 0，中心就变 0。</p>
+<h3 id="膨胀模板碰到前景就保留">膨胀：模板碰到前景就保留</h3>
+<p>集合写法之一是：</p>
+<div class="arithmatex">\[
+A\oplus B=\{a+b\mid a\in A,b\in B\}
+\]</div>
+<p>直觉上，只要结构元素覆盖范围内存在前景，输出中心就成为前景。因此膨胀会：</p>
+<ul>
+<li>扩张白色前景；</li>
+<li>连接小间隙；</li>
+<li>填掉较小黑孔；</li>
+<li>让相邻物体粘在一起。</li>
+</ul>
+<p>代码层面可理解为邻域取最大值。OpenCV 也允许对灰度图执行腐蚀和膨胀，此时确实分别是局部最小值和最大值操作；但本章先用二值集合直觉理解最清楚。</p>
+<div class="highlight"><pre><span></span><code><span class="n">eroded</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">erode</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">dilated</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">dilate</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="一个-55-的逐步小例子">一个 5×5 的逐步小例子</h3>
+<p>把 <code>1</code> 看作白色前景，用 3×3 全 1 结构元素：</p>
+<div class="highlight"><pre><span></span><code>输入 A
+0 0 0 0 0
+0 1 1 1 0
+0 1 1 1 0
+0 1 1 1 0
+0 0 0 0 0
+</code></pre></div>
+<p>腐蚀时，只有正中心的 3×3 邻域全部为 1，所以输出只剩中心一个像素。膨胀时，原来每个 1 会把周围 3×3 区域覆盖为 1，若图像边界内计算，前景会扩展成更大的方块。</p>
+<p>再在原方块中心挖一个 0：腐蚀会让这个孔的影响向外扩大；膨胀则可能把孔补上。这组手算非常适合验证 <code>3-2</code> 中前景约定、锚点和边界处理是否正确。</p>
+<h3 id="迭代两次是否等于更大的核">迭代两次是否等于更大的核</h3>
+<p>对规则矩形结构元素，重复膨胀会形成与更大矩形核相似的效果；但对十字、椭圆或离散边界，形状未必完全等价。更重要的是，“两次小操作”和“一次大操作”的计算边界及几何含义应通过实验确认，不要机械替换。</p>
+<hr />
+<h2 id="34-开运算与闭运算顺序决定用途">3.4 开运算与闭运算：顺序决定用途</h2>
+<h3 id="开运算先腐蚀再膨胀">开运算：先腐蚀，再膨胀</h3>
+<div class="arithmatex">\[
+A\circ B=(A\ominus B)\oplus B
+\]</div>
+<p>先腐蚀消除放不下结构元素的小前景，再膨胀恢复剩余主体的大致尺寸。典型用途：去白色孤立点、断开细连接、平滑外轮廓。</p>
+<h3 id="闭运算先膨胀再腐蚀">闭运算：先膨胀，再腐蚀</h3>
+<div class="arithmatex">\[
+A\bullet B=(A\oplus B)\ominus B
+\]</div>
+<p>先膨胀连接小缝并填小孔，再腐蚀恢复主体尺寸。典型用途：连接断裂笔画、填小黑孔、平滑内轮廓。</p>
+<p>“开运算一定不改面积、闭运算一定恢复原状”是误解。恢复只是近似；任何小于结构元素尺度的结构都可能永久消失或被填平。</p>
+<div class="highlight"><pre><span></span><code><span class="n">opened</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">morphologyEx</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_OPEN</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+<span class="n">closed</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">morphologyEx</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_CLOSE</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="其他常见组合">其他常见组合</h3>
+<ul>
+<li><strong>形态学梯度</strong>：<code>dilate(A) - erode(A)</code>，得到前景边界带。</li>
+<li><strong>顶帽（top-hat）</strong>：<code>A - open(A)</code>，突出比结构元素小的亮结构。</li>
+<li><strong>黑帽（black-hat）</strong>：<code>close(A) - A</code>，突出暗小结构或暗缝。</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="n">grad</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">morphologyEx</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_GRADIENT</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+<span class="n">tophat</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">morphologyEx</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_TOPHAT</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+<span class="n">blackhat</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">morphologyEx</span><span class="p">(</span><span class="n">gray</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_BLACKHAT</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+</code></pre></div>
+<p>顶帽和黑帽也常用于灰度图。例如光照缓慢变化但字符尺度较小时，用较大的结构元素估计背景，再做差，可先增强字符再二值化。</p>
+<hr />
+<h2 id="35-从像素集合到物体连通域与轮廓">3.5 从像素集合到物体：连通域与轮廓</h2>
+<p>形态学输出仍是一堆像素。要说“这里有 17 个候选物体”，需要把相邻前景分组。</p>
+<h3 id="连通域">连通域</h3>
+<p>4 连通只允许上下左右相邻，8 连通还允许对角相邻。两个只在角上接触的像素，在 4 连通下是两个区域，在 8 连通下是一个区域。</p>
+<div class="highlight"><pre><span></span><code><span class="n">num</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">centroids</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">connectedComponentsWithStats</span><span class="p">(</span>
+    <span class="n">binary</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="mi">8</span>
+<span class="p">)</span>
+</code></pre></div>
+<ul>
+<li><code>labels</code> 与原图同尺寸，每个像素存所属区域编号；</li>
+<li><code>stats[i]</code> 包含左上角、宽、高和面积；</li>
+<li><code>centroids[i]</code> 是质心；</li>
+<li>编号 0 通常是背景，遍历前景应从 1 开始。</li>
+</ul>
+<p>连通域适合做计数、面积过滤和区域标记。它直接覆盖整个前景区域，不强调边界层级。</p>
+<h3 id="轮廓">轮廓</h3>
+<p>轮廓是区域边界的有序点集：</p>
+<div class="highlight"><pre><span></span><code><span class="n">contours</span><span class="p">,</span> <span class="n">hierarchy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span>
+    <span class="n">binary</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_EXTERNAL</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><code>RETR_EXTERNAL</code> 只找最外层轮廓；<code>RETR_TREE</code> 保留外轮廓与孔洞的层级。<code>CHAIN_APPROX_SIMPLE</code> 会压缩水平、垂直和斜直线上的冗余点。常用几何量包括：</p>
+<div class="highlight"><pre><span></span><code><span class="n">area</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">cnt</span><span class="p">)</span>
+<span class="n">perimeter</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">arcLength</span><span class="p">(</span><span class="n">cnt</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">boundingRect</span><span class="p">(</span><span class="n">cnt</span><span class="p">)</span>
+<span class="n">rotated</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">minAreaRect</span><span class="p">(</span><span class="n">cnt</span><span class="p">)</span>
+</code></pre></div>
+<p><code>contourArea</code> 是根据边界积分得到的几何面积，可能与前景像素计数略有差异；不要假设它等于连通域 <code>CC_STAT_AREA</code>。</p>
+<hr />
+<h2 id="36-一个车牌候选区域的逐步思路">3.6 一个车牌候选区域的逐步思路</h2>
+<p>以下例子讲决策过程，不给练习 <code>3-1</code> 的完整参数和成品答案。</p>
+<ol>
+<li><strong>观察目标结构</strong>：车牌通常是横向矩形，内部字符产生密集的竖向边缘；但具体颜色、角度和清晰度会变化。</li>
+<li><strong>构造响应图</strong>：可从灰度梯度、黑帽结果或颜色掩膜出发。先显示中间图，确认字符区域确实比背景突出。</li>
+<li><strong>二值化</strong>：光照均匀时尝试 Otsu；阴影明显时比较自适应阈值。记录前景占比，避免整图几乎全白。</li>
+<li><strong>横向闭运算</strong>：使用宽大于高的结构元素，把字符之间的小间隙连接成块。核太宽会把保险杠、栅栏等粘进来。</li>
+<li><strong>开运算或腐蚀清理</strong>：去掉孤立小点，但要保护细字符形成的区域。</li>
+<li><strong>找连通域或轮廓</strong>：对每个候选计算面积、长宽比、矩形填充率等，而不是只取最大区域。</li>
+<li><strong>回到原图验证</strong>：把候选框画回原图，检查误检来自纹理、阴影还是形态学过度连接，再针对原因调尺度。</li>
+</ol>
+<p>可以用这样的“中间结果优先”骨架开始：</p>
+<div class="highlight"><pre><span></span><code><span class="n">gray</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2GRAY</span><span class="p">)</span>
+<span class="c1"># response = ...  # 选择梯度、黑帽或颜色响应</span>
+<span class="c1"># binary = ...    # 比较阈值策略</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getStructuringElement</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_RECT</span><span class="p">,</span> <span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">connected</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">morphologyEx</span><span class="p">(</span><span class="n">binary</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_CLOSE</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+<span class="c1"># 下一步：连通域/轮廓 + 几何筛选，并解释每个条件的依据</span>
+</code></pre></div>
+<p>参数 <code>15×3</code> 只是理解横向连接的示意，不是适用于任意分辨率的标准答案。更稳妥的做法是把核尺寸与图像宽度或预期字符尺寸关联，并在多张图上验证。</p>
+<hr />
+<h2 id="37-opencv-api-速查">3.7 OpenCV API 速查</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>目的</th>
+<th>API</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>固定阈值</td>
+<td><code>cv2.threshold</code></td>
+<td>返回阈值与输出图</td>
+</tr>
+<tr>
+<td>Otsu</td>
+<td><code>cv2.threshold</code> + <code>THRESH_OTSU</code></td>
+<td>输入通常为单通道 8 位图</td>
+</tr>
+<tr>
+<td>自适应阈值</td>
+<td><code>cv2.adaptiveThreshold</code></td>
+<td>奇数 <code>blockSize</code>、常数 <code>C</code></td>
+</tr>
+<tr>
+<td>构造结构元素</td>
+<td><code>cv2.getStructuringElement</code></td>
+<td>形状和 <code>(宽, 高)</code></td>
+</tr>
+<tr>
+<td>腐蚀/膨胀</td>
+<td><code>cv2.erode</code> / <code>cv2.dilate</code></td>
+<td><code>iterations</code>、边界、锚点</td>
+</tr>
+<tr>
+<td>组合形态学</td>
+<td><code>cv2.morphologyEx</code></td>
+<td>OPEN/CLOSE/GRADIENT/TOPHAT/BLACKHAT</td>
+</tr>
+<tr>
+<td>连通域统计</td>
+<td><code>cv2.connectedComponentsWithStats</code></td>
+<td>连通性、背景标签 0</td>
+</tr>
+<tr>
+<td>轮廓提取</td>
+<td><code>cv2.findContours</code></td>
+<td>检索模式、近似方式</td>
+</tr>
+<tr>
+<td>轮廓几何</td>
+<td><code>contourArea</code>、<code>boundingRect</code>、<code>minAreaRect</code></td>
+<td>普通框与旋转框不同</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="38-常见误区">3.8 常见误区</h2>
+<ol>
+<li><strong>忘了前景极性</strong>：算法膨胀的是非零区域，不知道你心里把谁当目标。</li>
+<li><strong>把形态学当固定滤镜</strong>：核的形状和尺度本身就是任务假设，必须与目标结构对应。</li>
+<li><strong>一味增加 <code>iterations</code></strong>：结果更“干净”不代表信息更正确，物体可能已经合并或消失。</li>
+<li><strong>认为 Otsu 总能自动分好</strong>：它依赖灰度可分性和较合理的双类假设。</li>
+<li><strong>核尺寸不随分辨率变化</strong>：同一个 15 像素宽的核，在 320 像素图和 4K 图上代表完全不同的物理尺度。</li>
+<li><strong>混淆开和闭</strong>：记操作顺序比背“去噪/填孔”更可靠；前景极性变化时视觉结论也会反过来。</li>
+<li><strong>只看最终框</strong>：应保存二值图、形态学结果和候选统计，才能知道误差从哪一步引入。</li>
+<li><strong>默认对角接触一定连通</strong>：结果取决于 4 邻域还是 8 邻域。</li>
+</ol>
+<hr />
+<h2 id="39-与配套练习怎么连接">3.9 与配套练习怎么连接</h2>
+<ul>
+<li><strong><code>3-1_车牌区域提取.py</code></strong>：先对三种响应来源至少比较两种，再选择阈值策略；形态学核需要写出“为何横向、为何这个尺度”。筛选候选时不要只凭单一面积阈值，且不要把某一张图调通当作完成。</li>
+<li><strong><code>3-2_手写腐蚀膨胀.py</code></strong>：从 0/1 小矩阵开始，明确锚点、边界填充值和一次迭代定义。先实现矩形全 1 核，再考虑任意结构元素；用 OpenCV 只做对照测试，不直接替代核心实现。</li>
+</ul>
+<p>练习的重点不是复刻 API，而是建立两个可解释的判断：<strong>当前前景是谁？这个结构元素在表达什么几何先验？</strong></p>
+<hr />
+<h2 id="动手前的检查清单">动手前的检查清单</h2>
+<ul>
+<li>[ ] 能解释固定阈值、Otsu 和自适应阈值各自依赖什么假设吗？</li>
+<li>[ ] 能写出 Otsu 类间方差，并说明为什么要最大化它吗？</li>
+<li>[ ] 知道 <code>THRESH_BINARY_INV</code> 会怎样改变前景吗？</li>
+<li>[ ] 能用“完全包含”和“发生触碰”解释腐蚀与膨胀吗？</li>
+<li>[ ] 能手算 3×3 核作用于一个 5×5 二值图的中心结果吗？</li>
+<li>[ ] 能从操作顺序推导开运算和闭运算的用途吗？</li>
+<li>[ ] 会根据目标方向选择 <code>(宽, 高)</code> 不同的结构元素吗？</li>
+<li>[ ] 知道 4 连通和 8 连通何时会给出不同物体数吗？</li>
+<li>[ ] 能区分连通域面积、轮廓面积和矩形面积吗？</li>
+<li>[ ] 调参时会保存并解释每一步中间图吗？</li>
+</ul>
+<p>确认完这些，再打开 <code>03_形态学/</code> 做练习。</p></article><nav class="prev-next"><a href="02.html">← 第 2 章 卷积与边缘</a><a href="04.html">第 4 章 几何变换 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#30-从像素值走向物体形状">3.0 从“像素值”走向“物体形状”</a></li><li><a href="#31-二值化先决定谁属于前景">3.1 二值化：先决定谁属于前景</a></li><li class="sub"><a href="#全局阈值">全局阈值</a></li><li class="sub"><a href="#otsu用类间可分性选阈值">Otsu：用类间可分性选阈值</a></li><li class="sub"><a href="#自适应阈值每个位置用自己的局部背景">自适应阈值：每个位置用自己的局部背景</a></li><li class="sub"><a href="#怎么选">怎么选</a></li><li><a href="#32-结构元素一把带形状和尺度的尺子">3.2 结构元素：一把带形状和尺度的尺子</a></li><li><a href="#33-腐蚀与膨胀集合论里的包含与触碰">3.3 腐蚀与膨胀：集合论里的包含与触碰</a></li><li class="sub"><a href="#腐蚀模板完全放得下才保留">腐蚀：模板完全放得下才保留</a></li><li class="sub"><a href="#膨胀模板碰到前景就保留">膨胀：模板碰到前景就保留</a></li><li class="sub"><a href="#一个-55-的逐步小例子">一个 5×5 的逐步小例子</a></li><li class="sub"><a href="#迭代两次是否等于更大的核">迭代两次是否等于更大的核</a></li><li><a href="#34-开运算与闭运算顺序决定用途">3.4 开运算与闭运算：顺序决定用途</a></li><li class="sub"><a href="#开运算先腐蚀再膨胀">开运算：先腐蚀，再膨胀</a></li><li class="sub"><a href="#闭运算先膨胀再腐蚀">闭运算：先膨胀，再腐蚀</a></li><li class="sub"><a href="#其他常见组合">其他常见组合</a></li><li><a href="#35-从像素集合到物体连通域与轮廓">3.5 从像素集合到物体：连通域与轮廓</a></li><li class="sub"><a href="#连通域">连通域</a></li><li class="sub"><a href="#轮廓">轮廓</a></li><li><a href="#36-一个车牌候选区域的逐步思路">3.6 一个车牌候选区域的逐步思路</a></li><li><a href="#37-opencv-api-速查">3.7 OpenCV API 速查</a></li><li><a href="#38-常见误区">3.8 常见误区</a></li><li><a href="#39-与配套练习怎么连接">3.9 与配套练习怎么连接</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>
