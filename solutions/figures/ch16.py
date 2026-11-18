@@ -331,6 +331,7 @@ def fig_subpixel():
     ax[0].plot(np.array([pk - 1, pk, pk + 1]) - 48, [l, c, rr], "o", color=S.BLUE, ms=8, label="参与拟合的三点")
     ax[0].plot(xs + pk - 48, a2 * xs ** 2 + b1 * xs + c, color=S.BLUE, lw=1.6)
     ax[0].axvline(t, color=S.GREEN, lw=1.4, ls="--", label=f"真值 {t}")
+    NUM["亚像素偏差"]["图 4 左栏的例子"] = {"真值": t, "抛物线顶点": round(float(pk - 48 + delta), 3)}
     ax[0].axvline(pk - 48 + delta, color=S.RED, lw=1.4, label=f"抛物线顶点 {pk - 48 + delta:.3f}")
     ax[0].set_xlabel("dy（px）")
     ax[0].set_title("三点抛物线怎样取到小数")

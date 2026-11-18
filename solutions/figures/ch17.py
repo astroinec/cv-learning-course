@@ -356,11 +356,11 @@ def fig_distortion():
         np.add.at(n, (iy, ix), 1)
         np.add.at(sx, (iy, ix), vec[:, 0])
         np.add.at(sy, (iy, ix), vec[:, 1])
-        fields[name] = (sx / np.maximum(n, 1), sy / np.maximum(n, 1), n)
+        fields[name] = (np.round(sx / np.maximum(n, 1), 5), np.round(sy / np.maximum(n, 1), 5), n)  # 取整原因见 fig_coverage
         d = pts - np.array([K[0, 2], K[1, 2]])
         r = np.hypot(d[:, 0], d[:, 1])
         radial = (vec * d).sum(axis=1) / np.maximum(r, 1e-9)
-        profiles[name] = [float(radial[(r >= lo) & (r < hi)].mean()) if ((r >= lo) & (r < hi)).sum() >= 20 else np.nan for lo, hi in zip(edges[:-1], edges[1:])]
+        profiles[name] = [round(float(radial[(r >= lo) & (r < hi)].mean()), 5) if ((r >= lo) & (r < hi)).sum() >= 20 else np.nan for lo, hi in zip(edges[:-1], edges[1:])]
         mag = np.hypot(*fields[name][:2])[n >= 10]
         one[name] = {"重投影 RMS（px）": round(rms, 3), "fx": round(float(K[0, 0]), 1), "fy": round(float(K[1, 1]), 1),
                      "分格平均后残差的最大值（px）": round(float(mag.max()), 3), "分格平均后残差的中位数（px）": round(float(np.median(mag)), 3),
@@ -445,15 +445,17 @@ def fig_coverage():
     ax[0].set_title("两种拍法的角点分布")
     ax[0].legend(fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, -0.03), ncol=2, markerscale=4)
     S.image_axes(ax[0])
-    vmax = float(np.nanpercentile(maps["只在画面中央"], 98))
+    maps = {name: np.round(m, 5) for name, m in maps.items()}
+    vmax = round(float(np.nanpercentile(maps["只在画面中央"], 98)), 4)
     for a, name in ((ax[1], "只在画面中央"), (ax[2], "覆盖全画面")):
         im = a.imshow(maps[name], cmap="magma", vmin=0, vmax=vmax, extent=(0, W, H, 0))
         a.set_title(f"留出残差（标定时{name}）", fontsize=10.5)
         S.image_axes(a)
     fig.colorbar(im, ax=ax[2], fraction=0.046, pad=0.03, label="px").ax.tick_params(labelsize=8)
     x = np.arange(2)
-    tr = [np.median(train[n]) for n in cases]
-    he = [np.median(held[n]) for n in cases]
+    # OpenCV 的优化结果在不同次运行之间会差到 1e-9 的量级，画图前取整，图才能逐字节复现
+    tr = [round(float(np.median(train[n])), 5) for n in cases]
+    he = [round(float(np.median(held[n])), 5) for n in cases]
     b1 = ax[3].bar(x - 0.2, tr, 0.38, color=S.MUTED, alpha=0.8, label="标定自己报告的 RMS")
     b2 = ax[3].bar(x + 0.2, he, 0.38, color=S.RED, alpha=0.85, label="留出视图的 RMS")
     for bars in (b1, b2):
