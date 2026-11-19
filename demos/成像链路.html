@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>成像链路：一个小缺陷怎样变成像素值</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .three .panel { min-width: 0; }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button, .again { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .three { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>成像链路：一个小缺陷怎样变成像素值（第 22 章）</h1>
+  <div class="sub">均匀背景上有一个比背景亮一倍的圆形缺陷，依次经过光学模糊、像素积分、散粒噪声和读出噪声。长度单位是 λ/NA。PSF 用高斯近似（对焦时 sigma 约 0.22），不做量化，所以数值和讲义里用艾里斑算的表略有出入。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>缺陷直径（λ/NA）<b id="dV"></b><input type="range" id="d" min="0.05" max="2" step="0.05" value="0.3"></label>
+    <label>模糊尺度 sigma（λ/NA）<b id="sigmaV"></b><input type="range" id="sigma" min="0.22" max="0.6" step="0.01" value="0.22"></label>
+    <label>像素尺寸（λ/NA）<b id="pV"></b><input type="range" id="p" min="0.1" max="1.2" step="0.05" value="0.3"></label>
+    <label>曝光量：背景每 (λ/NA)² 的电子数<b id="expV"></b><input type="range" id="exp" min="0" max="24" step="1" value="14"></label>
+    <label>读出噪声（e-）<b id="readV"></b><input type="range" id="read" min="0" max="30" step="1" value="5"></label>
+    <label>缺陷中心落在<div class="seg" id="pos"><button data-v="center" class="on">像素中心</button><button data-v="corner">四个像素的交点</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>光学模糊后的峰值对比度</span><b id="kOpt"></b></div>
+    <div class="kpi"><span>最亮像素比背景亮</span><b id="kPix"></b></div>
+    <div class="kpi" id="kSnrBox"><span>只看最亮像素的信噪比</span><b id="kSnr"></b></div>
+    <div class="kpi" id="kMfBox"><span>光斑内像素加权求和的信噪比</span><b id="kMf"></b></div>
+  </div>
+
+  <div class="three">
+    <figure class="panel"><figcaption>光学模糊后（没有噪声）</figcaption><canvas id="c1" height="200"></canvas></figure>
+    <figure class="panel"><figcaption>像素采样后（没有噪声）</figcaption><canvas id="c2" height="200"></canvas></figure>
+    <figure class="panel"><figcaption>一次拍摄<button class="again" id="again">换一组噪声</button></figcaption><canvas id="c3" height="200"></canvas></figure>
+  </div>
+
+  <figure class="panel"><figcaption>穿过缺陷中心的一行，纵轴是比背景亮多少（1 表示亮一倍）<i style="background:var(--blue)"></i>光学模糊后<i style="background:var(--orange)"></i>像素采样后<i style="background:#8f959e"></i>这次拍摄。背景每像素 <span id="bgV"></span> e-，噪声 <span id="sdV"></span> e-</figcaption><canvas id="c4" height="190"></canvas></figure>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>像素取 0.1、曝光量调到最大，把缺陷直径从 1.0 慢慢拖到 0.1。左图的光斑缩到一定大小就不再变小，第一个数字却一直在掉：直径从 0.2 减到 0.1，峰值对比度掉到原来的几分之一？<button data-preset='{"d":1,"sigma":0.22,"p":0.1,"exp":24,"read":5,"pos":"center"}'>载入</button></li>
+      <li>直径 0.3，把像素尺寸从 0.1 拖到 1.2。“只看最亮像素”的信噪比在哪个像素尺寸最高？“加权求和”的信噪比在哪一段几乎不变，从哪里开始下降？<button data-preset='{"d":0.3,"sigma":0.22,"p":0.1,"exp":14,"read":5,"pos":"center"}'>载入</button></li>
+      <li>像素 0.6，把缺陷从像素中心换到四个像素的交点。最亮像素的信噪比剩下多少？再把像素改成 0.3 重复一次，哪种像素对位置更不敏感？<button data-preset='{"d":0.3,"sigma":0.22,"p":0.6,"exp":14,"read":5,"pos":"center"}'>载入</button></li>
+      <li>曝光量每格是 2 的平方根倍。把曝光量加 4 格（4 倍），信噪比变成几倍？<button data-preset='{"d":0.3,"sigma":0.22,"p":0.3,"exp":14,"read":5,"pos":"center"}'>载入</button> 再载入一个光很少、读出噪声 30 e- 的设置，同样加 4 格，这次是几倍？<button data-preset='{"d":0.3,"sigma":0.22,"p":0.1,"exp":8,"read":30,"pos":"center"}'>载入</button></li>
+      <li>把模糊尺度从 0.22 拖到 0.45（大约相当于离焦 1 λ/NA²）。峰值对比度和两个信噪比各掉了多少？<button data-preset='{"d":0.3,"sigma":0.22,"p":0.3,"exp":14,"read":5,"pos":"center"}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+const DX = 0.05, N = 128, SUB = 4;
+
+// 曝光量滑块：每格乘 sqrt(2)，第 0 格是 100，第 24 格是 409600
+function exposureOf(step) { return 100 * Math.pow(2, step / 2); }
+
+function diskCoverage(d, cy, cx) {
+  const out = new Float64Array(N * N), r = d / 2 / DX, r2 = r * r;
+  const y0 = Math.max(0, Math.floor(cy - r - 1)), y1 = Math.min(N - 1, Math.ceil(cy + r + 1));
+  const x0 = Math.max(0, Math.floor(cx - r - 1)), x1 = Math.min(N - 1, Math.ceil(cx + r + 1));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    let cnt = 0;
+    for (let i = 0; i < SUB; i++) for (let j = 0; j < SUB; j++) {
+      const dy = y + (i + 0.5) / SUB - 0.5 - cy, dx = x + (j + 0.5) / SUB - 0.5 - cx;
+      if (dy * dy + dx * dx <= r2) cnt++;
+    }
+    out[y * N + x] = cnt / (SUB * SUB);
+  }
+  return out;
+}
+
+function gaussBlur(img, sigmaCells) {
+  const R = Math.min(N - 1, Math.ceil(4 * sigmaCells)), k = new Float64Array(2 * R + 1);
+  let sum = 0;
+  for (let i = -R; i <= R; i++) { k[i + R] = Math.exp(-i * i / (2 * sigmaCells * sigmaCells)); sum += k[i + R]; }
+  for (let i = 0; i < k.length; i++) k[i] /= sum;
+  const tmp = new Float64Array(N * N), out = new Float64Array(N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let s = 0;
+    for (let i = Math.max(-R, -x); i <= Math.min(R, N - 1 - x); i++) s += img[y * N + x + i] * k[i + R];
+    tmp[y * N + x] = s;
+  }
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let s = 0;
+    for (let i = Math.max(-R, -y); i <= Math.min(R, N - 1 - y); i++) s += tmp[(y + i) * N + x] * k[i + R];
+    out[y * N + x] = s;
+  }
+  return out;
+}
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+function poisson(lam, r) {
+  if (lam > 40) return Math.max(0, Math.round(lam + Math.sqrt(lam) * gauss(r)));
+  const L = Math.exp(-lam); let k = 0, p = 1;
+  do { k++; p *= r(); } while (p > L);
+  return k - 1;
+}
+
+// 成像链路。返回各级结果和四个指标；不碰页面，方便单独核对
+function simulate(st) {
+  const b = Math.round(st.p / DX), npix = Math.floor(N / b), j0 = Math.floor(npix / 2);
+  const c = j0 * b + (b - 1) / 2 + (st.pos === "corner" ? b / 2 : 0);
+  const blurred = gaussBlur(diskCoverage(st.d, c, c), st.sigma / DX);
+  let optPeak = 0; for (const v of blurred) if (v > optPeak) optPeak = v;
+  const pix = new Float64Array(npix * npix);
+  for (let py = 0; py < npix; py++) for (let px = 0; px < npix; px++) {
+    let s = 0;
+    for (let y = py * b; y < py * b + b; y++) for (let x = px * b; x < px * b + b; x++) s += blurred[y * N + x];
+    pix[py * npix + px] = s / (b * b);
+  }
+  const bg = exposureOf(st.exp) * st.p * st.p, sd = Math.sqrt(bg + st.read * st.read);
+  let pixPeak = 0, energy = 0;
+  for (const v of pix) { if (v > pixPeak) pixPeak = v; energy += v * v; }
+  const r = rng(1000 + (st.seed || 0)), shot = new Float64Array(npix * npix);
+  for (let i = 0; i < shot.length; i++) shot[i] = (poisson(bg * (1 + pix[i]), r) + st.read * gauss(r) - bg) / bg;
+  return { b, npix, row: Math.min(npix - 1, Math.floor(c / b)), blurred, pix, shot, bg, sd, optPeak, pixPeak, snr: pixPeak * bg / sd, mf: Math.sqrt(energy) * bg / sd };
+}
+
+if (typeof document !== "undefined") {
+  const state = { d: 0.3, sigma: 0.22, p: 0.3, exp: 14, read: 5, pos: "center", seed: 0 };
+  const $ = id => document.getElementById(id);
+
+  function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+  function drawImage(canvas, data, n, lo, hi) {
+    const [ctx, w, h] = setup(canvas), side = Math.min(w, h), ox = (w - side) / 2, oy = (h - side) / 2, cell = side / n;
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const g = Math.round(255 * Math.max(0, Math.min(1, (data[y * n + x] - lo) / (hi - lo))));
+      ctx.fillStyle = "rgb(" + g + "," + g + "," + g + ")";
+      ctx.fillRect(ox + x * cell, oy + y * cell, cell + 0.6, cell + 0.6);
+    }
+    ctx.strokeStyle = "#b9bec7"; ctx.lineWidth = 1; ctx.strokeRect(ox + 0.5, oy + 0.5, side - 1, side - 1);
+  }
+  function fmt(v) { return v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2); }
+
+  function render() {
+    const res = simulate(state), field = N * DX;
+    $("dV").textContent = state.d.toFixed(2); $("sigmaV").textContent = state.sigma.toFixed(2); $("pV").textContent = state.p.toFixed(2);
+    $("expV").textContent = Math.round(exposureOf(state.exp)); $("readV").textContent = state.read;
+    $("kOpt").textContent = res.optPeak.toFixed(3); $("kPix").textContent = (100 * res.pixPeak).toFixed(1) + "%";
+    $("kSnr").textContent = fmt(res.snr); $("kMf").textContent = fmt(res.mf);
+    $("kSnrBox").className = "kpi " + (res.snr >= 5 ? "ok" : "bad"); $("kMfBox").className = "kpi " + (res.mf >= 5 ? "ok" : "bad");
+    $("bgV").textContent = fmt(res.bg); $("sdV").textContent = fmt(res.sd);
+
+    const top = Math.max(0.12, res.optPeak * 1.05), noise = res.sd / res.bg, span = Math.max(4 * noise, 1.2 * res.pixPeak, 0.05);
+    drawImage($("c1"), res.blurred, N, -0.02, top);
+    drawImage($("c2"), res.pix, res.npix, -0.02, top);
+    drawImage($("c3"), res.shot, res.npix, -span, span);
+
+    const [ctx, w, h] = setup($("c4")), L = 44, R = 8, T = 8, B = 22;
+    const rowFine = Math.min(N - 1, Math.round(res.row * res.b + (res.b - 1) / 2 + (state.pos === "corner" ? res.b / 2 : 0)));
+    let lo = Math.min(-0.03, -3 * noise), hi = Math.max(0.1, res.optPeak * 1.15, 3 * noise);
+    for (let x = 0; x < res.npix; x++) { const v = res.shot[res.row * res.npix + x]; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    const sx = v => L + v / field * (w - L - R), sy = v => h - B - (v - lo) / (hi - lo) * (h - T - B);
+    ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+    for (let t = 0; t <= 6; t++) { ctx.beginPath(); ctx.moveTo(sx(t), T); ctx.lineTo(sx(t), h - B); ctx.stroke(); ctx.fillText(t, sx(t), h - 7); }
+    ctx.textAlign = "right";
+    for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4; ctx.beginPath(); ctx.moveTo(L, sy(v)); ctx.lineTo(w - R, sy(v)); ctx.stroke(); ctx.fillText(v.toFixed(2), L - 5, sy(v) + 4); }
+    ctx.strokeStyle = "#8f959e"; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(L, sy(0)); ctx.lineTo(w - R, sy(0)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = "#2f6fed"; ctx.lineWidth = 1.6; ctx.beginPath();
+    for (let x = 0; x < N; x++) { const px = sx((x + 0.5) * DX), py = sy(res.blurred[rowFine * N + x]); x ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.stroke();
+    ctx.strokeStyle = "#e8710a"; ctx.lineWidth = 1.8; ctx.beginPath();
+    for (let x = 0; x < res.npix; x++) { const v = sy(res.pix[res.row * res.npix + x]); ctx.moveTo(sx(x * res.b * DX), v); ctx.lineTo(sx((x + 1) * res.b * DX), v); }
+    ctx.stroke();
+    ctx.fillStyle = "#8f959e";
+    for (let x = 0; x < res.npix; x++) { ctx.beginPath(); ctx.arc(sx((x + 0.5) * res.b * DX), sy(res.shot[res.row * res.npix + x]), res.npix > 40 ? 2 : 3, 0, 7); ctx.fill(); }
+  }
+
+  function syncControls() {
+    $("pos").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state.pos));
+    for (const id of ["d", "sigma", "p", "exp", "read"]) $(id).value = state[id];
+  }
+  $("pos").addEventListener("click", e => { if (e.target.dataset.v) { state.pos = e.target.dataset.v; syncControls(); render(); } });
+  for (const id of ["d", "sigma", "p", "exp", "read"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+  $("again").addEventListener("click", () => { state.seed++; render(); });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+  window.addEventListener("resize", render);
+  syncControls(); render();
+}
+</script>
+</body>
+</html>

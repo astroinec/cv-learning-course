@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>扩散模型的前向过程：步数、噪声表和分辨率</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; --purple:#7a4cd6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .plain { font: inherit; font-size: 12.5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); cursor: pointer; width: 100%; margin-top: 4px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi small { color: var(--muted); font-size: 11.5px; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); } .kpi.warn b { color: var(--orange); }
+  .three { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; min-height: 40px; }
+  figcaption i { font-style: normal; display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin: 0 4px 0 8px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try li { margin-bottom: 4px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  @media (max-width: 720px) { .three { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>扩散模型的前向过程：步数、噪声表和分辨率（第 20 章）</h1>
+  <div class="sub">前向加噪 x_t = sqrt(ᾱ_t)·x_0 + sqrt(1 - ᾱ_t)·ε，和作业里的 <code>q_sample</code> 是同一个公式，t 从 0 数起。拖动步数时用的是同一份噪声 ε。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>步数 t<b id="tV"></b><input type="range" id="t" min="0" max="999" step="1" value="300"></label>
+    <label>噪声表<div class="seg" id="kind"><button data-v="linear" class="on">线性</button><button data-v="cosine">余弦</button></div></label>
+    <label>总步数 T 和 β 的范围<div class="seg" id="mode"><button data-v="t1000" class="on">1000 步</button><button data-v="t100raw">100 步，β 不变</button><button data-v="t100scaled">100 步，β 放大</button></div></label>
+    <label>图像分辨率（同一个场景）<div class="seg" id="res"><button data-v="32" class="on">32</button><button data-v="64">64</button><button data-v="128">128</button></div></label>
+    <label>噪声 ε 的种子<b id="seedV"></b><button class="plain" id="reseed">换一份噪声</button></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>ᾱ_t（累计保留的信号比例）</span><b id="kAbar"></b><small id="kCoef"></small></div>
+    <div class="kpi" id="kSnrBox"><span>信噪比 ᾱ_t / (1 - ᾱ_t)</span><b id="kSnr"></b><small id="kSnrNote"></small></div>
+    <div class="kpi" id="kPixBox"><span>x_t 和 x_0 逐像素的相关系数</span><b id="kPix"></b><small id="kPixM"></small></div>
+    <div class="kpi" id="kCoarseBox"><span>块平均到 32×32 之后的相关系数</span><b id="kCoarse"></b><small id="kCoarseM"></small></div>
+  </div>
+
+  <div class="three">
+    <figure class="panel"><figcaption>x_0：没有加噪的图。条纹、一条横带和一个亮斑</figcaption><canvas id="c0" height="250"></canvas></figure>
+    <figure class="panel"><figcaption>x_t：加噪到第 t 步。显示范围固定在 -1.6 到 1.6</figcaption><canvas id="c1" height="250"></canvas></figure>
+    <figure class="panel"><figcaption>信噪比随步数的变化（纵轴是对数）<i style="background:var(--blue)"></i>线性<i style="background:var(--green)"></i>余弦。圆点是当前的 t，虚线是信噪比 1 和 0.01</figcaption><canvas id="c2" height="250"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>线性表、1000 步、32×32。把 t 从 0 慢慢拖到 300，看条纹什么时候认不出来。t=300 时 ᾱ 还有 0.39，逐像素的相关系数已经掉到 0.30 左右。<button data-preset='{"t":300,"kind":"linear","mode":"t1000","res":32,"seed":1}'>载入</button></li>
+      <li>t=500。线性表的信噪比只有 0.08，图上几乎只剩噪声；切到余弦表，同样是第 500 步，信噪比约为 1，逐像素的相关系数从 0.11 回到 0.35，亮斑又隐约看得出来。<button data-preset='{"t":500,"kind":"linear","mode":"t1000","res":32,"seed":1}'>载入</button></li>
+      <li>线性表，t=674，信噪比刚好掉到 0.01 以下。往右一直到 999，将近三分之一的步数都在这条线下面。切到余弦表，要到第 936 步才掉到 0.01 以下。<button data-preset='{"t":674,"kind":"linear","mode":"t1000","res":32,"seed":1}'>载入</button></li>
+      <li>回到线性表、t=300，把分辨率从 32 换到 64、128。同一个步数，画面里的条纹越来越清楚，块平均到 32×32 之后的相关系数从 0.30 升到 0.53、0.78。<button data-preset='{"t":300,"kind":"linear","mode":"t1000","res":32,"seed":1}'>载入</button></li>
+      <li>把总步数改成 100、β 的范围不变，t 拖到最后一步 99：ᾱ 还有 0.36，x_t 远不是纯噪声。再点“100 步，β 放大”（β 整体乘 10），最后一步的 ᾱ 回到 0.00002。<button data-preset='{"t":99,"kind":"linear","mode":"t100raw","res":32,"seed":1}'>载入</button></li>
+    </ol>
+    <div class="note" id="iter"></div>
+    <div class="note">线性表：β 从 0.0001 到 0.02 等间隔（“β 放大”时是 0.001 到 0.2）。余弦表：ᾱ_t = f(t+1)/f(0)，f(i) = cos²(((i/T + 0.008)/1.008)·π/2)，β 截到 0.999。场景先在 256×256 上画好，再块平均到所选的分辨率，所以三种分辨率是同一张图。KPI 里的大字是按公式算的，小字是这一份噪声上实测的。</div>
+  </div>
+</div>
+<script>
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+
+// 噪声表。返回 betas 和 abar（累乘 1 - beta），下标从 0 开始
+function linearBetas(T, b0, b1) { const b = new Float64Array(T); for (let i = 0; i < T; i++) b[i] = T === 1 ? b0 : b0 + (b1 - b0) * i / (T - 1); return b; }
+function cosineBetas(T, s) { const f = i => Math.pow(Math.cos((i / T + s) / (1 + s) * Math.PI / 2), 2); const b = new Float64Array(T); for (let i = 0; i < T; i++) b[i] = Math.min(0.999, Math.max(0, 1 - f(i + 1) / f(i))); return b; }
+function alphaBars(betas) { const a = new Float64Array(betas.length); let p = 1; for (let i = 0; i < betas.length; i++) { p *= 1 - betas[i]; a[i] = p; } return a; }
+const SCHED = {};
+function schedule(kind, mode) {
+  const key = kind + "/" + mode;
+  if (!SCHED[key]) {
+    const T = mode === "t1000" ? 1000 : 100;
+    const betas = kind === "cosine" ? cosineBetas(T, 0.008) : mode === "t100scaled" ? linearBetas(T, 1e-3, 0.2) : linearBetas(T, 1e-4, 0.02);
+    SCHED[key] = { T, betas, abar: alphaBars(betas) };
+  }
+  return SCHED[key];
+}
+
+// 场景：在 256×256 上画，再块平均到 res×res，取值缩放到 [-1, 1] 附近
+const SCENES = {};
+function scene(res) {
+  if (!SCENES[res]) {
+    const k = 256 / res, out = new Float64Array(res * res);
+    for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) {
+      let v = 0.28 + 0.34 * ((x % 64) < 32 ? 1 : 0) + 0.22 * (y >= 104 && y < 144 ? 1 : 0);
+      v += 0.45 * Math.exp(-((y - 184) * (y - 184) + (x - 80) * (x - 80)) / 200);
+      out[Math.floor(y / k) * res + Math.floor(x / k)] += (v - 0.5) * 2 / (k * k);
+    }
+    SCENES[res] = out;
+  }
+  return SCENES[res];
+}
+const NOISES = {};
+function noise(res, seed) { const key = res + "/" + seed; if (!NOISES[key]) { const r = rng(seed * 9973 + res), n = new Float64Array(res * res); for (let i = 0; i < n.length; i++) n[i] = gauss(r); NOISES[key] = n; } return NOISES[key]; }
+// 前向加噪，和作业的 q_sample 相同
+function qSample(x0, t, abar, eps) { const a = Math.sqrt(abar[t]), b = Math.sqrt(1 - abar[t]), out = new Float64Array(x0.length); for (let i = 0; i < x0.length; i++) out[i] = a * x0[i] + b * eps[i]; return out; }
+function blockMean(img, res, k) { if (k === 1) return img; const m = res / k, out = new Float64Array(m * m); for (let y = 0; y < res; y++) for (let x = 0; x < res; x++) out[Math.floor(y / k) * m + Math.floor(x / k)] += img[y * res + x] / (k * k); return out; }
+function variance(a) { let s = 0, q = 0; for (const v of a) { s += v; q += v * v; } const m = s / a.length; return q / a.length - m * m; }
+function corr(a, b) { let sa = 0, sb = 0; for (let i = 0; i < a.length; i++) { sa += a[i]; sb += b[i]; } const ma = sa / a.length, mb = sb / a.length; let ab = 0, aa = 0, bb = 0; for (let i = 0; i < a.length; i++) { ab += (a[i] - ma) * (b[i] - mb); aa += (a[i] - ma) * (a[i] - ma); bb += (b[i] - mb) * (b[i] - mb); } return ab / Math.sqrt(aa * bb); }
+function firstBelow(abar, level) { for (let i = 0; i < abar.length; i++) if (abar[i] / (1 - abar[i]) < level) return i; return -1; }
+
+function compute(state) {
+  const S = schedule(state.kind, state.mode), t = Math.min(state.t, S.T - 1), res = state.res, k = res / 32;
+  const x0 = scene(res), x32 = scene(32), eps = noise(res, state.seed), xt = qSample(x0, t, S.abar, eps);
+  const a = S.abar[t], vPix = variance(x0), v32 = variance(x32);
+  // 逐步加噪的系数：把每一步的 sqrt(1 - beta) 连乘，噪声方差按 v ← (1 - beta)·v + beta 递推
+  let prod = 1, v = 0; for (let i = 0; i <= t; i++) { prod *= Math.sqrt(1 - S.betas[i]); v = (1 - S.betas[i]) * v + S.betas[i]; }
+  return { S, t, res, x0, xt, abar: a, snr: a / (1 - a), sig: Math.sqrt(a), sd: Math.sqrt(1 - a),
+    pixTheory: Math.sqrt(a * vPix / (a * vPix + 1 - a)), pixMeasured: corr(xt, x0),
+    coarseTheory: Math.sqrt(a * v32 / (a * v32 + (1 - a) / (k * k))), coarseMeasured: corr(blockMean(xt, res, k), x32),
+    iterSig: prod, iterVar: v, below1: firstBelow(S.abar, 1), below001: firstBelow(S.abar, 0.01), abarLast: S.abar[S.T - 1] };
+}
+
+if (typeof document !== "undefined") {
+const state = { t: 300, kind: "linear", mode: "t1000", res: 32, seed: 1 };
+const $ = id => document.getElementById(id);
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function drawImage(canvas, img, res) {
+  const [ctx, w, h] = setup(canvas), side = Math.min(w, h), cell = side / res, ox = (w - side) / 2, oy = (h - side) / 2;
+  for (let y = 0; y < res; y++) for (let x = 0; x < res; x++) { const g = Math.max(0, Math.min(255, Math.round((img[y * res + x] + 1.6) / 3.2 * 255))); ctx.fillStyle = "rgb(" + g + "," + g + "," + g + ")"; ctx.fillRect(ox + x * cell, oy + y * cell, cell + 0.6, cell + 0.6); }
+}
+function fmt(v) { return v >= 100 ? v.toFixed(0) : v >= 1 ? v.toFixed(2) : v >= 0.01 ? v.toFixed(3) : v >= 0.001 ? v.toFixed(5) : v.toExponential(1); }
+
+function render() {
+  const R = compute(state);
+  $("t").max = R.S.T - 1; if (state.t > R.S.T - 1) { state.t = R.S.T - 1; $("t").value = state.t; }
+  $("tV").textContent = R.t + " / " + (R.S.T - 1); $("seedV").textContent = state.seed;
+  $("kAbar").textContent = fmt(R.abar); $("kCoef").textContent = "信号系数 " + R.sig.toFixed(3) + "，噪声标准差 " + R.sd.toFixed(3);
+  $("kSnr").textContent = fmt(R.snr); $("kSnrNote").textContent = R.snr >= 1 ? "信号比噪声强" : R.snr >= 0.01 ? "噪声比信号强" : "几乎是纯噪声";
+  $("kSnrBox").className = "kpi " + (R.snr >= 1 ? "ok" : R.snr >= 0.01 ? "warn" : "bad");
+  $("kPix").textContent = R.pixTheory.toFixed(2); $("kPixM").textContent = "这一份噪声实测 " + R.pixMeasured.toFixed(2);
+  $("kCoarse").textContent = R.coarseTheory.toFixed(2); $("kCoarseM").textContent = "这一份噪声实测 " + R.coarseMeasured.toFixed(2);
+  $("kPixBox").className = "kpi " + (R.pixTheory >= 0.5 ? "ok" : R.pixTheory >= 0.2 ? "warn" : "bad");
+  $("kCoarseBox").className = "kpi " + (R.coarseTheory >= 0.5 ? "ok" : R.coarseTheory >= 0.2 ? "warn" : "bad");
+  $("iter").textContent = "逐步加噪核对：把前 " + (R.t + 1) + " 步的 sqrt(1 - β) 连乘得到信号系数 " + R.iterSig.toFixed(6) + "，闭式 sqrt(ᾱ_t) 是 " + R.sig.toFixed(6) + "；噪声方差按 v ← (1 - β)·v + β 递推得到 " + R.iterVar.toFixed(6) + "，闭式 1 - ᾱ_t 是 " + (1 - R.abar).toFixed(6) + "。";
+  $("mode").querySelectorAll("button").forEach(b => { b.disabled = state.kind === "cosine" && b.dataset.v === "t100scaled"; b.style.opacity = b.disabled ? 0.45 : 1; });
+  drawImage($("c0"), R.x0, R.res); drawImage($("c1"), R.xt, R.res);
+
+  const [ctx, w, h] = setup($("c2")), L = 46, Rr = 10, T0 = 10, B = 26, lo = -5, hi = 4;
+  const X = i => L + i / (R.S.T - 1) * (w - L - Rr), Y = snr => T0 + (hi - Math.max(lo, Math.min(hi, Math.log10(snr)))) / (hi - lo) * (h - T0 - B);
+  ctx.font = "11px sans-serif"; ctx.fillStyle = "#646a73"; ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1;
+  for (const e of [-4, -2, 0, 2, 4]) { ctx.beginPath(); ctx.moveTo(L, Y(Math.pow(10, e))); ctx.lineTo(w - Rr, Y(Math.pow(10, e))); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText({"-4": "0.0001", "-2": "0.01", "0": "1", "2": "100", "4": "10000"}[e], L - 5, Y(Math.pow(10, e)) + 4); }
+  ctx.textAlign = "center"; for (const f of [0, 0.25, 0.5, 0.75, 1]) { const i = Math.round(f * (R.S.T - 1)); ctx.fillText(i, X(i), h - 8); }
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = "#646a73"; for (const lv of [1, 0.01]) { ctx.beginPath(); ctx.moveTo(L, Y(lv)); ctx.lineTo(w - Rr, Y(lv)); ctx.stroke(); } ctx.setLineDash([]);
+  for (const [kind, color] of [["linear", "#2f6fed"], ["cosine", "#1a9c4b"]]) {
+    const S = schedule(kind, kind === "cosine" && state.mode === "t100scaled" ? "t100raw" : state.mode);
+    ctx.strokeStyle = color; ctx.lineWidth = kind === state.kind ? 2.4 : 1.3; ctx.globalAlpha = kind === state.kind ? 1 : 0.55; ctx.beginPath();
+    for (let i = 0; i < S.T; i++) { const y = Y(S.abar[i] / (1 - S.abar[i])); if (i === 0) ctx.moveTo(X(i), y); else ctx.lineTo(X(i), y); }
+    ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = state.kind === "linear" ? "#2f6fed" : "#1a9c4b"; ctx.beginPath(); ctx.arc(X(R.t), Y(R.snr), 5.5, 0, 7); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = "#1f2329"; ctx.textAlign = "left";
+  ctx.fillText("信噪比低于 1：第 " + (R.below1 < 0 ? "—" : R.below1) + " 步起；低于 0.01：" + (R.below001 < 0 ? "到最后一步也没有" : "第 " + R.below001 + " 步起"), L + 4, T0 + 10);
+}
+
+function syncControls() {
+  for (const id of ["kind", "mode", "res"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(state[id])));
+  $("t").max = schedule(state.kind, state.mode).T - 1; $("t").value = state.t;
+}
+$("kind").addEventListener("click", e => { if (e.target.dataset.v) { state.kind = e.target.dataset.v; if (state.kind === "cosine" && state.mode === "t100scaled") state.mode = "t100raw"; syncControls(); render(); } });
+$("mode").addEventListener("click", e => { if (e.target.dataset.v && !e.target.disabled) { const before = schedule(state.kind, state.mode).T; state.mode = e.target.dataset.v; const after = schedule(state.kind, state.mode).T; if (after !== before) state.t = Math.min(after - 1, Math.round(state.t * after / before)); syncControls(); render(); } });
+$("res").addEventListener("click", e => { if (e.target.dataset.v) { state.res = +e.target.dataset.v; syncControls(); render(); } });
+$("t").addEventListener("input", e => { state.t = +e.target.value; render(); });
+$("reseed").addEventListener("click", () => { state.seed += 1; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+}
+if (typeof module !== "undefined") module.exports = { compute, schedule, scene, noise, qSample, blockMean, corr, variance, firstBelow };
+</script>
+</body>
+</html>

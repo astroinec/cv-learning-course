@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>热图归一化：单张归一化与固定范围</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; min-width: 0; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .plain { font: inherit; font-size: 12.5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); cursor: pointer; width: 100%; margin-top: 4px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .two { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 14px; height: 9px; vertical-align: middle; margin: 0 4px 0 8px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 640px) { .three, .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>热图归一化：单张归一化与固定范围（第 10 章）</h1>
+  <div class="sub">同一张原始热图，用两种方式变成 0 到 1 再上色。原始热图是按“背景起伏加一个缺陷峰”模拟的，不是真模型算出来的；归一化的算法和作业里的 <code>normalize_heatmap</code> 一致。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>这张图<div class="seg" id="kind"><button data-v="defect" class="on">有缺陷</button><button data-v="good">良品</button></div></label>
+    <label>缺陷处的响应强度<b id="ampV"></b><input type="range" id="amp" min="0" max="3" step="0.05" value="0.75"></label>
+    <label>背景起伏的幅度<b id="bgV"></b><input type="range" id="bg" min="0" max="1" step="0.01" value="0.25"></label>
+    <label>整体偏移（负值会被 ReLU 截掉）<b id="offsetV"></b><input type="range" id="offset" min="-0.5" max="1" step="0.05" value="0"></label>
+    <label>固定范围的上限<b id="vmaxV"></b><input type="range" id="vmax" min="0.1" max="3" step="0.05" value="0.75"></label>
+    <label>热图分辨率<div class="seg" id="grid"><button data-v="4">4×4</button><button data-v="7" class="on">7×7</button><button data-v="14">14×14</button></div></label>
+    <label>背景图案<button class="plain" id="next">换一张</button></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>原始热图的最大值（ReLU 之后）</span><b id="kMax"></b></div>
+    <div class="kpi" id="kPerBox"><span>单张归一化：热点占多少格</span><b id="kPer"></b></div>
+    <div class="kpi" id="kFixBox"><span>固定范围：热点占多少格</span><b id="kFix"></b></div>
+    <div class="kpi"><span>这张图实际上</span><b id="kTruth"></b></div>
+  </div>
+
+  <div class="three">
+    <figure class="panel"><figcaption>原始热图（格子里是数值，灰度按 0 到 3 画）</figcaption><canvas id="c1"></canvas></figure>
+    <figure class="panel"><figcaption>单张归一化：按这一张的最小最大值拉满</figcaption><canvas id="c2"></canvas></figure>
+    <figure class="panel"><figcaption>固定范围：除以上限再截断到 1</figcaption><canvas id="c3"></canvas></figure>
+  </div>
+
+  <div class="two" style="margin-top:12px">
+    <figure class="panel"><figcaption>同样的设置下各模拟 200 张：原始热图的最大值<i style="background:var(--blue)"></i>良品<i style="background:var(--orange)"></i>有缺陷，红色虚线右边在固定范围下会显示成热点</figcaption><canvas id="c4" height="190"></canvas></figure>
+    <figure class="panel"><figcaption>这 400 张里出现热点（有格子不小于 0.5）的比例</figcaption><canvas id="c5" height="190"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>有缺陷、响应强度 1.5、上限 1.5。两种显示的热点都在白圈里，看起来几乎一样。<button data-preset='{"kind":"defect","amp":1.5,"bg":0.25,"offset":0,"vmax":1.5,"grid":7,"seed":3}'>载入</button></li>
+      <li>只把这张图换成良品。原始热图的最大值掉到 0.25，固定范围的图几乎全蓝，单张归一化的图上仍然有一块红色的热点。<button data-preset='{"kind":"good","amp":1.5,"bg":0.25,"offset":0,"vmax":1.5,"grid":7,"seed":3}'>载入</button></li>
+      <li>保持良品，把背景起伏从 0.25 降到 0.02。原始热图弱了十几倍，单张归一化的图一格都没有变：它把强度信息丢掉了。<button data-preset='{"kind":"good","amp":1.5,"bg":0.02,"offset":0,"vmax":1.5,"grid":7,"seed":3}'>载入</button></li>
+      <li>回到默认设置看下面两幅统计图：单张归一化时良品和有缺陷的图全部出现热点。再把上限从 0.75 往下拖到 0.3、往上拖到 2，看固定范围下两种图出现热点的比例怎样此消彼长。<button data-preset='{"kind":"defect","amp":0.75,"bg":0.25,"offset":0,"vmax":0.75,"grid":7,"seed":3}'>载入</button></li>
+      <li>良品、背景起伏 0、整体偏移 0.5：原始热图是常量。单张归一化按约定返回全 0，固定范围的图是同一个颜色。再把偏移拖到负值，看 ReLU 把整张图截成 0。<button data-preset='{"kind":"good","amp":0.75,"bg":0,"offset":0.5,"vmax":0.75,"grid":7,"seed":3}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ---- 计算（不碰页面元素，可以用 node 单独执行）
+const EPS = 1e-8, HOT = 0.5, BATCH = 200;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+
+// 背景图案：三个随机的鼓包加一点细碎起伏，最大值正好是 1
+function background(g, seed) {
+  const r = rng(seed * 7919 + 13), n = new Float64Array(g * g);
+  for (let b = 0; b < 3; b++) {
+    const cx = r() * g, cy = r() * g, a = 0.3 + 0.7 * r(), s = (0.12 + 0.13 * r()) * g;
+    for (let i = 0; i < g; i++) for (let j = 0; j < g; j++) n[i * g + j] += a * Math.exp(-((i + 0.5 - cy) ** 2 + (j + 0.5 - cx) ** 2) / (2 * s * s));
+  }
+  let m = 0;
+  for (let k = 0; k < n.length; k++) { n[k] += 0.08 * r(); if (n[k] > m) m = n[k]; }
+  return n.map(v => v / m);
+}
+// 缺陷中心（格子坐标，行在前）
+function defectCenter(g, seed) { const r = rng(seed * 104729 + 5); return [(0.2 + 0.6 * r()) * g, (0.2 + 0.6 * r()) * g]; }
+// 原始热图：整体偏移 + 背景起伏 + （有缺陷时）缺陷处的一个峰
+function makeRaw(p, seed) {
+  const g = p.grid, n = background(g, seed), raw = new Float64Array(g * g), [cy, cx] = defectCenter(g, seed), s = Math.max(0.11 * g, 0.6);
+  for (let i = 0; i < g; i++) for (let j = 0; j < g; j++) {
+    let v = p.offset + p.bg * n[i * g + j];
+    if (p.kind === "defect") v += p.amp * Math.exp(-((i + 0.5 - cy) ** 2 + (j + 0.5 - cx) ** 2) / (2 * s * s));
+    raw[i * g + j] = v;
+  }
+  return raw;
+}
+function relu(x) { return x.map(v => (v > 0 ? v : 0)); }
+// 单张归一化：先 ReLU，再按这一张的最小最大值拉到 0 到 1；常量热图返回全 0
+function perImage(raw) {
+  const c = relu(raw), out = new Float64Array(c.length);
+  let lo = Infinity, hi = -Infinity;
+  for (const v of c) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const range = hi - lo;
+  if (range > EPS) for (let k = 0; k < c.length; k++) out[k] = Math.min(1, Math.max(0, (c[k] - lo) / (range + EPS)));
+  return out;
+}
+// 固定范围：先 ReLU，再除以固定的上限，超过 1 的截断
+function fixedRange(raw, vmax) { return relu(raw).map(v => Math.min(1, v / vmax)); }
+function maxOf(x) { let m = -Infinity; for (const v of x) if (v > m) m = v; return m; }
+function hotFraction(m) { let c = 0; for (const v of m) if (v >= HOT) c++; return c / m.length; }
+// 同样的设置下模拟一批良品和一批有缺陷的图：每张的背景幅度是设定值的 0.5 到 1.5 倍，缺陷强度按对数正态波动
+function batchStats(p) {
+  const out = {};
+  for (const kind of ["good", "defect"]) {
+    const maxes = []; let per = 0, fix = 0;
+    for (let s = 0; s < BATCH; s++) {
+      const base = (kind === "defect" ? 500000 : 0) + s, r = rng(1000 + base * 31);
+      const q = Object.assign({}, p, { kind, bg: p.bg * (0.5 + r()), amp: p.amp * Math.exp(0.6 * gauss(r)) });
+      const raw = makeRaw(q, 2000 + base);
+      maxes.push(maxOf(relu(raw)));
+      if (maxOf(perImage(raw)) >= HOT) per++;
+      if (maxOf(fixedRange(raw, p.vmax)) >= HOT) fix++;
+    }
+    out[kind] = { maxes, per: per / BATCH, fix: fix / BATCH };
+  }
+  return out;
+}
+function jet(t) { const c = x => Math.round(255 * Math.min(1, Math.max(0, 1.5 - Math.abs(4 * t - x)))); return [c(3), c(2), c(1)]; }
+
+// ---- 界面
+if (typeof document !== "undefined") {
+const state = { kind: "defect", amp: 0.75, bg: 0.25, offset: 0, vmax: 0.75, grid: 7, seed: 3 };
+const $ = id => document.getElementById(id);
+
+function setup(canvas, square) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = square ? w : +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+
+function drawMap(canvas, values, color, labels) {
+  const [ctx, w] = setup(canvas, true), g = state.grid, cell = w / g;
+  for (let i = 0; i < g; i++) for (let j = 0; j < g; j++) {
+    const v = values[i * g + j], [r, gg, b] = color(v);
+    ctx.fillStyle = `rgb(${r},${gg},${b})`; ctx.fillRect(j * cell, i * cell, cell + 0.5, cell + 0.5);
+    if (labels && g <= 7) { ctx.fillStyle = (r + gg + b) / 3 > 140 ? "#1f2329" : "#fff"; ctx.font = (g === 4 ? 13 : 11) + "px sans-serif"; ctx.textAlign = "center"; ctx.fillText(labels[i * g + j].toFixed(2), (j + 0.5) * cell, (i + 0.5) * cell + 4); }
+  }
+  if (state.kind === "defect") { const [cy, cx] = defectCenter(g, state.seed); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx * cell, cy * cell, Math.max(0.11 * g, 0.6) * cell * 1.4, 0, 7); ctx.stroke(); }
+}
+
+function drawHist(canvas, stats) {
+  const [ctx, w, h] = setup(canvas), L = 34, R = 10, T = 8, B = 24, xmax = Math.max(1.2, state.vmax * 0.7, ...stats.good.maxes, ...stats.defect.maxes) * 1.03, bins = 36;
+  const count = k => { const c = new Array(bins).fill(0); for (const v of stats[k].maxes) c[Math.min(bins - 1, Math.floor(v / xmax * bins))]++; return c; };
+  const cg = count("good"), cd = count("defect"), ymax = Math.max(1, ...cg, ...cd), sx = v => L + v / xmax * (w - L - R), sy = v => h - B - v / ymax * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  const step = xmax > 4 ? 2 : xmax > 2 ? 1 : 0.5;
+  for (let t = 0; t <= xmax; t += step) { ctx.beginPath(); ctx.moveTo(sx(t), T); ctx.lineTo(sx(t), h - B); ctx.stroke(); ctx.fillText(t.toFixed(1), sx(t), h - 8); }
+  ctx.textAlign = "right"; ctx.fillText(ymax, L - 5, T + 8); ctx.fillText("0", L - 5, h - B + 3);
+  const bw = (w - L - R) / bins;
+  for (const [c, color] of [[cg, "rgba(47,111,237,.72)"], [cd, "rgba(232,113,10,.72)"]]) { ctx.fillStyle = color; c.forEach((v, i) => { if (v) ctx.fillRect(L + i * bw, sy(v), bw - 1, h - B - sy(v)); }); }
+  ctx.strokeStyle = "#d6362f"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(sx(HOT * state.vmax), T); ctx.lineTo(sx(HOT * state.vmax), h - B); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawBars(canvas, stats) {
+  const [ctx, w, h] = setup(canvas), rows = [["单张归一化：有缺陷", stats.defect.per, "#e8710a"], ["单张归一化：良品", stats.good.per, "#2f6fed"], ["固定范围：有缺陷", stats.defect.fix, "#e8710a"], ["固定范围：良品", stats.good.fix, "#2f6fed"]];
+  const L = 124, R = 44, rowH = (h - 12) / rows.length;
+  ctx.font = "12px sans-serif";
+  rows.forEach(([name, v, color], i) => {
+    const y = 6 + i * rowH;
+    ctx.fillStyle = "#646a73"; ctx.textAlign = "right"; ctx.fillText(name, L - 8, y + rowH / 2 + 4);
+    ctx.fillStyle = "#f0f1f3"; ctx.fillRect(L, y + 6, w - L - R, rowH - 12);
+    ctx.fillStyle = color; ctx.fillRect(L, y + 6, (w - L - R) * v, rowH - 12);
+    ctx.fillStyle = "#1f2329"; ctx.textAlign = "left"; ctx.fillText(Math.round(v * 100) + "%", L + (w - L - R) * v + 5, y + rowH / 2 + 4);
+  });
+}
+
+function render() {
+  const raw = makeRaw(state, state.seed), c = relu(raw), per = perImage(raw), fix = fixedRange(raw, state.vmax), stats = batchStats(state);
+  $("ampV").textContent = state.amp.toFixed(2); $("bgV").textContent = state.bg.toFixed(2); $("offsetV").textContent = state.offset.toFixed(2); $("vmaxV").textContent = state.vmax.toFixed(2);
+  const hp = hotFraction(per), hf = hotFraction(fix), n = state.grid * state.grid, bad = v => state.kind === "good" && v > 0;
+  $("kMax").textContent = maxOf(c).toFixed(3);
+  $("kPer").textContent = Math.round(hp * n) + " / " + n; $("kPerBox").className = "kpi " + (bad(hp) ? "bad" : "ok");
+  $("kFix").textContent = Math.round(hf * n) + " / " + n; $("kFixBox").className = "kpi " + (bad(hf) ? "bad" : "ok");
+  $("kTruth").textContent = state.kind === "defect" ? "有缺陷" : "没有缺陷";
+  drawMap($("c1"), c, v => { const t = Math.round(245 - 205 * Math.min(1, v / 3)); return [t, t, t]; }, c);
+  drawMap($("c2"), per, jet); drawMap($("c3"), fix, jet);
+  drawHist($("c4"), stats); drawBars($("c5"), stats);
+}
+
+function syncControls() {
+  for (const id of ["kind", "grid"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(state[id])));
+  for (const id of ["amp", "bg", "offset", "vmax"]) $(id).value = state[id];
+}
+$("kind").addEventListener("click", e => { if (e.target.dataset.v) { state.kind = e.target.dataset.v; syncControls(); render(); } });
+$("grid").addEventListener("click", e => { if (e.target.dataset.v) { state.grid = +e.target.dataset.v; syncControls(); render(); } });
+for (const id of ["amp", "bg", "offset", "vmax"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+$("next").addEventListener("click", () => { state.seed = state.seed % 40 + 1; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+}
+</script>
+</body>
+</html>

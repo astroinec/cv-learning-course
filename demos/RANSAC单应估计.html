@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RANSAC 估计单应：抽样、打分、选最好的</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .btns { display: flex; gap: 8px; margin-top: 4px; }
+  .btns button, .stat button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); cursor: pointer; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); display: block; }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 9px; height: 9px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 50%; }
+  figcaption i.ln { width: 18px; height: 3px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .stat { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(4, minmax(0, 1fr)); gap: 10px; align-items: center; }
+  .stat div span { font-size: 12px; color: var(--muted); display: block; }
+  .stat div b { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .stat.stale div b { color: #b9bec7; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RANSAC 估计单应：抽样、打分、选最好的（第 4 章）</h1>
+  <div class="sub">两张 640×480 的图之间有 100 对匹配。内点服从同一个单应并带定位噪声，外点的目标位置是随机的。每次迭代抽 4 对点求一个单应，数它在阈值内能解释多少对匹配，最后用内点最多的那一组重新拟合。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>方法<div class="seg" id="method"><button data-v="ransac" class="on">RANSAC</button><button data-v="ls">全部点最小二乘</button></div></label>
+    <label>外点比例<b id="outV"></b><input type="range" id="out" min="0" max="90" step="5" value="30"></label>
+    <label>内点的定位噪声（px）<b id="noiseV"></b><input type="range" id="noise" min="0" max="3" step="0.1" value="1"></label>
+    <label>内点阈值（px）<b id="threshV"></b><input type="range" id="thresh" min="0.5" max="40" step="0.5" value="3"></label>
+    <label>迭代次数 K<b id="kV"></b><input type="range" id="k" min="0" max="15" step="1" value="4"></label>
+    <label>单次运行<div class="btns"><button id="newData">换一组数据</button><button id="newRun">重新抽样</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>公式值：K 次里至少一组全内点</span><b id="kFormula"></b></div>
+    <div class="kpi"><span>本次第一次抽到全内点</span><b id="kFirst"></b></div>
+    <div class="kpi"><span>判为内点（其中外点）/ 真正的内点</span><b id="kInl"></b></div>
+    <div class="kpi" id="kErrBox"><span>单应误差（全画面均方根）</span><b id="kErr"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>第二张图上的匹配点<i style="background:var(--green)"></i>内点，判对<i style="background:var(--orange)"></i>内点，被丢掉<i style="background:#b9bec7"></i>外点<i style="background:var(--red)"></i>外点，混进来<br>第一张图的边框映射过来的位置<i class="ln" style="background:var(--green)"></i>真值<i class="ln" style="background:var(--red)"></i>估计</figcaption><canvas id="c1" height="300"></canvas></figure>
+    <figure class="panel"><figcaption>到目前为止最好的内点数随迭代的变化<i class="ln" style="background:var(--blue)"></i>最好内点数<i class="ln" style="background:var(--muted)"></i>真正的内点数<br>底部的绿色刻度：这一次抽到的 4 对全是内点</figcaption><canvas id="c2" height="300"></canvas></figure>
+  </div>
+
+  <div class="panel stat" id="stat" style="margin-top:12px">
+    <button id="repeat">用当前设置重复 200 次<br>（每次换一组数据）</button>
+    <div><span>成功率（误差小于 3 px）</span><b id="sOk"></b></div>
+    <div><span>至少抽到一组全内点</span><b id="sClean"></b></div>
+    <div><span>公式值</span><b id="sFormula"></b></div>
+    <div><span>误差中位数</span><b id="sMed"></b></div>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>（每一步的“载入”会同时重复 200 次并更新上面一行统计）
+    <ol>
+      <li>全部点最小二乘，外点 0%，单应误差是零点几像素。载入后外点变成 5%（100 对里错 5 对），误差变成多少？<button data-preset='{"method":"ls","out":5,"noise":1,"thresh":3,"k":4,"dataSeed":1,"runSeed":1}'>载入</button></li>
+      <li>换成 RANSAC，外点 30%，迭代 17 次，这是公式在置信度 0.99 下给的次数。重复 200 次的成功率到 99% 了吗？和“至少抽到一组全内点”的比例差多少？<button data-preset='{"method":"ransac","out":30,"noise":1,"thresh":3,"k":4,"dataSeed":1,"runSeed":1}'>载入</button></li>
+      <li>保持外点 30%，迭代次数加到 51（公式值的 3 倍），成功率变成多少？<button data-preset='{"method":"ransac","out":30,"noise":1,"thresh":3,"k":6,"dataSeed":1,"runSeed":1}'>载入</button></li>
+      <li>外点 70%，迭代 567 次（公式值）。看右图：第一条绿色刻度出现时，蓝线跳到灰色虚线了吗？多按几次“重新抽样”。再把迭代次数拖到 1701，按“用当前设置重复 200 次”，比较成功率。<button data-preset='{"method":"ransac","out":70,"noise":1,"thresh":3,"k":12,"dataSeed":1,"runSeed":1}'>载入</button></li>
+      <li>外点 30%，迭代 1000 次，阈值 0.5 px（噪声的一半）：判为内点的还剩多少，误差多大？再把阈值拖到 3 px 和 12 px，各看一次。<button data-preset='{"method":"ransac","out":30,"noise":1,"thresh":0.5,"k":13,"dataSeed":1,"runSeed":1}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ==== 计算部分开始（不访问页面元素，可以在 node 里单独执行）
+const W = 640, H = 480, NPTS = 100, KS = [1, 2, 5, 10, 17, 34, 51, 72, 100, 144, 216, 300, 567, 1000, 1701, 3000];
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+function mul3(A, B) { const C = new Array(9).fill(0); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) C[i * 3 + j] += A[i * 3 + k] * B[k * 3 + j]; return C; }
+// 齐次坐标变换：补 1，乘矩阵，除以第三个分量；第三个分量接近 0 时返回 null
+function apply(M, x, y) { const w = M[6] * x + M[7] * y + M[8]; if (Math.abs(w) <= 1e-12) return null; return [(M[0] * x + M[1] * y + M[2]) / w, (M[3] * x + M[4] * y + M[5]) / w]; }
+function solve(A, b, n) {
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let i = c + 1; i < n; i++) if (Math.abs(A[i][c]) > Math.abs(A[p][c])) p = i;
+    if (Math.abs(A[p][c]) < 1e-10) return null;
+    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
+    for (let i = c + 1; i < n; i++) { const f = A[i][c] / A[c][c]; if (f === 0) continue; for (let j = c; j < n; j++) A[i][j] -= f * A[c][j]; b[i] -= f * b[c]; }
+  }
+  const x = new Array(n);
+  for (let i = n - 1; i >= 0; i--) { let s = b[i]; for (let j = i + 1; j < n; j++) s -= A[i][j] * x[j]; x[i] = s / A[i][i]; }
+  return x;
+}
+function normOf(xs, ys, idx) { let cx = 0, cy = 0; for (const i of idx) { cx += xs[i]; cy += ys[i]; } cx /= idx.length; cy /= idx.length; let d = 0; for (const i of idx) d += Math.hypot(xs[i] - cx, ys[i] - cy); const s = Math.SQRT2 / (d / idx.length + 1e-12); return { T: [s, 0, -s * cx, 0, s, -s * cy, 0, 0, 1], Ti: [1 / s, 0, cx, 0, 1 / s, cy, 0, 0, 1] }; }
+// 用下标 idx 指定的点对求单应：坐标先归一化，固定 h33 = 1，解线性最小二乘（4 对点时就是恰好解出）
+function homography(sx, sy, dx, dy, idx) {
+  const ns = normOf(sx, sy, idx), nd = normOf(dx, dy, idx);
+  const ATA = Array.from({ length: 8 }, () => new Array(8).fill(0)), ATb = new Array(8).fill(0);
+  for (const i of idx) {
+    const p = apply(ns.T, sx[i], sy[i]), q = apply(nd.T, dx[i], dy[i]);
+    const rows = [[p[0], p[1], 1, 0, 0, 0, -q[0] * p[0], -q[0] * p[1]], [0, 0, 0, p[0], p[1], 1, -q[1] * p[0], -q[1] * p[1]]];
+    for (let r = 0; r < 2; r++) for (let a = 0; a < 8; a++) { if (rows[r][a] === 0) continue; ATb[a] += rows[r][a] * q[r]; for (let c = 0; c < 8; c++) ATA[a][c] += rows[r][a] * rows[r][c]; }
+  }
+  const h = solve(ATA, ATb, 8);
+  if (!h) return null;
+  const M = mul3(nd.Ti, mul3([h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1], ns.T));
+  return M.every(Number.isFinite) ? M : null;
+}
+function makeData(seed, outRatio, sigma) {
+  const r = rng(seed * 7919 + 13), cx = [0, W - 1, W - 1, 0], cy = [0, 0, H - 1, H - 1];
+  const tx = cx.map(v => v + (r() * 2 - 1) * 60), ty = cy.map(v => v + (r() * 2 - 1) * 60);
+  const Ht = homography(cx, cy, tx, ty, [0, 1, 2, 3]);
+  const sx = [], sy = [], dx = [], dy = [], isOut = new Array(NPTS).fill(false);
+  const nOut = Math.round(NPTS * outRatio), order = [...Array(NPTS).keys()];
+  for (let i = NPTS - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  for (let i = 0; i < nOut; i++) isOut[order[i]] = true;
+  for (let i = 0; i < NPTS; i++) {
+    sx.push(r() * (W - 1)); sy.push(r() * (H - 1));
+    const q = apply(Ht, sx[i], sy[i]), gx = gauss(r) * sigma, gy = gauss(r) * sigma, ox = r() * (W - 1), oy = r() * (H - 1);
+    dx.push(isOut[i] ? ox : q[0] + gx); dy.push(isOut[i] ? oy : q[1] + gy);
+  }
+  return { sx, sy, dx, dy, isOut, Ht, nIn: NPTS - nOut };
+}
+function pointErrors(M, d) { const e = new Float64Array(NPTS); for (let i = 0; i < NPTS; i++) { const q = M ? apply(M, d.sx[i], d.sy[i]) : null; e[i] = q ? Math.hypot(q[0] - d.dx[i], q[1] - d.dy[i]) : Infinity; } return e; }
+// 估出的单应把全画面 17×13 个网格点映射后，和真值位置的均方根距离
+function gridError(M, Ht) { if (!M) return Infinity; let s = 0; for (let j = 0; j < 13; j++) for (let i = 0; i < 17; i++) { const x = i * (W - 1) / 16, y = j * (H - 1) / 12, a = apply(M, x, y), b = apply(Ht, x, y); if (!a) return Infinity; s += (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2; } return Math.sqrt(s / 221); }
+function runRansac(d, thresh, K, seed) {
+  const r = rng(seed * 104729 + 7), history = [], cleanAt = [];
+  let best = -1, bestH = null;
+  for (let k = 1; k <= K; k++) {
+    const idx = []; while (idx.length < 4) { const i = Math.floor(r() * NPTS); if (!idx.includes(i)) idx.push(i); }
+    if (idx.every(i => !d.isOut[i])) cleanAt.push(k);
+    const M = homography(d.sx, d.sy, d.dx, d.dy, idx);
+    if (M) { const e = pointErrors(M, d); let c = 0; for (let i = 0; i < NPTS; i++) if (e[i] < thresh) c++; if (c > best) { best = c; bestH = M; } }
+    history.push(Math.max(best, 0));
+  }
+  let M = bestH, e = pointErrors(M, d), mask = Array.from(e, v => v < thresh);
+  for (let round = 0; round < 2; round++) {            // 用内点重新拟合两轮
+    const idx = []; mask.forEach((m, i) => { if (m) idx.push(i); });
+    if (idx.length < 4) break;
+    const M2 = homography(d.sx, d.sy, d.dx, d.dy, idx); if (!M2) break;
+    M = M2; e = pointErrors(M, d); mask = Array.from(e, v => v < thresh);
+  }
+  return { H: M, mask, history, cleanAt };
+}
+function runLeastSquares(d) { return { H: homography(d.sx, d.sy, d.dx, d.dy, [...Array(NPTS).keys()]), mask: null, history: [], cleanAt: [] }; }
+function formula(outRatio, K) { return 1 - Math.pow(1 - Math.pow(1 - outRatio, 4), K); }
+function runOnce(cfg) { const d = makeData(cfg.dataSeed, cfg.out / 100, cfg.noise); const res = cfg.method === "ls" ? runLeastSquares(d) : runRansac(d, cfg.thresh, KS[cfg.k], cfg.runSeed); res.data = d; res.err = gridError(res.H, d.Ht); return res; }
+function repeatStats(cfg, trials) {
+  let ok = 0, clean = 0; const errs = [];
+  for (let t = 0; t < trials; t++) { const res = runOnce(Object.assign({}, cfg, { dataSeed: 1000 + t, runSeed: 5000 + t })); if (res.err < 3) ok++; if (res.cleanAt.length) clean++; errs.push(res.err); }
+  errs.sort((a, b) => a - b);
+  return { success: ok / trials, clean: clean / trials, formula: formula(cfg.out / 100, KS[cfg.k]), median: (errs[trials / 2 - 1] + errs[trials / 2]) / 2 };
+}
+// ==== 计算部分结束
+
+const state = { method: "ransac", out: 30, noise: 1, thresh: 3, k: 4, dataSeed: 1, runSeed: 1 };
+const $ = id => document.getElementById(id);
+const fmtErr = v => !Number.isFinite(v) ? "失败" : v >= 100 ? v.toFixed(0) + " px" : v >= 10 ? v.toFixed(1) + " px" : v.toFixed(2) + " px";
+const pctText = v => (v * 100).toFixed(v > 0.9995 || v < 0.0005 ? 0 : 1) + "%";
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function quad(ctx, M, sx, sy, color, dash) {
+  const pts = [[0, 0], [W - 1, 0], [W - 1, H - 1], [0, H - 1]].map(p => M ? apply(M, p[0], p[1]) : null);
+  if (pts.some(p => !p || !Number.isFinite(p[0]) || !Number.isFinite(p[1]))) return;
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash(dash || []); ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function render() {
+  const res = runOnce(state), d = res.data, isR = state.method === "ransac", K = KS[state.k];
+  $("outV").textContent = state.out + "%"; $("noiseV").textContent = state.noise.toFixed(1); $("threshV").textContent = isR ? state.thresh.toFixed(1) : "不用"; $("kV").textContent = isR ? K : "不用";
+  $("kFormula").textContent = isR ? pctText(formula(state.out / 100, K)) : "不适用";
+  $("kFirst").textContent = isR ? (res.cleanAt.length ? "第 " + res.cleanAt[0] + " 次" : "没抽到") : "不适用";
+  if (isR) { let found = 0, fp = 0; res.mask.forEach((m, i) => { if (m) { found++; if (d.isOut[i]) fp++; } }); $("kInl").textContent = found + "（" + fp + "）/ " + d.nIn; } else $("kInl").textContent = "不分内外点 / " + d.nIn;
+  $("kErr").textContent = fmtErr(res.err); $("kErrBox").className = "kpi " + (res.err < 3 ? "ok" : "bad");
+
+  let [ctx, w, h] = setup($("c1"));
+  const x0 = -80, x1 = W + 80, y0 = -80, y1 = H + 80, s = Math.min(w / (x1 - x0), h / (y1 - y0)), ox = (w - s * (x1 - x0)) / 2, oy = (h - s * (y1 - y0)) / 2;
+  const sx = v => ox + (v - x0) * s, sy = v => oy + (v - y0) * s;
+  ctx.fillStyle = "#f6f7f9"; ctx.fillRect(sx(0), sy(0), sx(W - 1) - sx(0), sy(H - 1) - sy(0)); ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.strokeRect(sx(0), sy(0), sx(W - 1) - sx(0), sy(H - 1) - sy(0));
+  for (let i = 0; i < NPTS; i++) {
+    const judged = res.mask ? res.mask[i] : !d.isOut[i];
+    ctx.fillStyle = d.isOut[i] ? (res.mask && judged ? "#d6362f" : "#b9bec7") : (judged ? "#1a9c4b" : "#e8710a");
+    ctx.beginPath(); ctx.arc(sx(d.dx[i]), sy(d.dy[i]), 3.2, 0, 7); ctx.fill();
+  }
+  quad(ctx, d.Ht, sx, sy, "#1a9c4b", [6, 4]); quad(ctx, res.H, sx, sy, "#d6362f");
+
+  [ctx, w, h] = setup($("c2"));
+  const L = 34, R = 10, T = 10, B = 26, px = k => L + (K > 1 ? (k - 1) / (K - 1) : 0.5) * (w - L - R), py = v => h - B - v / NPTS * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "right";
+  for (let v = 0; v <= 100; v += 25) { ctx.beginPath(); ctx.moveTo(L, py(v)); ctx.lineTo(w - R, py(v)); ctx.stroke(); ctx.fillText(v, L - 5, py(v) + 4); }
+  ctx.textAlign = "center";
+  if (!isR) { ctx.fillText("最小二乘没有迭代过程", (L + w - R) / 2, h / 2); return; }
+  ctx.fillText("1", px(1), h - 8); if (K > 1) ctx.fillText(K, px(K) - 6, h - 8); ctx.fillText("迭代次数", (L + w - R) / 2, h - 8);
+  ctx.strokeStyle = "#646a73"; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(L, py(d.nIn)); ctx.lineTo(w - R, py(d.nIn)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = "#1a9c4b"; ctx.lineWidth = 1.5; for (const k of res.cleanAt) { ctx.beginPath(); ctx.moveTo(px(k), h - B); ctx.lineTo(px(k), h - B - 12); ctx.stroke(); }
+  ctx.strokeStyle = "#2f6fed"; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(px(1), py(res.history[0]));
+  for (let k = 2; k <= K; k++) { ctx.lineTo(px(k), py(res.history[k - 2])); ctx.lineTo(px(k), py(res.history[k - 1])); }
+  ctx.stroke();
+}
+
+function showStats() {
+  const st = repeatStats(state, 200), isR = state.method === "ransac";
+  $("sOk").textContent = pctText(st.success); $("sClean").textContent = isR ? pctText(st.clean) : "不适用"; $("sFormula").textContent = isR ? pctText(st.formula) : "不适用"; $("sMed").textContent = fmtErr(st.median);
+  $("stat").classList.remove("stale");
+}
+function stale() { $("stat").classList.add("stale"); }
+function syncControls() {
+  $("method").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state.method));
+  for (const id of ["out", "noise", "thresh", "k"]) $(id).value = state[id];
+}
+$("method").addEventListener("click", e => { if (e.target.dataset.v) { state.method = e.target.dataset.v; syncControls(); render(); stale(); } });
+for (const id of ["out", "noise", "thresh", "k"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); stale(); });
+$("newData").addEventListener("click", () => { state.dataSeed++; render(); });
+$("newRun").addEventListener("click", () => { state.runSeed++; render(); });
+$("repeat").addEventListener("click", showStats);
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); showStats(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render(); showStats();
+</script>
+</body>
+</html>

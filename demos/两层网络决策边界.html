@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>两层网络的决策边界：隐藏单元、学习率和初始化</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); min-width: 0; }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .btns { display: flex; gap: 8px; margin-top: 4px; }
+  .btns button, .stat button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); cursor: pointer; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); display: block; }
+  .kpi b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 9px; height: 9px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 50%; }
+  figcaption i.ln { width: 18px; height: 3px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .stat { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center; }
+  .stat div { min-width: 0; }
+  .stat div span { font-size: 12px; color: var(--muted); display: block; }
+  .stat div b { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .stat.stale div b { color: #b9bec7; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 640px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>两层网络的决策边界：隐藏单元、学习率和初始化（第 8 章）</h1>
+  <div class="sub">128 个二维点，两类。网络是“输入 2 维、一个隐藏层、输出 2 个 logits”，损失是 softmax 交叉熵，和本章作业的前向与损失一致；训练用全批量梯度下降 500 步，权重按 nn.Linear 的默认方式初始化后再乘一个倍数。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>数据<div class="seg" id="data"><button data-v="xor" class="on">XOR</button><button data-v="ring">圆点与圆环</button></div></label>
+    <label>隐藏层的激活<div class="seg" id="act"><button data-v="relu" class="on">ReLU</button><button data-v="none">去掉激活</button></div></label>
+    <label>隐藏单元数<b id="hV"></b><input type="range" id="h" min="0" max="9" step="1" value="5"></label>
+    <label>学习率<b id="lrV"></b><input type="range" id="lr" min="0" max="16" step="1" value="8"></label>
+    <label>初始化倍数<b id="scV"></b><input type="range" id="sc" min="0" max="16" step="1" value="8"></label>
+    <label>看第几步的边界<b id="stV"></b><input type="range" id="st" min="0" max="500" step="10" value="500"></label>
+    <label>初始化<div class="btns"><button id="newSeed">换一组初始化</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>这一步的训练损失</span><b id="kLoss"></b></div>
+    <div class="kpi" id="kAccBox"><span>这一步的训练准确率</span><b id="kAcc"></b></div>
+    <div class="kpi"><span>对所有点都输出 0 的隐藏单元</span><b id="kDead"></b></div>
+    <div class="kpi" id="kStateBox"><span>500 步之后</span><b id="kState"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>决策区域<i style="background:var(--blue)"></i>类别 0<i style="background:var(--orange)"></i>类别 1，底色是网络判给哪一类</figcaption><canvas id="c1" width="520" height="440"></canvas></figure>
+    <figure class="panel"><figcaption>训练损失（纵轴是对数）<i class="ln" style="background:var(--blue)"></i>损失<i class="ln" style="background:#b9bec7"></i>两类各猜一半时的 0.693<i class="ln" style="background:var(--red)"></i>当前步</figcaption><canvas id="c2" width="520" height="440"></canvas></figure>
+  </div>
+
+  <div class="panel stat stale" id="stat">
+    <button id="repeat">用当前设置换 50 组初始化各训练一次</button>
+    <div><span>学会的比例（准确率 100%）</span><b id="sOk">-</b></div>
+    <div><span>最终准确率的中位数</span><b id="sMed">-</b></div>
+    <div><span>损失变成 NaN 的次数</span><b id="sNan">-</b></div>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>（每一步的“载入”会同时用 50 组初始化各训练一次，更新上面一行统计）
+    <ol>
+      <li>XOR，去掉激活，8 个隐藏单元。边界是什么形状？50 组初始化里有几组学会？再点几次“换一组初始化”，损失始终停在哪个数附近？<button data-preset='{"data":"xor","act":"none","h":5,"lr":8,"sc":8,"seed":1}'>载入</button></li>
+      <li>换回 ReLU，隐藏单元只留 2 个（理论上够用）。50 组里学会了多少？把隐藏单元数拖到 4 和 8，每次按一下“用当前设置换 50 组初始化各训练一次”。<button data-preset='{"data":"xor","act":"relu","h":1,"lr":8,"sc":8,"seed":1}'>载入</button></li>
+      <li>8 个隐藏单元，学习率 0.01：500 步后损失降到多少、学会了吗？把学习率依次拖到 1、1.78、3.16、10：曲线从平滑下降，到出现小的回弹，到停在 75%，最后 8 个单元全部输出 0、损失比开始时还高。<button data-preset='{"data":"xor","act":"relu","h":5,"lr":0,"sc":8,"seed":1}'>载入</button></li>
+      <li>学习率回到 1，初始化倍数 0.01：损失在 0.693 上停了几十步才开始下降，拖动“看第几步的边界”看这段时间边界有没有变化。再把倍数拖到 31.6，看第 0 步的损失是 0.693 的多少倍。<button data-preset='{"data":"xor","act":"relu","h":5,"lr":8,"sc":0,"seed":1}'>载入</button></li>
+      <li>换成“圆点与圆环”，2 个隐藏单元：要把中间的圆点围起来，两条折线够不够？50 组里有几组学会？改成 3 个、8 个、16 个各重复一次，再拖动“看第几步的边界”看边界是怎样围起来的。<button data-preset='{"data":"ring","act":"relu","h":1,"lr":8,"sc":8,"seed":1}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ==== 计算部分（不依赖页面，可以单独用 node 执行）====
+const H_LIST = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32];
+const LR_LIST = Array.from({ length: 17 }, (_, i) => Math.pow(10, -2 + i / 4));   // 0.01 到 100
+const SC_LIST = Array.from({ length: 17 }, (_, i) => Math.pow(10, -2 + i / 4));   // 0.01 到 100
+const STEPS = 500, SNAP = 10, LN2 = Math.log(2);
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+
+function makeData(kind) {
+  const r = rng(8), X = [], Y = [];
+  if (kind === 'xor') {
+    const base = [[0, 0], [0, 1], [1, 0], [1, 1]], lab = [0, 1, 1, 0];
+    for (let rep = 0; rep < 32; rep++) for (let k = 0; k < 4; k++) { X.push([base[k][0] + 0.08 * gauss(r), base[k][1] + 0.08 * gauss(r)]); Y.push(lab[k]); }
+  } else {
+    for (let i = 0; i < 128; i++) {
+      const inner = i % 2 === 0, ang = 2 * Math.PI * r(), rad = inner ? 0.17 * Math.sqrt(r()) : 0.42 + 0.1 * r();
+      X.push([0.5 + rad * Math.cos(ang), 0.5 + rad * Math.sin(ang)]); Y.push(inner ? 0 : 1);
+    }
+  }
+  return { X, Y };
+}
+
+// 权重和偏置都从 U(-1/sqrt(fan_in), 1/sqrt(fan_in)) 取，再乘 scale
+function initNet(H, scale, seed) {
+  const r = rng(1000 + seed), b1 = 1 / Math.sqrt(2), b2 = 1 / Math.sqrt(H);
+  const u = (n, b) => Float64Array.from({ length: n }, () => (2 * r() - 1) * b * scale);
+  return { H, W1: u(2 * H, b1), B1: u(H, b1), W2: u(2 * H, b2), B2: u(2, b2) };
+}
+function copyNet(n) { return { H: n.H, W1: n.W1.slice(), B1: n.B1.slice(), W2: n.W2.slice(), B2: n.B2.slice() }; }
+
+// 一个点的前向：hidden[j] = act(x·W1[:, j] + B1[j])，logits = hidden·W2 + B2。返回 logit1 - logit0
+function forwardOne(net, x0, x1, relu, hid) {
+  const H = net.H; let z0 = net.B2[0], z1 = net.B2[1];
+  for (let j = 0; j < H; j++) {
+    let a = x0 * net.W1[j] + x1 * net.W1[H + j] + net.B1[j];
+    if (relu && a < 0) a = 0;
+    hid[j] = a; z0 += a * net.W2[2 * j]; z1 += a * net.W2[2 * j + 1];
+  }
+  return z1 - z0;
+}
+function softplus(d) { return d > 0 ? d + Math.log1p(Math.exp(-d)) : Math.log1p(Math.exp(d)); }
+
+// 当前参数下的损失、准确率、恒为 0 的隐藏单元数；需要时同时算出梯度
+function evaluate(net, data, relu, grad) {
+  const H = net.H, N = data.X.length, hid = new Float64Array(H), alive = new Uint8Array(H);
+  let loss = 0, ok = 0;
+  if (grad) { grad.W1.fill(0); grad.B1.fill(0); grad.W2.fill(0); grad.B2.fill(0); }
+  for (let i = 0; i < N; i++) {
+    const x0 = data.X[i][0], x1 = data.X[i][1], y = data.Y[i];
+    const d = forwardOne(net, x0, x1, relu, hid);          // logit1 - logit0
+    const m = y === 1 ? -d : d;                             // 错的那一类减对的那一类
+    loss += softplus(m);                                    // 减去最大值之后的 log-sum-exp，两类时就是 softplus
+    if ((d > 0 ? 1 : 0) === y) ok++;
+    for (let j = 0; j < H; j++) if (hid[j] > 0) alive[j] = 1;
+    if (grad) {
+      const p1 = 1 / (1 + Math.exp(-d)), g1 = (p1 - y) / N, g0 = -g1;   // 损失对两个 logit 的梯度：概率减 one-hot，再除以 N
+      grad.B2[0] += g0; grad.B2[1] += g1;
+      for (let j = 0; j < H; j++) {
+        const a = hid[j];
+        grad.W2[2 * j] += a * g0; grad.W2[2 * j + 1] += a * g1;
+        let gh = g0 * net.W2[2 * j] + g1 * net.W2[2 * j + 1];
+        if (relu && a <= 0) gh = 0;
+        grad.W1[j] += x0 * gh; grad.W1[H + j] += x1 * gh; grad.B1[j] += gh;
+      }
+    }
+  }
+  let dead = 0; if (relu) for (let j = 0; j < H; j++) if (!alive[j]) dead++;
+  return { loss: loss / N, acc: ok / N, dead };
+}
+
+// 全批量梯度下降。返回每一步更新前的损失、每 SNAP 步的参数快照、第几步出现 NaN（没有则为 -1）
+function trainRun(data, o, keepSnaps) {
+  const relu = o.act === 'relu', net = initNet(o.H, o.scale, o.seed);
+  const grad = { W1: new Float64Array(2 * o.H), B1: new Float64Array(o.H), W2: new Float64Array(2 * o.H), B2: new Float64Array(2) };
+  const losses = [], accs = [], deads = [], snaps = [];
+  let nanAt = -1;
+  for (let t = 0; t <= STEPS; t++) {
+    const e = evaluate(net, data, relu, grad);
+    if (!isFinite(e.loss)) { nanAt = t; break; }
+    losses.push(e.loss); accs.push(e.acc); deads.push(e.dead);
+    if (keepSnaps && t % SNAP === 0) snaps.push(copyNet(net));
+    if (t === STEPS) break;
+    for (const k of ['W1', 'B1', 'W2', 'B2']) for (let i = 0; i < net[k].length; i++) net[k][i] -= o.lr * grad[k][i];
+  }
+  const last = losses.length - 1;
+  return { losses, accs, deads, snaps, nanAt, finalLoss: last >= 0 ? losses[last] : NaN, finalAcc: last >= 0 && nanAt < 0 ? accs[last] : 0, finalDead: last >= 0 ? deads[last] : 0 };
+}
+
+function repeatRuns(data, o, n) {
+  let ok = 0, nan = 0; const accs = [];
+  for (let s = 1; s <= n; s++) { const r = trainRun(data, Object.assign({}, o, { seed: s }), false); if (r.nanAt >= 0) nan++; else if (r.finalAcc === 1) ok++; accs.push(r.finalAcc); }
+  accs.sort((a, b) => a - b);
+  return { ok, nan, median: (accs[Math.floor((n - 1) / 2)] + accs[Math.ceil((n - 1) / 2)]) / 2 };
+}
+// 损失第一次比初始值低 5% 是第几步（没有则为 -1），用来量“平台有多长”
+function plateauEnd(losses) { for (let t = 0; t < losses.length; t++) if (losses[t] < 0.95 * losses[0]) return t; return -1; }
+// ==== 页面部分 ====
+if (typeof document !== 'undefined') {
+  const $ = id => document.getElementById(id);
+  const S = { data: 'xor', act: 'relu', h: 5, lr: 8, sc: 8, st: 500, seed: 1 };
+  let DATA = makeData('xor'), RUN = null;
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const fmt = v => v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v >= 0.1 ? v.toFixed(2) : v.toFixed(3);
+  const opts = () => ({ H: H_LIST[S.h], lr: LR_LIST[S.lr], scale: SC_LIST[S.sc], act: S.act, seed: S.seed });
+
+  function drawRegion() {
+    const c = $('c1'), g = c.getContext('2d'), W = c.width, Hh = c.height, pad = 10, lo = -0.4, hi = 1.4;
+    g.clearRect(0, 0, W, Hh);
+    const side = Math.min(W, Hh) - 2 * pad, ox = (W - side) / 2, oy = (Hh - side) / 2, n = 90, cell = side / n;
+    const snapIdx = Math.min(Math.round(S.st / SNAP), RUN.snaps.length - 1);
+    const net = RUN.snaps[Math.max(snapIdx, 0)];
+    if (!net) return;
+    const hid = new Float64Array(net.H), relu = S.act === 'relu';
+    for (let iy = 0; iy < n; iy++) for (let ix = 0; ix < n; ix++) {
+      const x = lo + (hi - lo) * (ix + 0.5) / n, y = hi - (hi - lo) * (iy + 0.5) / n;
+      g.fillStyle = forwardOne(net, x, y, relu, hid) > 0 ? '#ffe3cc' : '#dbe7ff';
+      g.fillRect(ox + ix * cell, oy + iy * cell, cell + 0.6, cell + 0.6);
+    }
+    for (let i = 0; i < DATA.X.length; i++) {
+      const px = ox + (DATA.X[i][0] - lo) / (hi - lo) * side, py = oy + (hi - DATA.X[i][1]) / (hi - lo) * side;
+      g.fillStyle = DATA.Y[i] === 1 ? css('--orange') : css('--blue');
+      g.beginPath(); g.arc(px, py, 3.2, 0, 2 * Math.PI); g.fill();
+    }
+    g.strokeStyle = '#b9bec7'; g.lineWidth = 1; g.strokeRect(ox, oy, side, side);
+  }
+
+  function drawLoss() {
+    const c = $('c2'), g = c.getContext('2d'), W = c.width, Hh = c.height, L = 52, R = 14, T = 12, B = 34;
+    g.clearRect(0, 0, W, Hh);
+    const ls = RUN.losses, top = Math.min(6, Math.max(1, Math.ceil(Math.log10(Math.max.apply(null, ls.concat([1]))))));   // 纵轴最多画到 1e6，更大的值贴在顶上
+    const lo = -3, X = t => L + (W - L - R) * t / STEPS, Y = v => T + (Hh - T - B) * (top - Math.log10(Math.min(Math.max(v, 1e-3), Math.pow(10, top)))) / (top - lo);
+    g.font = '12px sans-serif'; g.fillStyle = css('--muted'); g.strokeStyle = css('--line'); g.lineWidth = 1;
+    for (let e = lo; e <= top; e++) { g.beginPath(); g.moveTo(L, Y(Math.pow(10, e))); g.lineTo(W - R, Y(Math.pow(10, e))); g.stroke(); g.textAlign = 'right'; g.fillText(e >= 0 ? String(Math.pow(10, e)) : Math.pow(10, e).toFixed(-e), L - 6, Y(Math.pow(10, e)) + 4); }
+    g.textAlign = 'center';
+    for (let t = 0; t <= STEPS; t += 100) g.fillText(String(t), X(t), Hh - B + 16);
+    g.fillText('更新步数', (L + W - R) / 2, Hh - 4);
+    g.strokeStyle = '#b9bec7'; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(L, Y(LN2)); g.lineTo(W - R, Y(LN2)); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = css('--blue'); g.lineWidth = 2; g.beginPath();
+    for (let t = 0; t < ls.length; t++) { if (t === 0) g.moveTo(X(t), Y(ls[t])); else g.lineTo(X(t), Y(ls[t])); }
+    g.stroke();
+    if (RUN.nanAt >= 0) { g.fillStyle = css('--red'); g.textAlign = 'left'; g.fillText('第 ' + RUN.nanAt + ' 步变成 NaN', Math.min(X(RUN.nanAt) + 6, W - 130), T + 14); }
+    const t = Math.min(S.st, ls.length - 1);
+    if (t >= 0) { g.strokeStyle = css('--red'); g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(t), T); g.lineTo(X(t), Hh - B); g.stroke(); }
+  }
+
+  function render() {
+    $('hV').textContent = H_LIST[S.h]; $('lrV').textContent = fmt(LR_LIST[S.lr]); $('scV').textContent = fmt(SC_LIST[S.sc]); $('stV').textContent = S.st;
+    const t = Math.min(S.st, RUN.losses.length - 1);
+    $('kLoss').textContent = t >= 0 ? (RUN.losses[t] >= 1e4 ? RUN.losses[t].toExponential(2) : RUN.losses[t].toFixed(4)) : 'NaN';
+    $('kAcc').textContent = t >= 0 ? (100 * RUN.accs[t]).toFixed(1) + '%' : '-';
+    $('kAccBox').className = 'kpi ' + (t >= 0 && RUN.accs[t] === 1 ? 'ok' : '');
+    $('kDead').textContent = S.act === 'relu' ? (t >= 0 ? RUN.deads[t] : 0) + ' / ' + H_LIST[S.h] : '不适用';
+    let state, cls = 'bad';
+    if (RUN.nanAt >= 0) state = '损失变成 NaN';
+    else if (RUN.finalAcc === 1) { state = '学会了'; cls = 'ok'; }
+    else if (S.act === 'relu' && RUN.finalDead === H_LIST[S.h]) state = '单元全部输出 0';
+    else state = '没学会，' + (100 * RUN.finalAcc).toFixed(0) + '%';
+    $('kState').textContent = state; $('kStateBox').className = 'kpi ' + cls;
+    drawRegion(); drawLoss();
+  }
+  function retrain() { RUN = trainRun(DATA, opts(), true); $('stat').classList.add('stale'); render(); }
+  function repeat() {
+    const r = repeatRuns(DATA, opts(), 50);
+    $('sOk').textContent = r.ok + ' / 50'; $('sMed').textContent = (100 * r.median).toFixed(0) + '%'; $('sNan').textContent = r.nan;
+    $('stat').classList.remove('stale');
+  }
+  function syncControls() {
+    for (const id of ['h', 'lr', 'sc', 'st']) $(id).value = S[id];
+    for (const id of ['data', 'act']) for (const b of $(id).querySelectorAll('button')) b.classList.toggle('on', b.dataset.v === S[id]);
+  }
+  for (const id of ['h', 'lr', 'sc']) $(id).addEventListener('input', e => { S[id] = +e.target.value; retrain(); });
+  $('st').addEventListener('input', e => { S.st = +e.target.value; render(); });
+  for (const id of ['data', 'act']) $(id).addEventListener('click', e => {
+    if (!e.target.dataset.v) return;
+    S[id] = e.target.dataset.v; if (id === 'data') DATA = makeData(S.data);
+    syncControls(); retrain();
+  });
+  $('newSeed').addEventListener('click', () => { S.seed++; retrain(); });
+  $('repeat').addEventListener('click', repeat);
+  for (const b of document.querySelectorAll('.try button')) b.addEventListener('click', () => {
+    const p = JSON.parse(b.dataset.preset);
+    Object.assign(S, p, { st: 500 });
+    DATA = makeData(S.data); syncControls(); retrain(); repeat();
+  });
+  syncControls(); retrain();
+}
+if (typeof module !== 'undefined') module.exports = { H_LIST, LR_LIST, SC_LIST, STEPS, makeData, initNet, evaluate, trainRun, repeatRuns, plateauEnd };
+</script>
+</body>
+</html>

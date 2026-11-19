@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{page_title}} | {{site_title}}</title>
+<link rel="stylesheet" href="{{root}}assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="{{root}}assets/pygments.css">
+<link rel="stylesheet" href="{{root}}assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="{{body_class}}">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="{{root}}index.html"><span class="brand-mark">CV</span><span>{{site_title}}</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+{{sidebar}}
+  </nav>
+  <main class="content">
+{{main}}
+  </main>
+  <aside class="toc" aria-label="本页目录">
+{{toc}}
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = {{data}};</script>
+<script src="{{root}}assets/vendor/katex/katex.min.js"></script>
+<script src="{{root}}assets/app.js"></script>
+</body>
+</html>

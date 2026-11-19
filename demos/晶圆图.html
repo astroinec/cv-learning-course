@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>晶圆图：die 数、缺陷分布与良率</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  .controls .wide { grid-column: 1 / -1; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1 0 auto; font: inherit; font-size: 12.5px; padding: 5px 8px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .row { display: flex; gap: 10px; align-items: flex-end; }
+  .row .seg { flex: 1; min-width: 0; }
+  .plain { font: inherit; font-size: 12.5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); cursor: pointer; white-space: nowrap; }
+  .kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; }
+  .kpi i { font-style: normal; font-size: 11.5px; color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; }
+  .side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .side .panel, .main > .panel { margin-bottom: 0; }
+  .main { margin-bottom: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin: 0 4px 0 8px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 640px) { .main { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>晶圆图：die 数、缺陷分布与良率（第 23 章）</h1>
+  <div class="sub">几何和统计的口径与本章作业一致：四个角点都在可用圆内才算完整 die，缺陷按左闭右开归到 die，径向密度按圆环面积归一化。良率按“落了缺陷的完整 die 就算坏”计算，边缘比例取外圈十分之一半径（300 mm 晶圆是 15 mm）。缺陷坐标是合成的，所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>晶圆直径<div class="seg" id="dia"><button data-v="200">200 mm</button><button data-v="300" class="on">300 mm</button></div></label>
+    <label>die 宽（mm）<b id="wV"></b><input type="range" id="w" min="4" max="33" step="1" value="10"></label>
+    <label>die 高（mm）<b id="hV"></b><input type="range" id="h" min="4" max="33" step="1" value="10"></label>
+    <label>去边宽度（mm）<b id="eeV"></b><input type="range" id="ee" min="0" max="10" step="0.5" value="3"></label>
+    <label>网格对齐<div class="seg" id="align"><button data-v="center" class="on">die 中心对准</button><button data-v="corner">角点对准</button></div></label>
+    <label>缺陷个数<b id="nV"></b><input type="range" id="n" min="0" max="600" step="10" value="200"></label>
+    <label class="wide">缺陷分布
+      <div class="row">
+        <div class="seg" id="pat"><button data-v="none" class="on">不放缺陷</button><button data-v="random">随机</button><button data-v="center">中心集中</button><button data-v="edge">边缘环</button><button data-v="cluster">局部聚集</button><button data-v="scratch">划痕</button><button data-v="repeat">重复缺陷</button></div>
+        <button class="plain" id="reseed" type="button">换一组随机数</button>
+      </div>
+    </label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>完整 die 数</span><b id="kDie"></b><i id="kDieS"></i></div>
+    <div class="kpi"><span>按面积估计</span><b id="kArea"></b><i id="kAreaS"></i></div>
+    <div class="kpi"><span>晶圆上的缺陷数</span><b id="kN"></b><i id="kNS"></i></div>
+    <div class="kpi"><span>被命中的完整 die</span><b id="kHit"></b><i id="kHitS"></i></div>
+    <div class="kpi"><span>良率</span><b id="kY"></b><i id="kYS"></i></div>
+    <div class="kpi"><span>边缘比例</span><b id="kE"></b><i id="kES"></i></div>
+  </div>
+
+  <div class="main">
+    <figure class="panel"><figcaption>晶圆图<i style="background:#dbe7ff;border:1px solid #9db8f2"></i>完整 die<i style="background:#eef0f3;border:1px solid #c4c8cf"></i>不完整 die<i style="background:rgba(214,54,47,.5)"></i>被缺陷命中，虚线是去边后的可用范围</figcaption><canvas id="c1" height="420"></canvas></figure>
+    <div class="side">
+      <figure class="panel"><figcaption>径向密度：6 个等宽圆环的面密度，除以整片平均密度（虚线是 1）</figcaption><canvas id="c2" height="150"></canvas></figure>
+      <figure class="panel"><figcaption id="capStack">按 shot 叠图</figcaption><canvas id="c3" height="180"></canvas></figure>
+    </div>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>300 mm 晶圆、26×33 mm 的 die、去边 3 mm、不放缺陷。把网格对齐在“die 中心对准”和“角点对准”之间切换，看完整 die 数怎么变，再和“按面积估计”比。然后把 die 的宽和高都拖到 10，再切换一次：这次哪种对齐更多？<button data-preset='{"dia":300,"w":26,"h":33,"ee":3,"align":"center","pat":"none","n":200,"seed":1}'>载入</button></li>
+      <li>换成 10×10 mm 的 die、die 中心对准。把去边宽度从 3 拖到 4，再拖到 4.5 和 5，完整 die 数是平滑下降的吗？哪一步一个都没少，哪一步少得最多？<button data-preset='{"dia":300,"w":10,"h":10,"ee":3,"align":"center","pat":"none","n":200,"seed":1}'>载入</button></li>
+      <li>放 200 个随机缺陷，记下良率和它下面那行泊松预测（按缺陷随机分布算出的良率）。再切到“局部聚集”：缺陷个数没变，良率怎么变？多点几次“换一组随机数”，看结论稳不稳。<button data-preset='{"dia":300,"w":10,"h":10,"ee":3,"align":"center","pat":"random","n":200,"seed":1}'>载入</button></li>
+      <li>切到“划痕”，只看右上的径向密度；再切到“中心集中”。两张柱状图分得清吗？对划痕多点几次“换一组随机数”，它有时像中心集中，有时像环形。<button data-preset='{"dia":300,"w":10,"h":10,"ee":3,"align":"center","pat":"scratch","n":400,"seed":9}'>载入</button></li>
+      <li>切到“重复缺陷”：300 个随机缺陷里混进了少量位置重复的缺陷（每个 shot 同一位置，其中约一成被检出）。左边的晶圆图和右上的径向密度看得出来吗？右下的叠图呢？<button data-preset='{"dia":300,"w":10,"h":10,"ee":3,"align":"center","pat":"repeat","n":300,"seed":1}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+const RINGS = 6, CELLS = 40, REP_RATE = 0.1, REP_AT = [0.685, 0.31];
+const state = { dia: 300, w: 10, h: 10, ee: 3, align: "center", pat: "none", n: 200, seed: 1 };
+const $ = id => document.getElementById(id);
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+function inDisk(r, R) { const rad = R * Math.sqrt(r()), t = 2 * Math.PI * r(); return [rad * Math.cos(t), rad * Math.sin(t)]; }
+
+// 网格：完整 die（四个角点都在可用圆内）和只压到晶圆一部分的不完整 die
+function layout(s) {
+  const Rw = s.dia / 2, R = Rw - s.ee, ox = s.align === "center" ? -s.w / 2 : 0, oy = s.align === "center" ? -s.h / 2 : 0;
+  const full = [], part = [], index = new Map();
+  const c0 = Math.floor((-Rw - ox) / s.w) - 1, c1 = Math.ceil((Rw - ox) / s.w) + 1, r0 = Math.floor((-Rw - oy) / s.h) - 1, r1 = Math.ceil((Rw - oy) / s.h) + 1;
+  for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
+    const x0 = ox + col * s.w, y0 = oy + row * s.h, x1 = x0 + s.w, y1 = y0 + s.h;
+    const far = Math.max(x0 * x0, x1 * x1) + Math.max(y0 * y0, y1 * y1);
+    const nx = Math.min(Math.max(0, x0), x1), ny = Math.min(Math.max(0, y0), y1);
+    if (R > 0 && far <= R * R) { index.set(col + "," + row, full.length); full.push([x0, y0]); }
+    else if (nx * nx + ny * ny < Rw * Rw) part.push([x0, y0]);
+  }
+  return { Rw, R, ox, oy, full, part, index };
+}
+
+// 合成缺陷坐标，各种分布的尺度都按晶圆半径等比例缩放
+function makeDefects(s, L) {
+  const r = rng(s.seed * 7919 + 13), R = L.Rw, n = s.n, pts = [];
+  if (s.pat === "random" || s.pat === "repeat") for (let i = 0; i < n; i++) pts.push(inDisk(r, s.pat === "repeat" ? Math.max(L.R, 1) : R));
+  if (s.pat === "center") for (let i = 0; i < n; i++) pts.push([0.233 * R * gauss(r), 0.233 * R * gauss(r)]);
+  if (s.pat === "edge") for (let i = 0; i < n; i++) { const a = 0.933 * R, rad = Math.sqrt(a * a + (R * R - a * a) * r()), t = 2 * Math.PI * r(); pts.push([rad * Math.cos(t), rad * Math.sin(t)]); }
+  if (s.pat === "cluster") { const c = inDisk(r, 0.733 * R); for (let i = 0; i < n; i++) pts.push([c[0] + 0.053 * R * gauss(r), c[1] + 0.053 * R * gauss(r)]); }
+  if (s.pat === "scratch") { const ang = Math.PI * r(), c = inDisk(r, 0.4 * R), dx = Math.cos(ang), dy = Math.sin(ang); for (let i = 0; i < n; i++) { const t = (2 * r() - 1) * 0.4 * R, e = 0.3 * gauss(r); pts.push([c[0] + t * dx - e * dy, c[1] + t * dy + e * dx]); } }
+  let repeats = 0;
+  if (s.pat === "repeat") {
+    const sw = 2 * s.w, sh = 2 * s.h, k0 = Math.floor((-R - L.ox) / sw) - 1, k1 = Math.ceil((R - L.ox) / sw) + 1, l0 = Math.floor((-R - L.oy) / sh) - 1, l1 = Math.ceil((R - L.oy) / sh) + 1;
+    for (let l = l0; l <= l1; l++) for (let k = k0; k <= k1; k++) {
+      const x = L.ox + (k + REP_AT[0]) * sw, y = L.oy + (l + REP_AT[1]) * sh;
+      if (x * x + y * y <= L.R * L.R && r() < REP_RATE) { pts.push([x + 0.05 * gauss(r), y + 0.05 * gauss(r)]); repeats++; }
+    }
+  }
+  return { pts: pts.filter(p => p[0] * p[0] + p[1] * p[1] <= R * R), repeats };
+}
+
+function analyze(s, L, pts) {
+  const R = L.Rw, hit = new Uint8Array(L.full.length), ring = new Float64Array(RINGS), band = 0.1 * R;
+  const sw = 2 * s.w, sh = 2 * s.h, grid = new Uint16Array(CELLS * CELLS), local = [];
+  let edge = 0, peak = 0, peakAt = null;
+  for (const [x, y] of pts) {
+    const id = L.index.get(Math.floor((x - L.ox) / s.w) + "," + Math.floor((y - L.oy) / s.h));
+    if (id !== undefined) hit[id] = 1;
+    const rad = Math.hypot(x, y);
+    ring[Math.min(RINGS - 1, Math.floor(rad / R * RINGS))]++;
+    if (rad >= R - band) edge++;
+    const u = (x - L.ox) - Math.floor((x - L.ox) / sw) * sw, v = (y - L.oy) - Math.floor((y - L.oy) / sh) * sh;
+    local.push([u, v]);
+    const ci = Math.min(CELLS - 1, Math.floor(u / sw * CELLS)), cj = Math.min(CELLS - 1, Math.floor(v / sh * CELLS)), c = ++grid[cj * CELLS + ci];
+    if (c > peak) { peak = c; peakAt = [(ci + 0.5) * sw / CELLS, (cj + 0.5) * sh / CELLS]; }
+  }
+  const N = pts.length, mean = N / (Math.PI * R * R), dens = [];
+  for (let i = 0; i < RINGS; i++) { const a = Math.PI * R * R * ((i + 1) * (i + 1) - i * i) / (RINGS * RINGS); dens.push(N ? ring[i] / a / mean : 0); }
+  let hits = 0; for (const v of hit) hits += v;
+  const K = L.full.length;
+  return { N, K, hits, hit, dens, local, peak, peakAt, sw, sh,
+    areaEst: Math.PI * Math.max(L.R, 0) * Math.max(L.R, 0) / (s.w * s.h),
+    yieldObs: K ? 1 - hits / K : 0, yieldPoisson: Math.exp(-s.w * s.h * N / (Math.PI * R * R)), edgeRatio: N ? edge / N : 0, edgeUniform: 1 - 0.9 * 0.9 };
+}
+
+function setup(canvas, square) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = square ? Math.min(w, 520) : +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+
+function drawWafer(s, L, D, A) {
+  const [ctx, w, h] = setup($("c1"), true), k = (Math.min(w, h) / 2 - 6) / (L.Rw * 1.12), cx = w / 2, cy = h / 2, X = x => cx + x * k, Y = y => cy - y * k;
+  const cell = (list, fill, stroke) => { ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 0.6; for (const [x0, y0] of list) { ctx.fillRect(X(x0), Y(y0 + s.h), s.w * k, s.h * k); ctx.strokeRect(X(x0), Y(y0 + s.h), s.w * k, s.h * k); } };
+  cell(L.part, "#eef0f3", "#c4c8cf"); cell(L.full, "#dbe7ff", "#9db8f2");
+  cell(L.full.filter((_, i) => A.hit[i]), "rgba(214,54,47,.5)", "#d6362f");
+  ctx.strokeStyle = "#1f2329"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, L.Rw * k, 0, 7); ctx.stroke();
+  if (L.R > 0) { ctx.strokeStyle = "#646a73"; ctx.lineWidth = 1; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(cx, cy, L.R * k, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.fillStyle = "#1f2329"; ctx.beginPath(); ctx.moveTo(cx - 5, Y(-L.Rw)); ctx.lineTo(cx + 5, Y(-L.Rw)); ctx.lineTo(cx, Y(-L.Rw) - 8); ctx.fill();
+  const rad = D.pts.length > 300 ? 1.3 : 1.7; for (const [x, y] of D.pts) { ctx.beginPath(); ctx.arc(X(x), Y(y), rad, 0, 7); ctx.fill(); }
+  ctx.strokeStyle = "#d6362f"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6); ctx.stroke();
+}
+
+function drawBars(L, A) {
+  const [ctx, w, h] = setup($("c2")), Lp = 30, Rp = 8, T = 8, B = 22, top = Math.max(2, Math.ceil(Math.max(...A.dens) * 1.1)), sy = v => h - B - v / top * (h - T - B), bw = (w - Lp - Rp) / RINGS;
+  ctx.font = "11px sans-serif"; ctx.fillStyle = "#646a73"; ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) { const v = top * i / 4; ctx.beginPath(); ctx.moveTo(Lp, sy(v)); ctx.lineTo(w - Rp, sy(v)); ctx.stroke(); ctx.fillText(v.toFixed(top > 4 ? 0 : 1), Lp - 5, sy(v) + 4); }
+  ctx.textAlign = "center";
+  A.dens.forEach((d, i) => { ctx.fillStyle = "#2f6fed"; ctx.fillRect(Lp + i * bw + bw * 0.14, sy(d), bw * 0.72, sy(0) - sy(d)); ctx.fillStyle = "#646a73"; ctx.fillText(Math.round(L.Rw * i / RINGS) + "-" + Math.round(L.Rw * (i + 1) / RINGS), Lp + (i + 0.5) * bw, h - 7); });
+  ctx.strokeStyle = "#646a73"; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(Lp, sy(1)); ctx.lineTo(w - Rp, sy(1)); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawStack(A) {
+  const [ctx, w, h] = setup($("c3")), k = Math.min((w - 16) / A.sw, (h - 12) / A.sh), x0 = (w - A.sw * k) / 2, y0 = (h - A.sh * k) / 2, X = u => x0 + u * k, Y = v => y0 + (A.sh - v) * k;
+  ctx.fillStyle = "#fafbfc"; ctx.fillRect(x0, y0, A.sw * k, A.sh * k); ctx.strokeStyle = "#b9bec7"; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, A.sw * k, A.sh * k);
+  ctx.strokeStyle = "#c4c8cf"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(X(A.sw / 2), y0); ctx.lineTo(X(A.sw / 2), y0 + A.sh * k); ctx.moveTo(x0, Y(A.sh / 2)); ctx.lineTo(x0 + A.sw * k, Y(A.sh / 2)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "rgba(47,111,237,.75)"; for (const [u, v] of A.local) { ctx.beginPath(); ctx.arc(X(u), Y(v), 1.8, 0, 7); ctx.fill(); }
+  if (A.peak >= 5) { ctx.strokeStyle = "#d6362f"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(X(A.peakAt[0]), Y(A.peakAt[1]), 9, 0, 7); ctx.stroke(); }
+}
+
+const pct = v => (100 * v).toFixed(1) + "%";
+function render() {
+  const L = layout(state), D = makeDefects(state, L), A = analyze(state, L, D.pts), none = A.N === 0;
+  $("wV").textContent = state.w; $("hV").textContent = state.h; $("eeV").textContent = state.ee.toFixed(1); $("nV").textContent = state.n;
+  $("kDie").textContent = A.K; $("kDieS").textContent = "不完整 " + L.part.length + " 个";
+  $("kArea").textContent = A.areaEst.toFixed(1); $("kAreaS").textContent = A.K ? "比实际多 " + pct(A.areaEst / A.K - 1) : "";
+  $("kN").textContent = A.N; $("kNS").textContent = state.pat === "repeat" ? "含重复 " + D.repeats + " 个" : "晶圆外的不计";
+  $("kHit").textContent = none ? "0" : A.hits; $("kHitS").textContent = none || !A.K ? "" : "占 " + pct(A.hits / A.K);
+  $("kY").textContent = A.K ? pct(A.yieldObs) : "无"; $("kYS").textContent = none ? "" : "泊松预测 " + pct(A.yieldPoisson);
+  $("kE").textContent = none ? "无" : A.edgeRatio.toFixed(2); $("kES").textContent = "均匀分布时 " + A.edgeUniform.toFixed(2);
+  $("capStack").textContent = "按 shot 叠图（一个 shot 是 2×2 个 die，" + A.sw + "×" + A.sh + " mm）：最密的一格叠了 " + A.peak + " 个" + (A.peak >= 5 ? "，已用红圈标出" : "");
+  drawWafer(state, L, D, A); drawBars(L, A); drawStack(A);
+}
+
+function syncControls() {
+  for (const id of ["dia", "align", "pat"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(state[id])));
+  for (const id of ["w", "h", "ee", "n"]) $(id).value = state[id];
+}
+for (const id of ["dia", "align", "pat"]) $(id).addEventListener("click", e => { const v = e.target.dataset.v; if (v) { state[id] = id === "dia" ? +v : v; syncControls(); render(); } });
+for (const id of ["w", "h", "ee", "n"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+$("reseed").addEventListener("click", () => { state.seed += 1; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+</script>
+</body>
+</html>

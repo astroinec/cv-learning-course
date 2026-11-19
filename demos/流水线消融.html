@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>流水线消融：一维演示</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); min-width: 0; }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .two { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  @media (max-width: 720px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>流水线消融：一维演示（第 24 章）</h1>
+  <div class="sub">把 die 换成一行 128 个像素，流水线的每一步都能单独关掉：对齐、亮度归一化、中位数加 MAD、sigma 下限、阈值、最小长度。每批 8 张良品、40 张待检。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>对齐<div class="seg" id="align"><button data-v="none">不对齐</button><button data-v="int">整数像素</button><button data-v="sub" class="on">亚像素</button></div></label>
+    <label>亮度归一化<div class="seg" id="norm"><button data-v="on" class="on">做</button><button data-v="off">不做</button></div></label>
+    <label>模板的统计量<div class="seg" id="stat"><button data-v="mad" class="on">中位数 + MAD</button><button data-v="mean">均值 + 标准差</button></div></label>
+    <label>阈值 k<b id="kV"></b><input type="range" id="k" min="2" max="16" step="0.5" value="5"></label>
+    <label>最小长度（px，一维里的面积过滤）<b id="minLenV"></b><input type="range" id="minLen" min="1" max="6" step="1" value="2"></label>
+    <label>sigma 下限<b id="floorV"></b><input type="range" id="floor" min="0.005" max="0.05" step="0.005" value="0.025"></label>
+    <label>良品里混进几张坏 die<b id="badV"></b><input type="range" id="bad" min="0" max="4" step="1" value="0"></label>
+    <label>数据批次（随机种子）<b id="seedV"></b><input type="range" id="seed" min="1" max="20" step="1" value="1"></label>
+    <label>下面两张图显示第几张待检 die<b id="dieV"></b><input type="range" id="die" min="0" max="39" step="1" value="0"></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" id="kCapBox"><span>检出率（这一批）</span><b id="kCap"></b></div>
+    <div class="kpi" id="kNuiBox"><span>每 die 误报</span><b id="kNui"></b></div>
+    <div class="kpi" id="kProbeBox"><span>固定位置的 10 个缺陷检出</span><b id="kProbe"></b></div>
+    <div class="kpi"><span>对齐误差（均方根，px）</span><b id="kAlign"></b></div>
+  </div>
+
+  <figure class="panel"><figcaption>当前这张 die 的一行<i style="background:#8f959e"></i>模板（良品的中心值）<i style="background:var(--blue)"></i>处理后的待检行<i style="background:var(--green)"></i>真缺陷的位置</figcaption><canvas id="c1" height="150"></canvas></figure>
+  <div class="two">
+    <figure class="panel"><figcaption>z 曲线<i style="background:var(--orange)"></i>z<i style="background:var(--muted)"></i>阈值<i style="background:var(--red)"></i>检出<i style="background:var(--green)"></i>真缺陷</figcaption><canvas id="c2" height="210"></canvas></figure>
+    <figure class="panel"><figcaption>扫阈值得到的曲线<i style="background:#8f959e"></i>完整流水线<i style="background:var(--orange)"></i>当前设置</figcaption><canvas id="c3" height="210"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>去掉对齐。检出率掉到接近 0，这在意料之中。先猜误报会变多还是变少，再看数字，然后看第一张图里灰色的模板还剩多少线条。<button data-preset='{"seed":2,"align":"none"}'>载入</button></li>
+      <li>只对齐到整数像素。检出率掉了多少？把阈值往两边拖，橙色曲线能不能回到灰色曲线上？<button data-preset='{"seed":1,"align":"int"}'>载入</button></li>
+      <li>不做亮度归一化。误报没有变多，掉的是检出率。把数据批次从 1 拖到 8，各批之间差多少？<button data-preset='{"seed":1,"norm":"off"}'>载入</button></li>
+      <li>良品里混进 1 张坏 die，用均值加标准差。看第三个数字，再切回中位数加 MAD。然后把混进的张数一路加到 4。<button data-preset='{"seed":1,"stat":"mean","bad":1}'>载入</button></li>
+      <li>把 sigma 下限降到 0.005。误报从哪里冒出来？再把最小长度改成 1。这两个不起眼的参数各自管着什么？<button data-preset='{"seed":1,"floor":0.005}'>载入</button></li>
+    </ol>
+    <div class="note">每 4 张待检 die 里有 1 张在同一位置（对齐坐标 84）带一个固定的缺陷，共 10 个；“混进坏 die”是让几张良品在这个位置也带一个缺陷。检出率和误报按 4 px 的匹配半径、一对一匹配计算。这里的默认参数是为这个一维玩具调的，和二维作业的参数没有对应关系。</div>
+  </div>
+</div>
+<script id="core">
+// ---- 计算部分：不碰页面元素，可以用 node 单独执行 ----
+const N = 128, H = N / 2, NG = 8, NT = 40, RADIUS = 4, SEARCH = 7, PROBE = 84;
+const COS = new Float64Array(N * N), SIN = new Float64Array(N * N);
+for (let k = 0; k < N; k++) for (let n = 0; n < N; n++) { const a = 2 * Math.PI * k * n / N; COS[k * N + n] = Math.cos(a); SIN[k * N + n] = Math.sin(a); }
+const freq = k => (k < H ? k : k - N) / N;
+
+function dft(x) {
+  const R = new Float64Array(N), I = new Float64Array(N);
+  for (let k = 0; k < N; k++) { let sr = 0, si = 0; const o = k * N; for (let n = 0; n < N; n++) { sr += x[n] * COS[o + n]; si -= x[n] * SIN[o + n]; } R[k] = sr; I[k] = si; }
+  return [R, I];
+}
+function idft(R, I) {
+  const out = new Float64Array(N);
+  for (let n = 0; n < N; n++) { let s = 0; for (let k = 0; k < N; k++) s += R[k] * COS[k * N + n] - I[k] * SIN[k * N + n]; out[n] = s / N; }
+  return out;
+}
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+function blur(x, sigma) { const [R, I] = dft(x); for (let k = 0; k < N; k++) { const g = Math.exp(-2 * Math.pow(Math.PI * sigma * freq(k), 2)); R[k] *= g; I[k] *= g; } return idft(R, I); }
+function shiftSpec(R, I, d) { const R2 = new Float64Array(N), I2 = new Float64Array(N); for (let k = 0; k < N; k++) { const a = -2 * Math.PI * freq(k) * d, c = Math.cos(a), s = Math.sin(a); R2[k] = R[k] * c - I[k] * s; I2[k] = R[k] * s + I[k] * c; } return [R2, I2]; }
+function fshift(x, d) { const [R, I] = dft(x); const [R2, I2] = shiftSpec(R, I, d); return idft(R2, I2); }
+function mean(x) { let s = 0; for (let i = 0; i < x.length; i++) s += x[i]; return s / x.length; }
+function median(v) { const a = Array.from(v).sort((p, q) => p - q), m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; }
+
+// 一行版图：周期 8 px 的线条，左侧一段暗区里放一个亮的对位标记
+function makeLayout() {
+  const x = new Float64Array(N);
+  for (let n = 0; n < N; n++) x[n] = 0.25 + ((n % 8) < 4 ? 0.45 : 0);
+  for (let n = 8; n < 32; n++) x[n] = 0.15;
+  for (let n = 18; n < 22; n++) x[n] = 0.95;
+  return blur(x, 0.7);
+}
+const LAYOUT = makeLayout();
+
+function addBump(x, c, radius, amp) { for (let n = 0; n < N; n++) x[n] += amp * Math.exp(-(n - c) * (n - c) / (2 * radius * radius)); }
+// 成像：模糊，随机增益和偏置，散粒噪声加读出噪声
+function capture(clean, r) {
+  const b = blur(clean, 1.0), gain = 0.85 + 0.3 * r(), off = -0.05 + 0.1 * r(), out = new Float64Array(N);
+  for (let n = 0; n < N; n++) { const e = Math.max((b[n] * gain + off) * 2000, 0); out[n] = (e + Math.sqrt(e + 36) * gauss(r)) / 2000; }
+  return out;
+}
+
+// 一批数据：8 张良品，40 张待检。约六成待检 die 带 1 到 2 个随机缺陷；每 4 张里有 1 张在同一位置带一个固定的缺陷
+function makeData(seed) {
+  const r = rng(seed * 7919 + 13), golden = [], gShift = [], test = [], tShift = [], truth = [], probe = [];
+  for (let g = 0; g < NG; g++) { const d = -3.5 + 7 * r(); gShift.push(d); golden.push(capture(fshift(LAYOUT, d), r)); }
+  for (let i = 0; i < NT; i++) {
+    const d = -3.5 + 7 * r(), clean = fshift(LAYOUT, d), t = [];
+    const count = r() < 0.6 ? (r() < 0.5 ? 1 : 2) : 0;
+    for (let j = 0; j < count; j++) {
+      const c = 12 + (N - 24) * r();
+      if (r() < 0.6) addBump(clean, c, 1.2 + r(), (r() < 0.5 ? -1 : 1) * (0.35 + 0.25 * r()));
+      else { const w = 3 + Math.floor(3 * r()), n0 = Math.round(c - w / 2); for (let n = n0; n < n0 + w; n++) clean[n] = 0.2 * clean[n] + 0.1; }
+      t.push(c);
+    }
+    let p = -1;
+    if (i % 4 === 0) { p = PROBE + d; addBump(clean, p, 1.8, 0.3); t.push(p); }
+    tShift.push(d); truth.push(t); probe.push(p); test.push(capture(clean, r));
+  }
+  return { golden, gShift, test, tShift, truth, probe };
+}
+
+function parabola(l, c, r) { const den = l - 2 * c + r; return Math.abs(den) < 1e-12 ? 0 : Math.max(-0.5, Math.min(0.5, (l - r) / (2 * den))); }
+function spectrum(x) { const m = mean(x); return dft(Float64Array.from(x, v => v - m)); }
+// 相位相关：moving 是 reference 平移 d 得到的，返回 d。只在 ±maxShift 内找峰。
+// 一行只有 128 个采样点，不加权的相位相关太吵，这里加了第 16 章讲过的幅度掩膜：只保留参考谱幅度高于最大值 10% 的频率
+function phaseCorr(refSpec, movSpec, maxShift) {
+  const [AR, AI] = refSpec, [BR, BI] = movSpec, CR = new Float64Array(N), CI = new Float64Array(N);
+  let amax = 0; for (let k = 0; k < N; k++) amax = Math.max(amax, Math.hypot(AR[k], AI[k]));
+  for (let k = 0; k < N; k++) {
+    if (Math.hypot(AR[k], AI[k]) <= 0.1 * amax) continue;
+    const re = BR[k] * AR[k] + BI[k] * AI[k], im = BI[k] * AR[k] - BR[k] * AI[k], m = Math.hypot(re, im) + 1e-12; CR[k] = re / m; CI[k] = im / m;
+  }
+  const c = idft(CR, CI), lag = k => (k < H ? k : k - N);
+  let best = -1; for (let k = 0; k < N; k++) if (Math.abs(lag(k)) <= maxShift && (best < 0 || c[k] > c[best])) best = k;
+  return lag(best) + parabola(c[(best - 1 + N) % N], c[best], c[(best + 1) % N]);
+}
+function estimateShift(refSpec, img, mode) {
+  if (mode === "none") return 0;
+  const sp = spectrum(img), d = phaseCorr(refSpec, sp, SEARCH);
+  if (mode === "int") return Math.round(d);
+  return d + phaseCorr(refSpec, shiftSpec(sp[0], sp[1], -d), 1);
+}
+// 把 img 线性拟合到 ref：返回 a*img + b
+function normalize(img, ref) {
+  const mx = mean(img), my = mean(ref); let sxx = 0, sxy = 0;
+  for (let n = 0; n < N; n++) { sxx += (img[n] - mx) * (img[n] - mx); sxy += (img[n] - mx) * (ref[n] - my); }
+  const a = sxy / (sxx + 1e-12), b = my - a * mx;
+  return Float64Array.from(img, v => a * v + b);
+}
+
+// 对齐阶段：只依赖数据、对齐方式和混进的坏 die 张数
+function alignStage(data, align, bad) {
+  const golden = data.golden.map((g, j) => { if (j >= 1 && j <= bad) { const c = Float64Array.from(g); addBump(c, PROBE + data.gShift[j], 1.8, 0.4); return c; } return g; });
+  const refSpec = spectrum(golden[0]);
+  const gEst = golden.map(g => estimateShift(refSpec, g, align)), tEst = data.test.map(t => estimateShift(refSpec, t, align));
+  let se = 0; data.tShift.forEach((d, i) => { const e = tEst[i] - (d - data.gShift[0]); se += e * e; });
+  return { g: golden.map((g, j) => fshift(g, -gEst[j])), t: data.test.map((t, i) => fshift(t, -tEst[i])), tEst, alignRms: Math.sqrt(se / NT) };
+}
+// 模板阶段：亮度归一化、中心值和 sigma、z 曲线
+function modelStage(al, norm, stat, floor) {
+  let stack = al.g;
+  if (norm) { const first = new Float64Array(N); for (let n = 0; n < N; n++) first[n] = median(stack.map(g => g[n])); stack = stack.map(g => normalize(g, first)); }
+  const center = new Float64Array(N), sigma = new Float64Array(N);
+  for (let n = 0; n < N; n++) {
+    const col = stack.map(g => g[n]);
+    if (stat === "mad") { const m = median(col); center[n] = m; sigma[n] = 1.4826 * median(col.map(v => Math.abs(v - m))); }
+    else { const m = mean(col); center[n] = m; sigma[n] = Math.sqrt(col.reduce((s, v) => s + (v - m) * (v - m), 0) / (col.length - 1)); }
+    sigma[n] = Math.max(sigma[n], floor);
+  }
+  const shown = al.t.map(t => (norm ? normalize(t, center) : t));
+  return { center, sigma, shown, z: shown.map(t => Float64Array.from(t, (v, n) => Math.abs(v - center[n]) / sigma[n])) };
+}
+// 阈值、连成段、长度过滤、把中心变换回 die 自己的坐标
+function detect(z, shift, k, minLen) {
+  const out = [];
+  for (let n = 0; n < N; n++) {
+    if (!(z[n] > k)) continue;
+    let e = n, sw = 0, sx = 0;
+    while (e < N && z[e] > k) { sw += z[e]; sx += z[e] * e; e++; }
+    if (e - n >= minLen) out.push(((sx / sw + shift) % N + N) % N);
+    n = e;
+  }
+  return out;
+}
+function matchPairs(pred, truth) {
+  const pairs = [];
+  pred.forEach((p, i) => truth.forEach((t, j) => pairs.push([Math.abs(p - t), i, j])));
+  pairs.sort((a, b) => a[0] - b[0]);
+  const up = new Set(), ut = new Set();
+  for (const [d, i, j] of pairs) if (d <= RADIUS && !up.has(i) && !ut.has(j)) { up.add(i); ut.add(j); }
+  return [up, ut];
+}
+function score(data, al, model, k, minLen) {
+  let tp = 0, fp = 0, n = 0, probeHit = 0, probeAll = 0; const perDie = [];
+  for (let i = 0; i < NT; i++) {
+    const pred = detect(model.z[i], al.tEst[i], k, minLen), truth = data.truth[i], [up, ut] = matchPairs(pred, truth);
+    tp += ut.size; fp += pred.length - up.size; n += truth.length;
+    if (data.probe[i] >= 0) { probeAll++; if (ut.has(truth.length - 1)) probeHit++; }
+    perDie.push({ pred, hit: ut, falseAlarm: pred.length - up.size });
+  }
+  return { capture: tp / n, tp, n, nuisance: fp / NT, fp, probeHit, probeAll, perDie };
+}
+// 一次算完：opts = {seed, align, norm, stat, bad, floor, k, minLen}
+function evaluate(opts) {
+  const data = makeData(opts.seed), al = alignStage(data, opts.align, opts.bad), model = modelStage(al, opts.norm, opts.stat, opts.floor);
+  return { data, al, model, result: score(data, al, model, opts.k, opts.minLen) };
+}
+function sweep(data, al, model, minLen) {
+  const out = []; for (let k = 2; k <= 16.001; k += 0.5) { const s = score(data, al, model, k, minLen); out.push([s.capture, s.nuisance, k]); }
+  return out;
+}
+const DEFAULTS = { seed: 1, align: "sub", norm: true, stat: "mad", bad: 0, floor: 0.025, k: 5, minLen: 2 };
+</script>
+<script id="ui">
+const BASE = { seed: 1, align: "sub", norm: "on", stat: "mad", bad: 0, floor: 0.025, k: 5, minLen: 2, die: 0 };
+const state = Object.assign({}, BASE);
+const $ = id => document.getElementById(id);
+const SEGS = ["align", "norm", "stat"], SLIDERS = ["k", "minLen", "floor", "bad", "seed", "die"];
+const cache = { data: {}, al: {} };
+function getData(seed) { return cache.data[seed] || (cache.data[seed] = makeData(seed)); }
+function getAlign(seed, align, bad) { const key = seed + "|" + align + "|" + bad; return cache.al[key] || (cache.al[key] = alignStage(getData(seed), align, bad)); }
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function axes(ctx, w, h, x0, x1, y0, y1, xt, yt) {
+  const L = 38, R = 10, T = 8, B = 22, sx = v => L + (v - x0) / (x1 - x0) * (w - L - R), sy = v => h - B - (v - y0) / (y1 - y0) * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  for (const [v, text] of xt) { ctx.beginPath(); ctx.moveTo(sx(v), T); ctx.lineTo(sx(v), h - B); ctx.stroke(); ctx.fillText(text, sx(v), h - 7); }
+  ctx.textAlign = "right";
+  for (const [v, text] of yt) { ctx.beginPath(); ctx.moveTo(L, sy(v)); ctx.lineTo(w - R, sy(v)); ctx.stroke(); ctx.fillText(text, L - 5, sy(v) + 4); }
+  return [sx, sy, T, h - B];
+}
+function line(ctx, xs, ys, sx, sy, color, width, dash) { ctx.strokeStyle = color; ctx.lineWidth = width || 1.6; ctx.setLineDash(dash || []); ctx.beginPath(); xs.forEach((x, i) => (i ? ctx.lineTo(sx(x), sy(ys[i])) : ctx.moveTo(sx(x), sy(ys[i])))); ctx.stroke(); ctx.setLineDash([]); }
+function tri(ctx, x, y, color, up) { ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 5, y + (up ? 9 : -9)); ctx.lineTo(x + 5, y + (up ? 9 : -9)); ctx.closePath(); ctx.fill(); }
+const wrapPos = v => ((v % N) + N) % N;
+const logX = v => Math.log10(Math.max(v, 0.01));
+
+function render() {
+  const data = getData(state.seed), al = getAlign(state.seed, state.align, state.bad);
+  const model = modelStage(al, state.norm === "on", state.stat, state.floor), res = score(data, al, model, state.k, state.minLen);
+  const baseAl = getAlign(state.seed, "sub", 0), baseModel = modelStage(baseAl, true, "mad", BASE.floor);
+
+  $("kV").textContent = state.k.toFixed(1); $("minLenV").textContent = state.minLen; $("floorV").textContent = state.floor.toFixed(3);
+  $("badV").textContent = state.bad + " / 8"; $("seedV").textContent = state.seed; $("dieV").textContent = state.die;
+  $("kCap").textContent = (100 * res.capture).toFixed(0) + "%（" + res.tp + "/" + res.n + "）"; $("kCapBox").className = "kpi " + (res.capture >= 0.85 ? "ok" : "bad");
+  $("kNui").textContent = res.nuisance.toFixed(2); $("kNuiBox").className = "kpi " + (res.nuisance <= 0.3 ? "ok" : "bad");
+  $("kProbe").textContent = res.probeHit + " / " + res.probeAll; $("kProbeBox").className = "kpi " + (res.probeHit >= 8 ? "ok" : "bad");
+  $("kAlign").textContent = al.alignRms.toFixed(2);
+
+  const i = state.die, idx = [...Array(N).keys()], row = model.shown[i], shift = al.tEst[i];
+  const truthAl = data.truth[i].map(t => wrapPos(t - shift)), predAl = res.perDie[i].pred.map(p => wrapPos(p - shift));
+  const xt = [0, 16, 32, 48, 64, 80, 96, 112, 127].map(v => [v, String(v)]);
+
+  let [ctx, w, h] = setup($("c1"));
+  let lo = Math.min(...row, ...model.center), hi = Math.max(...row, ...model.center); const pad = (hi - lo) * 0.1 + 1e-6; lo -= pad; hi += pad;
+  let [sx, sy, top, bot] = axes(ctx, w, h, 0, N - 1, lo, hi, xt, [0, 1, 2, 3, 4].map(j => { const v = lo + (hi - lo) * j / 4; return [v, v.toFixed(2)]; }));
+  line(ctx, idx, [...model.center], sx, sy, "#8f959e", 1.5); line(ctx, idx, [...row], sx, sy, "#2f6fed", 1.6);
+  truthAl.forEach(t => tri(ctx, sx(t), bot - 10, "#1a9c4b", true));
+
+  [ctx, w, h] = setup($("c2"));
+  const zmax = Math.max(12, 2 * state.k), zr = Array.from(model.z[i], v => Math.min(v, zmax));
+  [sx, sy, top, bot] = axes(ctx, w, h, 0, N - 1, 0, zmax, xt, [0, 0.25, 0.5, 0.75, 1].map(f => [f * zmax, (f * zmax).toFixed(0)]));
+  line(ctx, idx, zr, sx, sy, "#e8710a", 1.5); line(ctx, [0, N - 1], [state.k, state.k], sx, sy, "#646a73", 1.2, [5, 4]);
+  truthAl.forEach(t => tri(ctx, sx(t), bot - 10, "#1a9c4b", true));
+  predAl.forEach(p => tri(ctx, sx(p), top + 10, "#d6362f", false));
+
+  [ctx, w, h] = setup($("c3"));
+  [sx, sy, top, bot] = axes(ctx, w, h, -2, 1.2, 0, 1, [[-2, "≤0.01"], [-1, "0.1"], [0, "1"], [1, "10"]], [0, 0.25, 0.5, 0.75, 1].map(v => [v, (100 * v).toFixed(0) + "%"]));
+  const ref = sweep(data, baseAl, baseModel, BASE.minLen), cur = sweep(data, al, model, state.minLen);
+  line(ctx, ref.map(p => logX(p[1])), ref.map(p => p[0]), sx, sy, "#8f959e", 1.6);
+  line(ctx, cur.map(p => logX(p[1])), cur.map(p => p[0]), sx, sy, "#e8710a", 1.8);
+  ctx.fillStyle = "#1f2329"; ctx.beginPath(); ctx.arc(sx(logX(res.nuisance)), sy(res.capture), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "right"; ctx.fillText("横轴：每 die 误报，纵轴：检出率，黑点：当前阈值", w - 12, bot - 6);
+}
+
+function syncControls() {
+  for (const id of SEGS) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state[id]));
+  for (const id of SLIDERS) $(id).value = state[id];
+}
+for (const id of SEGS) $(id).addEventListener("click", e => { if (e.target.dataset.v) { state[id] = e.target.dataset.v; syncControls(); render(); } });
+for (const id of SLIDERS) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, BASE, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+</script>
+</body>
+</html>

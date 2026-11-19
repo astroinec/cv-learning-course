@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lucas-Kanade 迭代：一维演示</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; min-width: 0; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); min-width: 0; }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi small { display: block; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Lucas-Kanade 迭代：一维演示（第 6 章）</h1>
+  <div class="sub">把二维图像换成一行 256 个像素，跟踪中间那个点（第 128 个像素）。每次迭代用窗口里的梯度和两帧之差算一个位移增量，再从粗到细走完金字塔。跟到之后再反向跟回来，得到往返误差。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>信号<div class="seg" id="sig"><button data-v="coarse" class="on">粗纹理</button><button data-v="fine">细纹理</button><button data-v="flat">平坦</button></div></label>
+    <label>真实位移（px）<b id="dV"></b><input type="range" id="d" min="-24" max="24" step="0.1" value="2.6"></label>
+    <label>窗口半宽（px，窗口 = 2×半宽+1）<b id="rV"></b><input type="range" id="r" min="3" max="30" step="1" value="10"></label>
+    <label>金字塔层数<b id="levV"></b><input type="range" id="lev" min="1" max="4" step="1" value="1"></label>
+    <label>每层迭代上限<b id="itV"></b><input type="range" id="it" min="1" max="30" step="1" value="1"></label>
+    <label>第二帧亮度偏移（灰度级）<b id="offV"></b><input type="range" id="off" min="0" max="60" step="1" value="0"></label>
+    <label>噪声（灰度级）<b id="nzV"></b><input type="range" id="nz" min="0" max="10" step="0.5" value="0"></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>真实位移</span><b id="kTrue"></b><small>&nbsp;</small></div>
+    <div class="kpi"><span>估计位移</span><b id="kEst"></b><small id="kEstS">&nbsp;</small></div>
+    <div class="kpi" id="kErrBox"><span>误差</span><b id="kErr"></b><small>&nbsp;</small></div>
+    <div class="kpi"><span>迭代次数（各层合计）</span><b id="kIt"></b><small id="kItS">&nbsp;</small></div>
+    <div class="kpi" id="kFbBox"><span>往返误差（阈值 1 px）</span><b id="kFb"></b><small id="kFbS">&nbsp;</small></div>
+  </div>
+
+  <figure class="panel"><figcaption>两帧信号（只画被跟踪点左右各 64 px）<i style="background:#8f959e"></i>第一帧<i style="background:var(--blue)"></i>第二帧<i style="background:var(--green)"></i>真实位置<i style="background:var(--red)"></i>估计位置，浅绿色是窗口</figcaption><canvas id="c1" height="160"></canvas></figure>
+  <div class="two">
+    <figure class="panel"><figcaption>代价曲线：窗口内两帧之差的平方和随候选位移的变化<i style="background:var(--orange)"></i>代价<i style="background:var(--green)"></i>真值<i style="background:var(--red)"></i>估计，圆点是每次迭代后的位置</figcaption><canvas id="c2" height="220"></canvas></figure>
+    <figure class="panel"><figcaption>估计位移随迭代的变化<i style="background:var(--blue)"></i>估计<i style="background:var(--green)"></i>真值，灰色竖线是换到下一层</figcaption><canvas id="c3" height="220"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>粗纹理、位移 2.6 px、1 层、迭代上限 1。只走一步，误差还有多少？把迭代上限拖到 10，看右下图里估计值怎样一步步靠近真值，用了几次。<button data-preset='{"sig":"coarse","d":2.6,"r":10,"lev":1,"it":1,"off":0,"nz":0}'>载入</button></li>
+      <li>细纹理、位移 4 px、1 层、迭代上限 30。估计值停在了哪里？把信号换成粗纹理，同样的位移还会失败吗？<button data-preset='{"sig":"fine","d":4,"r":10,"lev":1,"it":30,"off":0,"nz":0}'>载入</button></li>
+      <li>粗纹理、位移 12 px、1 层。在代价曲线上估计值掉进了哪个谷？再看往返误差：这个错点会不会被阈值 1 px 剔除？然后把金字塔层数逐步加到 4。<button data-preset='{"sig":"coarse","d":12,"r":10,"lev":1,"it":30,"off":0,"nz":0}'>载入</button></li>
+      <li>回到位移 2.6 px、1 层，把第二帧亮度偏移加到 30。估计偏了多少？把窗口半宽从 10 拖到 20、30，偏差怎么变？<button data-preset='{"sig":"coarse","d":2.6,"r":10,"lev":1,"it":30,"off":30,"nz":0}'>载入</button></li>
+      <li>换成平坦信号、噪声 2。窗口里的梯度只剩噪声，估计值和真值 2.6 px 差多少，往返检查拦得住吗？把噪声拖到 0，又会怎样？<button data-preset='{"sig":"flat","d":2.6,"r":10,"lev":1,"it":30,"off":0,"nz":2}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+const N = 256, X0 = 128;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+
+// 连续的带限随机函数：若干个余弦相加。频率的分布取二维高斯模糊纹理沿径向的分布（瑞利分布），
+// sigma 相当于生成纹理时高斯模糊的标准差（px），这样一维里“单层能跟多远”和讲义里二维实验的量级相近。
+function makeTexture(sigma, seed) {
+  const r = rng(seed), K = 60, comp = [];
+  for (let k = 0; k < K; k++) { const g1 = gauss(r), g2 = gauss(r); comp.push([Math.hypot(g1, g2) * 0.1125 / sigma, 2 * Math.PI * r()]); }
+  const f = x => { let s = 0; for (const [nu, ph] of comp) s += Math.cos(2 * Math.PI * nu * x + ph); return s; };
+  let m = 0, v = 0; for (let i = 0; i < N; i++) m += f(i); m /= N; for (let i = 0; i < N; i++) v += (f(i) - m) ** 2;
+  const sd = Math.sqrt(v / N);
+  return x => (f(x) - m) / sd;
+}
+const TEX = { coarse: makeTexture(2, 9), fine: makeTexture(1, 5), flat: () => 0 };
+
+function makeFrames(st) {
+  const f = TEX[st.sig], ra = rng(101), rb = rng(202), a = new Float64Array(N), b = new Float64Array(N);
+  for (let i = 0; i < N; i++) { a[i] = 128 + 40 * f(i) + st.nz * gauss(ra); b[i] = 128 + 40 * f(i - st.d) + st.off + st.nz * gauss(rb); }
+  return [a, b];
+}
+function samp(arr, x) { const n = arr.length; if (x <= 0) return arr[0]; if (x >= n - 1) return arr[n - 1]; const i = Math.floor(x), t = x - i; return arr[i] * (1 - t) + arr[i + 1] * t; }
+function down(arr) { const n = arr.length, out = new Float64Array(n >> 1), at = i => arr[Math.max(0, Math.min(n - 1, i))]; for (let i = 0; i < out.length; i++) { const c = 2 * i; out[i] = (at(c - 2) + 4 * at(c - 1) + 6 * at(c) + 4 * at(c + 1) + at(c + 2)) / 16; } return out; }
+
+// 一维金字塔 LK：在 A 里位置 x0 处的窗口，到 B 里找它移到了哪。返回位移 g（第 0 层的像素）。
+function lkTrack(A, B, x0, r, levels, maxIter) {
+  const pa = [A], pb = [B];
+  for (let l = 1; l < levels; l++) { if (pa[l - 1].length / 2 < 2 * r + 1) break; pa.push(down(pa[l - 1])); pb.push(down(pb[l - 1])); }
+  let g = 0, ok = true, iters = 0;
+  const path = [{ lev: pa.length - 1, g: 0 }];
+  for (let l = pa.length - 1; l >= 0; l--) {
+    const a = pa[l], b = pb[l], c = x0 / 2 ** l, sc = 2 ** l;
+    for (let k = 0; k < maxIter; k++) {
+      let num = 0, den = 0;
+      for (let t = -r; t <= r; t++) { const ix = (samp(a, c + t + 1) - samp(a, c + t - 1)) / 2, res = samp(b, c + t + g) - samp(a, c + t); num += ix * res; den += ix * ix; }
+      if (den / (2 * r + 1) < 1e-9) { ok = false; break; }
+      const dl = -num / den;
+      g = Math.max(-300, Math.min(300, g + dl)); iters++;
+      path.push({ lev: l, g: g * sc });
+      if (Math.abs(dl) < 0.01) break;
+    }
+    if (l > 0) g *= 2;
+  }
+  return { g, path, used: pa.length, ok, iters };
+}
+function costCurve(A, B, x0, r, lo, hi, step) {
+  const xs = [], ys = [];
+  for (let s = lo; s <= hi + 1e-9; s += step) { let e = 0; for (let t = -r; t <= r; t++) { const v = samp(B, x0 + t + s) - samp(A, x0 + t); e += v * v; } xs.push(s); ys.push(e / (2 * r + 1)); }
+  return [xs, ys];
+}
+function compute(st) {
+  const [a, b] = makeFrames(st);
+  const fwd = lkTrack(a, b, X0, st.r, st.lev, st.it);
+  const bwd = lkTrack(b, a, X0 + fwd.g, st.r, st.lev, st.it);
+  const fb = Math.abs(fwd.g + bwd.g);
+  return { a, b, fwd, bwd, fb, err: fwd.g - st.d, kept: fwd.ok && bwd.ok && fb <= 1 };
+}
+
+if (typeof document !== "undefined") {
+const state = { sig: "coarse", d: 2.6, r: 10, lev: 1, it: 1, off: 0, nz: 0 };
+const $ = id => document.getElementById(id);
+const fmt = v => (v >= 0 ? "+" : "") + v.toFixed(2);
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function axes(ctx, w, h, x0, x1, y0, y1, ticks, digits) {
+  const L = 44, R = 8, T = 8, B = 22, sx = v => L + (v - x0) / (x1 - x0) * (w - L - R), sy = v => h - B - (v - y0) / (y1 - y0) * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  for (const t of ticks) { ctx.beginPath(); ctx.moveTo(sx(t), T); ctx.lineTo(sx(t), h - B); ctx.stroke(); ctx.fillText(t, sx(t), h - 7); }
+  ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; ctx.beginPath(); ctx.moveTo(L, sy(v)); ctx.lineTo(w - R, sy(v)); ctx.stroke(); ctx.fillText(v.toFixed(digits), L - 5, sy(v) + 4); }
+  return [sx, sy, T, h - B];
+}
+function line(ctx, xs, ys, sx, sy, color, width) { ctx.strokeStyle = color; ctx.lineWidth = width || 1.6; ctx.beginPath(); xs.forEach((x, i) => i ? ctx.lineTo(sx(x), sy(ys[i])) : ctx.moveTo(sx(x), sy(ys[i]))); ctx.stroke(); }
+function vline(ctx, x, sx, top, bot, color, dash) { ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(sx(x), top); ctx.lineTo(sx(x), bot); ctx.stroke(); ctx.setLineDash([]); }
+const clampTo = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function render() {
+  const res = compute(state), { a, b, fwd } = res, g = fwd.g;
+  $("dV").textContent = state.d.toFixed(1); $("rV").textContent = state.r + "（窗口 " + (2 * state.r + 1) + "）"; $("levV").textContent = state.lev; $("itV").textContent = state.it; $("offV").textContent = state.off; $("nzV").textContent = state.nz.toFixed(1);
+  $("kTrue").textContent = fmt(state.d) + " px";
+  $("kEst").textContent = fwd.ok ? fmt(g) + " px" : "解不出来"; $("kEstS").textContent = fwd.ok ? "\u00a0" : "窗口里没有梯度，分母为 0";
+  $("kErr").textContent = fwd.ok ? fmt(res.err) + " px" : "无"; $("kErrBox").className = "kpi " + (fwd.ok && Math.abs(res.err) <= 0.5 ? "ok" : "bad");
+  $("kIt").textContent = fwd.iters; $("kItS").textContent = "实际用了 " + fwd.used + " 层";
+  const ok2 = fwd.ok && res.bwd.ok;
+  $("kFb").textContent = ok2 ? res.fb.toFixed(2) + " px" : "无";
+  const wrong = Math.abs(res.err) > 1;
+  $("kFbS").textContent = !ok2 ? "按 status=0 剔除" : res.kept ? (wrong ? "保留，但它其实是错的" : "保留") : "剔除";
+  $("kFbBox").className = "kpi " + (res.kept && !wrong ? "ok" : res.kept ? "bad" : "");
+
+  let [ctx, w, h] = setup($("c1"));
+  const xa = X0 - 64, xb = X0 + 64, idx = []; let lo = 1e9, hi = -1e9;
+  for (let i = xa; i <= xb; i++) { idx.push(i); lo = Math.min(lo, a[i], b[i]); hi = Math.max(hi, a[i], b[i]); }
+  const pad = Math.max(2, (hi - lo) * 0.08);
+  let [sx, sy, top, bot] = axes(ctx, w, h, xa, xb, lo - pad, hi + pad, [64, 80, 96, 112, 128, 144, 160, 176, 192], 0);
+  ctx.fillStyle = "rgba(26,156,75,.13)"; ctx.fillRect(sx(X0 - state.r), top, sx(X0 + state.r) - sx(X0 - state.r), bot - top);
+  line(ctx, idx, idx.map(i => a[i]), sx, sy, "#8f959e", 1.4); line(ctx, idx, idx.map(i => b[i]), sx, sy, "#2f6fed", 1.6);
+  vline(ctx, X0, sx, top, bot, "#8f959e", [2, 3]); vline(ctx, clampTo(X0 + state.d, xa, xb), sx, top, bot, "#1a9c4b", [5, 4]);
+  if (fwd.ok) vline(ctx, clampTo(X0 + g, xa, xb), sx, top, bot, "#d6362f");
+
+  [ctx, w, h] = setup($("c2"));
+  const [cx, cy] = costCurve(a, b, X0, state.r, -30, 30, 0.25), cmax = Math.max(...cy, 1e-6);
+  [sx, sy, top, bot] = axes(ctx, w, h, -30, 30, 0, cmax * 1.08, [-30, -20, -10, 0, 10, 20, 30], cmax < 10 ? 2 : 0);
+  line(ctx, cx, cy, sx, sy, "#e8710a", 1.6); vline(ctx, state.d, sx, top, bot, "#1a9c4b", [5, 4]);
+  if (fwd.ok) vline(ctx, clampTo(g, -30, 30), sx, top, bot, "#d6362f");
+  const costAt = s => { let e = 0; for (let t = -state.r; t <= state.r; t++) { const v = samp(b, X0 + t + s) - samp(a, X0 + t); e += v * v; } return e / (2 * state.r + 1); };
+  fwd.path.forEach((p, i) => { const s = clampTo(p.g, -30, 30); ctx.fillStyle = i === fwd.path.length - 1 ? "#d6362f" : "#2f6fed"; ctx.beginPath(); ctx.arc(sx(s), sy(Math.min(costAt(s), cmax * 1.08)), i === fwd.path.length - 1 ? 4.5 : 3, 0, 7); ctx.fill(); });
+
+  [ctx, w, h] = setup($("c3"));
+  const n = fwd.path.length, gs = fwd.path.map(p => p.g), ylo = Math.min(0, state.d, ...gs), yhi = Math.max(0, state.d, ...gs), yp = Math.max(0.5, (yhi - ylo) * 0.1);
+  const ticks = []; const stepT = Math.max(1, Math.ceil((n - 1) / 6)); for (let i = 0; i < n; i += stepT) ticks.push(i);
+  [sx, sy, top, bot] = axes(ctx, w, h, 0, Math.max(1, n - 1), ylo - yp, yhi + yp, ticks, 1);
+  for (let i = 1; i < n; i++) if (fwd.path[i].lev !== fwd.path[i - 1].lev) vline(ctx, i - 1, sx, top, bot, "#b9bec7", [3, 3]);
+  ctx.strokeStyle = "#1a9c4b"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(0), sy(state.d)); ctx.lineTo(sx(Math.max(1, n - 1)), sy(state.d)); ctx.stroke(); ctx.setLineDash([]);
+  line(ctx, gs.map((_, i) => i), gs, sx, sy, "#2f6fed", 1.6);
+  gs.forEach((v, i) => { ctx.fillStyle = "#2f6fed"; ctx.beginPath(); ctx.arc(sx(i), sy(v), 3, 0, 7); ctx.fill(); });
+}
+
+function syncControls() {
+  $("sig").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state.sig));
+  for (const id of ["d", "r", "lev", "it", "off", "nz"]) $(id).value = state[id];
+}
+$("sig").addEventListener("click", e => { if (e.target.dataset.v) { state.sig = e.target.dataset.v; syncControls(); render(); } });
+for (const id of ["d", "r", "lev", "it", "off", "nz"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+}
+</script>
+</body>
+</html>

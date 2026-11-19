@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 16 章 图像对齐与亚像素 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li class="current" data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 16 章 <span class="tag P0">P0</span> <span class="badge ok">已升级</span></div><h1>图像对齐与亚像素</h1><p class="scene"><b>用在哪：</b>die-to-die 比对、视场拼接、模板定位，凡是两张图相减之前都要先对齐</p><div class="meta-row"><span class="chip"><b>速通</b> 2 小时</span><span class="chip"><b>标准</b> 10 小时</span><span class="chip"><b>深挖</b> 16 小时</span><span class="chip">前置：<a href="../lessons/02.html">第 2 章 卷积与边缘</a>、<a href="../lessons/04.html">第 4 章 几何变换</a></span></div><div class="meta-row"><span class="chip mono">验收：python 16_图像对齐与亚像素/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="16"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自合成数据上的实测，记录在 <a href="../../16_图像对齐与亚像素/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch16.py</code> 生成。换成真实图像，数值会变，结论的方向要自己再测一遍。</p>
+</div>
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：die-to-die 和 die-to-database 比对、相邻视场拼接、多次曝光叠加、模板定位。只要算法里有“两张图相减”或“把模板放到正确位置”，前面就有一步对齐。</p>
+<p><strong>优先级</strong>：P0。前置是第 2 章（卷积）和第 4 章（几何变换）的基本概念，没学过也能读，遇到不懂的再回看。后面第 18 章和第 24 章直接依赖本章。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">2 小时</td>
+<td>读第 1、4、5、8 节，做第 9 节演示的前 3 步，答完 4 道小测</td>
+<td>能讲清对齐为什么影响误报，相位相关三步是什么，周期图案会怎样失败</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">10 小时</td>
+<td>读完全章，跑 Notebook，完成作业并验收通过，填实验记录</td>
+<td>三项测试 PASS，实验记录里有一条误差曲线和一个失败案例</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">16 小时</td>
+<td>再做第 12 节的破坏实验和第 13 节的扩展</td>
+<td>能在自己拍的照片上报告对齐精度和它的适用条件</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。速通档完成后本章就算“见过”，以后用到再升档，不需要一次学透。</p>
+</div>
+<h2 id="1-为什么要对齐03-像素的代价">1. 为什么要对齐：0.3 像素的代价</h2>
+<p>比对检测的做法是拿待测图减参考图，差值大的地方报缺陷。这个做法默认两张图已经逐像素对准。对不准会怎样，可以直接量出来。</p>
+<p>下面的实验用一张 128×128 的合成版图，线条对比度 0.65，每张图加标准差 0.01 的噪声。图里<strong>没有任何缺陷</strong>，只把其中一张平移一点再相减，数一数有多少像素超过 5σ 阈值。</p>
+<figure><img src="../../16_图像对齐与亚像素/figures/fig01_错位的代价.svg" alt="图 1：两张无缺陷的图只错开 0.3 px，差值图上每条竖线旁边都出现一红一蓝两条边，超过阈值的像素约 500 个" loading="lazy"><figcaption>图 1：两张无缺陷的图只错开 0.3 px，差值图上每条竖线旁边都出现一红一蓝两条边，超过阈值的像素约 500 个</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>错位量（px）</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">0.2</th>
+<th style="text-align: right;">0.3</th>
+<th style="text-align: right;">0.5</th>
+<th style="text-align: right;">1.0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>超过 5σ 的像素数</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.7</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">502</td>
+<td style="text-align: right;">1314</td>
+<td style="text-align: right;">2142</td>
+</tr>
+</tbody>
+</table></div>
+<p>差值图上的假缺陷有一个明显特征：沿着每条边缘成对出现，一侧为正，一侧为负。原因是边缘处亮度变化快，差值近似等于“亮度梯度 × 错位量”，梯度越陡、错位越大，差值越大。</p>
+<p>这张表给出本章的精度目标：在这组对比度和噪声下，错位要压到 0.1 px 左右才不产生误报。整数像素的对齐（最大误差 0.5 px）远远不够，所以需要亚像素。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>两张都没有缺陷的图相减，差值图上沿每条线出现一红一蓝成对的条纹。最可能的原因是什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>相机有坏点</span></button><button type="button" data-k="B"><b>B</b><span>两张图之间有亚像素的错位</span></button><button type="button" data-k="C"><b>C</b><span>第二张图整体变暗了</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。错位让边缘一侧变亮、另一侧变暗，所以正负成对并且只出现在边缘上。坏点是孤立的点，不沿边缘分布。整体变暗会让差值在所有亮区域同号，不会成对。</p></div></div>
+<h2 id="2-先选变换模型">2. 先选变换模型</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>变换模型</th>
+<th style="text-align: right;">自由度</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平移</td>
+<td style="text-align: right;">2</td>
+<td>机台定位误差下的 die 与 die、相邻视场</td>
+</tr>
+<tr>
+<td>刚体（平移 + 旋转）</td>
+<td style="text-align: right;">3</td>
+<td>晶圆放偏一个小角度</td>
+</tr>
+<tr>
+<td>相似（再加缩放）</td>
+<td style="text-align: right;">4</td>
+<td>不同倍率之间</td>
+</tr>
+<tr>
+<td>仿射</td>
+<td style="text-align: right;">6</td>
+<td>轻微斜视、线扫相机的速度误差</td>
+</tr>
+<tr>
+<td>单应</td>
+<td style="text-align: right;">8</td>
+<td>平面物体的透视拍摄</td>
+</tr>
+<tr>
+<td>非刚性</td>
+<td style="text-align: right;">很多</td>
+<td>柔性材料、热形变</td>
+</tr>
+</tbody>
+</table></div>
+<p>选模型的原则：<strong>用能解释数据的最简单模型</strong>。自由度越多，越容易把真实缺陷“对齐掉”，也越不稳定。半导体 die-to-die 比对绝大多数情况下用平移就够，必要时加一个小角度。本章只做平移。</p>
+<h2 id="3-三类方法">3. 三类方法</h2>
+<p><strong>基于强度、全局搜索</strong>：模板匹配（SSD、NCC、ZNCC）、相位相关（phase correlation）。不依赖特征，适合纹理丰富或者结构规整的图，平移场景首选。</p>
+<p><strong>基于特征</strong>：检测角点或描述子（第 5 章），匹配后用 RANSAC 估计变换（第 4 章）。适合大位移、旋转、缩放，但在重复图案上特征会大量误匹配。</p>
+<p><strong>基于强度、迭代优化</strong>：Lucas-Kanade、ECC。从一个初值出发，最小化两图差异，精度高，但需要好的初值，常用在全局方法之后做精修。</p>
+<p>工程上常见的组合是：粗对齐（金字塔加模板匹配，或者对位标记）→ 精对齐（相位相关加亚像素，或者 ECC）。</p>
+<h2 id="4-模板匹配与三种相似度">4. 模板匹配与三种相似度</h2>
+<p>模板匹配是把模板 <span class="arithmatex">\(T\)</span> 放到图像 <span class="arithmatex">\(I\)</span> 的每个位置，算一个相似度，取最好的位置。三种常用的相似度，区别在于对亮度变化的态度。</p>
+<p>设当前窗口里的像素是 <span class="arithmatex">\(w\)</span>，模板是 <span class="arithmatex">\(t\)</span>，窗口和模板的均值是 <span class="arithmatex">\(\bar w\)</span>、<span class="arithmatex">\(\bar t\)</span>。</p>
+<div class="arithmatex">\[
+\mathrm{SSD} = \sum (w - t)^2, \qquad
+\mathrm{NCC} = \frac{\sum w\,t}{\lVert w \rVert\,\lVert t \rVert}, \qquad
+\mathrm{ZNCC} = \frac{\sum (w-\bar w)(t-\bar t)}{\lVert w-\bar w \rVert\,\lVert t-\bar t \rVert}
+\]</div>
+<p><strong>ZNCC 为什么不怕照明变化</strong>。假设照明让窗口变成 <span class="arithmatex">\(w' = a\,w + b\)</span>，其中 <span class="arithmatex">\(a &gt; 0\)</span> 是增益，<span class="arithmatex">\(b\)</span> 是偏置。减均值后 <span class="arithmatex">\(w' - \bar{w'} = a\,(w - \bar w)\)</span>，偏置 <span class="arithmatex">\(b\)</span> 被消掉。分子和分母各多出一个因子 <span class="arithmatex">\(a\)</span>，相除后也消掉。所以 ZNCC 的值完全不变。NCC 没有减均值这一步，只能消掉增益，偏置会改变它的值。SSD 两样都消不掉。</p>
+<p>实测：同一张版图，从 4 个位置各取一个 24×24 模板，把目标图的亮度改掉再全图搜索。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>目标图的变化</th>
+<th style="text-align: right;">SSD 找对</th>
+<th style="text-align: right;">NCC 找对</th>
+<th style="text-align: right;">ZNCC 找对</th>
+<th style="text-align: right;">NCC 峰值</th>
+<th style="text-align: right;">ZNCC 峰值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>增益 0.5</td>
+<td style="text-align: right;">2/4</td>
+<td style="text-align: right;">4/4</td>
+<td style="text-align: right;">4/4</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td>增益 0.4、偏置 +20</td>
+<td style="text-align: right;">2/4</td>
+<td style="text-align: right;">4/4</td>
+<td style="text-align: right;">4/4</td>
+<td style="text-align: right;">0.956</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td>增益 1.8</td>
+<td style="text-align: right;">0/4</td>
+<td style="text-align: right;">4/4</td>
+<td style="text-align: right;">4/4</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td>横向渐变照明</td>
+<td style="text-align: right;">3/4</td>
+<td style="text-align: right;">4/4</td>
+<td style="text-align: right;">4/4</td>
+<td style="text-align: right;">0.996</td>
+<td style="text-align: right;">0.987</td>
+</tr>
+</tbody>
+</table></div>
+<figure><img src="../../16_图像对齐与亚像素/figures/fig02_相似度度量.svg" alt="图 2：目标图亮度变成 1.8 倍后，SSD 的最优位置跑到了左上角的暗区，ZNCC 仍在真实位置取到峰值 1.000" loading="lazy"><figcaption>图 2：目标图亮度变成 1.8 倍后，SSD 的最优位置跑到了左上角的暗区，ZNCC 仍在真实位置取到峰值 1.000</figcaption></figure>
+<p>读表要注意三点：</p>
+<ol>
+<li>SSD 在亮度变化下会找错位置，增益 1.8 时 4 个模板全错。</li>
+<li>NCC 在这组实验里位置都对，但加了偏置后峰值掉到 0.956。产线上通常用“峰值是否高于某个门限”判断匹配是否可信，峰值随照明漂移会让这个门限失效。</li>
+<li>渐变照明不是整体线性变化，ZNCC 的峰值也会低于 1（0.987）。ZNCC 只对窗口内近似均匀的增益和偏置不变，窗口越大，这个假设越容易被破坏。</li>
+</ol>
+<p><strong>工程细节</strong>：</p>
+<ul>
+<li>窗口完全平坦时分母为 0，要特判，输出 0。作业的契约里写了这一条。</li>
+<li>直白的双重循环是 <span class="arithmatex">\(O(HWhw)\)</span>。分母里的窗口均值和平方和可以用积分图（第 15 章）在 <span class="arithmatex">\(O(1)\)</span> 内取到，分子可以用 FFT 一次算完。先写对，再考虑加速。</li>
+<li>OpenCV 里对应的是 <code>cv2.matchTemplate</code> 的 <code>TM_CCOEFF_NORMED</code>。</li>
+</ul>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>参考图和待测图之间整体亮度差了 1.8 倍。只看“最优位置对不对”，下面哪个说法成立？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>SSD 一定不受影响，因为模板内容没变</span></button><button type="button" data-k="B"><b>B</b><span>ZNCC 的最优位置不变，峰值也仍然是 1</span></button><button type="button" data-k="C"><b>C</b><span>三种度量都会找错</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。增益在 ZNCC 的分子分母里同时出现并约掉。SSD 的值变成 <span class="arithmatex">\(\sum (1.8w - t)^2\)</span>，在暗的平坦区域反而可能更小，图 2 里它就跑到了左上角。</p></div></div>
+<h2 id="5-相位相关用频域一次算出平移">5. 相位相关：用频域一次算出平移</h2>
+<p>模板匹配要在每个位置算一次相似度。如果只关心整幅图的平移，可以用傅里叶变换一次算完。</p>
+<h3 id="51-傅里叶平移定理">5.1 傅里叶平移定理</h3>
+<p>先看一维。长度为 <span class="arithmatex">\(N\)</span> 的信号 <span class="arithmatex">\(f[n]\)</span> 循环平移 <span class="arithmatex">\(d\)</span> 得到 <span class="arithmatex">\(g[n] = f[n-d]\)</span>。按定义求 <span class="arithmatex">\(g\)</span> 的离散傅里叶变换，并令 <span class="arithmatex">\(m = n - d\)</span>：</p>
+<div class="arithmatex">\[
+G[k] = \sum_{n} f[n-d]\,e^{-i 2\pi k n / N}
+     = \sum_{m} f[m]\,e^{-i 2\pi k (m+d) / N}
+     = e^{-i 2\pi k d / N}\,F[k]
+\]</div>
+<p>结论：<strong>平移不改变每个频率的幅度，只让相位多转一个和频率成正比的角度</strong>。二维同理，<span class="arithmatex">\(G(u,v) = F(u,v)\,e^{-i2\pi(u\,d_x + v\,d_y)}\)</span>。</p>
+<h3 id="52-互功率谱与白化">5.2 互功率谱与白化</h3>
+<p>把 <span class="arithmatex">\(G\)</span> 乘上 <span class="arithmatex">\(F\)</span> 的共轭，幅度变成 <span class="arithmatex">\(\lvert F \rvert^2\)</span>，相位只剩平移带来的那一项：</p>
+<div class="arithmatex">\[
+G\,\overline{F} = \lvert F \rvert^2\, e^{-i2\pi(u\,d_x + v\,d_y)}
+\]</div>
+<p>再除以自己的模长，把 <span class="arithmatex">\(\lvert F \rvert^2\)</span> 去掉，这一步叫白化（whitening）：</p>
+<div class="arithmatex">\[
+R = \frac{G\,\overline{F}}{\lvert G\,\overline{F} \rvert} = e^{-i2\pi(u\,d_x + v\,d_y)}
+\]</div>
+<p><span class="arithmatex">\(R\)</span> 是一个纯相位的平面波。它的逆变换是一个位于 <span class="arithmatex">\((d_y, d_x)\)</span> 的冲激，找最大值的位置就得到平移量。</p>
+<figure><img src="../../16_图像对齐与亚像素/figures/fig03_相位相关流程.svg" alt="图 3：相位相关的五步。互功率谱的相位是一组斜条纹，条纹的方向和疏密编码了平移；逆变换后只剩一个亮点。最右是沿峰值所在行的剖面，白化后的峰只有 1 个采样点宽，普通互相关的峰有 7 个采样点宽" loading="lazy"><figcaption>图 3：相位相关的五步。互功率谱的相位是一组斜条纹，条纹的方向和疏密编码了平移；逆变换后只剩一个亮点。最右是沿峰值所在行的剖面，白化后的峰只有 1 个采样点宽，普通互相关的峰有 7 个采样点宽</figcaption></figure>
+<p>不做白化、直接对 <span class="arithmatex">\(G\,\overline{F}\)</span> 做逆变换，得到的是普通互相关（cross-correlation）。图 3 最右一栏把两者画在一起：白化后高于半峰值的采样点只有 1 个，普通互相关有 7 个。</p>
+<p><strong>白化带来的好处</strong>：</p>
+<ul>
+<li>峰很尖，定位到整数像素非常明确。</li>
+<li>整体增益在分子分母里约掉，整体偏置只影响零频一个点，所以对整体亮度和对比度变化不敏感。</li>
+<li>一次 FFT 搜完所有平移，复杂度 <span class="arithmatex">\(O(N \log N)\)</span>。</li>
+</ul>
+<p><strong>白化的代价</strong>：所有频率被拉到同样的权重，包括那些本来几乎没有信号、只有噪声的频率。第 6 节和第 8 节会看到这个代价有多大。</p>
+<h3 id="53-两个必须处理的细节">5.3 两个必须处理的细节</h3>
+<p><strong>方向约定</strong>。作业约定“moving 是 reference 平移 <span class="arithmatex">\((d_y, d_x)\)</span> 得到的”，返回 <span class="arithmatex">\((d_y, d_x)\)</span>。OpenCV 的 <code>phaseCorrelate</code> 也有自己的方向约定，用之前一定要拿已知平移测一次。方向写反是这类函数最常见的 bug。</p>
+<p><strong>循环卷绕</strong>。FFT 把信号当成周期的，平移 <span class="arithmatex">\(-3\)</span> 会出现在下标 <span class="arithmatex">\(N-3\)</span> 处。下标大于 <span class="arithmatex">\(N/2\)</span> 的要减去 <span class="arithmatex">\(N\)</span>。</p>
+<div class="quiz" data-answer="A"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>做相位相关之前，把两张图都乘以 2 再加 10。估计出的平移会变吗？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>不变</span></button><button type="button" data-k="B"><b>B</b><span>会变，因为亮度变了相关值就变了</span></button><button type="button" data-k="C"><b>C</b><span>只有加窗时才不变</span></button></div><div class="quiz-exp" hidden><p><strong>A</strong>。乘 2 让互功率谱的幅度变成 4 倍，白化时被除掉。加 10 只改变零频那一个点，白化后它的幅度仍是 1，只给相关面加上一个常数，不改变最大值的位置。</p></div></div>
+<h2 id="6-亚像素从整数峰到小数">6. 亚像素：从整数峰到小数</h2>
+<p>整数峰的最大误差是 0.5 px，第 1 节已经说明这不够。常用的补救是在峰值附近插值。</p>
+<h3 id="61-三点抛物线">6.1 三点抛物线</h3>
+<p>取峰值 <span class="arithmatex">\(c\)</span> 和它左右的邻点 <span class="arithmatex">\(l\)</span>、<span class="arithmatex">\(r\)</span>，位置记为 <span class="arithmatex">\(-1\)</span>、<span class="arithmatex">\(0\)</span>、<span class="arithmatex">\(1\)</span>。过这三点的抛物线 <span class="arithmatex">\(y = a x^2 + b x + c\)</span> 满足</p>
+<div class="arithmatex">\[
+a = \frac{l + r - 2c}{2}, \qquad b = \frac{r - l}{2}
+\]</div>
+<p>顶点在 <span class="arithmatex">\(x^* = -b / (2a)\)</span>，也就是</p>
+<div class="arithmatex">\[
+\delta = \frac{l - r}{2\,(l - 2c + r)}
+\]</div>
+<p>x、y 两个方向分别做一次。右邻点比左邻点高，<span class="arithmatex">\(\delta\)</span> 为正，峰往右偏，符合直觉。</p>
+<h3 id="62-抛物线有系统偏差">6.2 抛物线有系统偏差</h3>
+<p>抛物线只有在峰的形状真是抛物线时才精确。相位相关的峰不是：平移不是整数时，冲激变成一个类似 sinc 的形状，两侧还有正负交替的旁瓣。用抛物线去套，估计值会被系统性地拉向整数。</p>
+<figure><img src="../../16_图像对齐与亚像素/figures/fig04_亚像素偏差.svg" alt="图 4：左，真值 3.35 时相关面的采样点和拟合出的抛物线，顶点落在 3.267。中，误差随真值小数部分的变化，抛物线法呈周期性偏差。右，噪声变大时各方法的均方根误差" loading="lazy"><figcaption>图 4：左，真值 3.35 时相关面的采样点和拟合出的抛物线，顶点落在 3.267。中，误差随真值小数部分的变化，抛物线法呈周期性偏差。右，噪声变大时各方法的均方根误差</figcaption></figure>
+<p>图 4 中间一栏是把真值的小数部分从 0 扫到 1 得到的误差曲线。抛物线法的误差在小数部分为 0 和 0.5 时过零，在 0.3 和 0.7 附近最大，方向总是指向最近的整数。这种“随小数部分周期变化”的曲线是亚像素偏差的典型形状，也是验证亚像素实现的标准做法。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方法（无噪声）</th>
+<th style="text-align: right;">最大绝对误差（px）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>相位相关 + 抛物线，本章纹理</td>
+<td style="text-align: right;">0.087</td>
+</tr>
+<tr>
+<td>相位相关 + 抛物线，全频带纹理</td>
+<td style="text-align: right;">0.122</td>
+</tr>
+<tr>
+<td>抛物线后再迭代两轮</td>
+<td style="text-align: right;">0.012</td>
+</tr>
+<tr>
+<td>相位相关 + 幅度掩膜 + 抛物线</td>
+<td style="text-align: right;">0.014</td>
+</tr>
+</tbody>
+</table></div>
+<p>偏差的大小和图像内容有关（0.087 对 0.122），所以不能用一个固定的修正量把它减掉。</p>
+<h3 id="63-三种改进">6.3 三种改进</h3>
+<p><strong>迭代</strong>：按当前估计把图移回去，对残差再做一次相位相关，把两次结果相加。残差越接近 0，抛物线的偏差越小。两轮后最大误差从 0.087 降到 0.012。第 24 章的参考流水线用的就是这个办法。</p>
+<p><strong>频谱加权</strong>：白化之后再乘一个权重，把没有信号的频率压下去。最简单的是幅度掩膜，只保留参考图频谱幅度高于最大值 10% 的频率。峰变宽、变光滑，更接近抛物线，最大误差降到 0.014。</p>
+<p><strong>上采样</strong>（Guizar-Sicairos）：在峰值附近用矩阵 DFT 做 10 到 100 倍的局部上采样，直接在更密的网格上找峰。<code>skimage.registration.phase_cross_correlation</code> 用的是这个方法。本章不要求实现，第 13 节有对照实验。</p>
+<h3 id="64-噪声下谁先垮">6.4 噪声下谁先垮</h3>
+<p>图 4 最右一栏给两张图都加噪声，统计 200 次随机平移的均方根误差：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>噪声标准差 / 纹理标准差</th>
+<th style="text-align: right;">0</th>
+<th style="text-align: right;">0.05</th>
+<th style="text-align: right;">0.1</th>
+<th style="text-align: right;">0.2</th>
+<th style="text-align: right;">0.5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>相位相关 + 抛物线</td>
+<td style="text-align: right;">0.089</td>
+<td style="text-align: right;">0.146</td>
+<td style="text-align: right;">0.192</td>
+<td style="text-align: right;">0.266</td>
+<td style="text-align: right;">0.448</td>
+</tr>
+<tr>
+<td>相位相关 + 幅度掩膜</td>
+<td style="text-align: right;">0.013</td>
+<td style="text-align: right;">0.014</td>
+<td style="text-align: right;">0.017</td>
+<td style="text-align: right;">0.026</td>
+<td style="text-align: right;">0.066</td>
+</tr>
+<tr>
+<td>普通互相关 + 抛物线</td>
+<td style="text-align: right;">0.024</td>
+<td style="text-align: right;">0.024</td>
+<td style="text-align: right;">0.025</td>
+<td style="text-align: right;">0.027</td>
+<td style="text-align: right;">0.050</td>
+</tr>
+</tbody>
+</table></div>
+<p>不加权的相位相关对噪声最敏感，噪声到 10% 时误差已经接近 0.2 px。原因就是第 5.2 节说的代价：这张纹理的能量集中在低频，白化把只有噪声的高频拉到和低频同样的权重。加上幅度掩膜后，误差降了一个数量级。</p>
+<div class="callout callout-key"><div class="callout-title">要点</div><p>作业要求实现的是不加权的版本，验收标准是亚像素误差小于 0.25 px。它是理解原理的最小实现，不是工程上的最终形态。上产线之前至少要加频谱加权或迭代，并在自己的数据上重画图 4。</p>
+</div>
+<h2 id="7-加窗取决于边界是否连续">7. 加窗：取决于边界是否连续</h2>
+<p>FFT 把图像当成周期信号。真实图像的左边缘和右边缘并不相接，首尾接起来会出现一条断口，相当于图里多了一个强边缘。这个假边缘在两张图里位置相同（都在图像边界），相当于告诉算法“两张图没有动”，会把相位相关的峰拉向零平移。</p>
+<p>解决办法是乘一个窗函数（Hanning、Tukey），让边界平滑衰减到 0。代价是靠近边缘的信息被削弱。</p>
+<figure><img src="../../16_图像对齐与亚像素/figures/fig05_加窗.svg" alt="图 5：左，把裁剪出的视场平铺四份，红线处是 FFT 认为相接的位置，两侧内容对不上。中，乘 Hanning 窗后断口消失。右，四种组合下 200 次对齐的误差分布" loading="lazy"><figcaption>图 5：左，把裁剪出的视场平铺四份，红线处是 FFT 认为相接的位置，两侧内容对不上。中，乘 Hanning 窗后断口消失。右，四种组合下 200 次对齐的误差分布</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>数据来源</th>
+<th>是否加窗</th>
+<th style="text-align: right;">误差中位数（px）</th>
+<th style="text-align: right;">最大误差（px）</th>
+<th style="text-align: right;">误差超过 1 px 的次数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>从大图裁剪两个视场</td>
+<td>否</td>
+<td style="text-align: right;">0.874</td>
+<td style="text-align: right;">26.31</td>
+<td style="text-align: right;">72/200</td>
+</tr>
+<tr>
+<td>从大图裁剪两个视场</td>
+<td>是</td>
+<td style="text-align: right;">0.083</td>
+<td style="text-align: right;">0.30</td>
+<td style="text-align: right;">0/200</td>
+</tr>
+<tr>
+<td>循环平移</td>
+<td>否</td>
+<td style="text-align: right;">0.009</td>
+<td style="text-align: right;">0.03</td>
+<td style="text-align: right;">0/200</td>
+</tr>
+<tr>
+<td>循环平移</td>
+<td>是</td>
+<td style="text-align: right;">0.082</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">0/200</td>
+</tr>
+</tbody>
+</table></div>
+<p>两种数据上的结论相反：</p>
+<ul>
+<li><strong>裁剪视场</strong>（真实相机的情况）：不加窗约有三分之一的样本直接对错，而且 72 次失败里每一次都至少有一个方向的估计值落在 0 附近，正是假边缘在起作用。加窗后全部正确。</li>
+<li><strong>循环平移</strong>（本章测试和第 24 章合成数据的情况）：信号本来就是周期的，没有断口。加窗反而破坏了“两张图互为循环平移”这个关系，误差大了约 9 倍。第 24 章开发时测到的也是这个方向：不加窗残差约 0.15 px，加窗约 0.35 px。</li>
+</ul>
+<p>所以 <code>use_window</code> 是一个需要按数据决定的参数。验证算法时用循环平移的合成数据很方便，但它会掩盖边界问题，结论不能直接搬到真实图像上。</p>
+<h2 id="8-周期图案最重要的失败模式">8. 周期图案：最重要的失败模式</h2>
+<p>半导体版图大量是周期结构（存储阵列、金属线）。周期为 <span class="arithmatex">\(P\)</span> 的图案平移 <span class="arithmatex">\(P\)</span> 之后和原图一模一样，所以平移 <span class="arithmatex">\(d\)</span> 和平移 <span class="arithmatex">\(d + kP\)</span> 没法区分。</p>
+<p>下面的实验用一张 144×144 的合成版图，x 方向周期 24 px，y 方向周期 16 px。真实平移在 ±5 px 内随机，每张图加标准差 0.01 的噪声，各做 200 次。</p>
+<figure><img src="../../16_图像对齐与亚像素/figures/fig06_周期图案.svg" alt="图 6：左，周期版图和左上角的十字对位标记。中，没有标记时普通互相关沿 x 方向每隔 24 px 有一个等高峰，绿色带是机台误差范围。右，六种做法各自的失败次数" loading="lazy"><figcaption>图 6：左，周期版图和左上角的十字对位标记。中，没有标记时普通互相关沿 x 方向每隔 24 px 有一个等高峰，绿色带是机台误差范围。右，六种做法各自的失败次数</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>做法</th>
+<th style="text-align: right;">失败次数（误差 &gt; 1 px）</th>
+<th style="text-align: right;">成功样本的平均误差（px）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>相位相关，全范围搜索</td>
+<td style="text-align: right;">200/200</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>相位相关，只在 ±5 px 内找峰</td>
+<td style="text-align: right;">182/200</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>相位相关 + 幅度掩膜，只在 ±5 px 内找峰</td>
+<td style="text-align: right;">0/200</td>
+<td style="text-align: right;">0.010</td>
+</tr>
+<tr>
+<td>普通互相关，全范围搜索</td>
+<td style="text-align: right;">199/200</td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>普通互相关，只在 ±5 px 内找峰</td>
+<td style="text-align: right;">0/200</td>
+<td style="text-align: right;">0.009</td>
+</tr>
+<tr>
+<td>相位相关，版图上加一个对位标记</td>
+<td style="text-align: right;">0/200</td>
+<td style="text-align: right;">0.096</td>
+</tr>
+</tbody>
+</table></div>
+<p>这里有两种不同的失败，要分开看。</p>
+<p><strong>第一种：多个等高峰</strong>。无噪声时相关面上有 54 个一样高的峰（x 方向 6 个周期，y 方向 9 个周期），一点噪声就决定了选中哪一个，误差恰好是整数个周期。对策是限制搜索范围：机台定位误差有上限，只在这个范围内找峰。范围必须小于半个周期才能唯一确定。普通互相关加上这一条就从 199/200 降到 0/200。</p>
+<p><strong>第二种：白化把相关面淹没</strong>。严格周期的图案，能量只落在少数几个谐波频率上，其余绝大多数频率是空的。白化把这些空频率里的噪声拉到和谐波同样的权重，真正的峰被噪声盖住。所以相位相关即使限制了搜索范围仍然失败 182/200。只保留有信号的频率（幅度掩膜）之后，才降到 0/200。</p>
+<p>工程上的对策，按可靠程度排：</p>
+<ol>
+<li><strong>对位标记</strong>（alignment mark）：在版图上放非周期的十字或 L 形标记。它的频谱是宽带的，同时解决上面两种失败。实验里不需要限制搜索范围也是 0/200。</li>
+<li><strong>限制搜索范围，并且不让空频率参与</strong>：用普通互相关或 ZNCC，或者给相位相关加频谱掩膜。</li>
+<li><strong>先粗后精</strong>：用低分辨率或者大视场先定到整周期，再精修。</li>
+<li><strong>用设计数据</strong>（die-to-database）：拿版图渲染图做参考，参考图里有全局结构。</li>
+</ol>
+<p>第 24 章开发时踩的就是这个坑：版图 x 方向周期 24 px，相位相关最大偏差 23.8 px，差不多正好一个周期。这是原讲义记下的开发过程中的数字。现在的课程数据带对位标记，第 24 章讲义实测 740 次对齐里没有一次对错周期，把标记去掉之后才会大量出错。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>严格周期的版图上，相位相关限制搜索范围后仍然失败 182/200，换成普通互相关、同样的搜索范围就是 0/200。差别来自哪里？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>普通互相关的峰更尖</span></button><button type="button" data-k="B"><b>B</b><span>白化把没有信号的频率也拉到同样权重，相关面被噪声淹没</span></button><button type="button" data-k="C"><b>C</b><span>普通互相关不受周期影响</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。普通互相关同样有周期性的多峰（全范围搜索时 199/200 失败），所以 C 不对。它的峰比相位相关宽，A 也不对。区别在于它按频谱幅度加权，空频率里的噪声几乎不起作用。</p></div></div>
+<h2 id="9-交互演示">9. 交互演示</h2>
+<p>把二维图像换成一行 128 个像素，其余和作业里的算法一致。按页面下方“按顺序试”的五步操作，每一步先预测再拖动。</p>
+<div class="embed"><iframe src="../../demos/相位相关.html" height="1070" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/相位相关.html">打开交互演示：相位相关与亚像素</a></p>
+<h2 id="10-怎样评估对齐精度">10. 怎样评估对齐精度</h2>
+<p>不要只看一张图对得准不准。标准做法：</p>
+<ul>
+<li><strong>合成数据</strong>：已知真值平移，统计误差的均值（偏差）和标准差，画误差随真值小数部分变化的曲线（图 4 中间一栏）。</li>
+<li><strong>真实数据的重复性</strong>：同一个位置拍 N 次，估计平移的 3σ。</li>
+<li><strong>闭环检查</strong>：A 对 B、B 对 C、A 对 C 的平移应满足加法关系。</li>
+<li><strong>报告格式</strong>：在什么噪声水平、什么图案、多大搜索范围、是否加窗的条件下，误差多少，失败率多少。</li>
+</ul>
+<p>本章每张表的表头都按这个格式写了条件。少了条件的精度数字没有意义。</p>
+<h2 id="11-常见错误">11. 常见错误</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>估计值符号和真值相反</td>
+<td><code>reference</code> 和 <code>moving</code> 传反，或者共轭取在了另一边</td>
+<td>用 <code>np.roll(ref, (3, -5))</code> 测，应返回 (3, -5)</td>
+</tr>
+<tr>
+<td>平移 -3 被估计成 N-3</td>
+<td>没做循环卷绕换算</td>
+<td>测一个负的平移</td>
+</tr>
+<tr>
+<td>亚像素部分总是 0</td>
+<td>邻点取错了行列，或者把整数下标当成了偏移</td>
+<td>打印 <span class="arithmatex">\(l\)</span>、<span class="arithmatex">\(c\)</span>、<span class="arithmatex">\(r\)</span> 三个值</td>
+</tr>
+<tr>
+<td>小数平移的测试数据本身不准</td>
+<td>用双线性插值造平移，引入了模糊</td>
+<td>用傅里叶相位斜坡造平移，测试和 Notebook 都是这样做的</td>
+</tr>
+<tr>
+<td>ZNCC 出现 nan</td>
+<td>平坦窗口分母为 0</td>
+<td>用一张常数图测</td>
+</tr>
+<tr>
+<td>SSD 的结果不对且没有报错</td>
+<td>用 <code>uint8</code> 直接相减，发生回绕</td>
+<td>先转成 <code>float64</code></td>
+</tr>
+<tr>
+<td>真实图像上偶尔对到 (0, 0)</td>
+<td>没加窗，边界断口把峰拉向零平移</td>
+<td>对照第 7 节的实验</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="12-破坏实验">12. 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>把 <code>phase_correlation(ref, mov)</code> 的两个参数对调，估计值怎么变？</li>
+<li>把噪声加到纹理标准差的 50%，重画图 4 中间一栏的曲线，形状还在吗？</li>
+<li>复现第 8 节的表：周期图案上，全范围和限制范围各失败多少次？</li>
+<li>把纹理换成更平滑的（<code>width=0.02</code>），相位相关还可靠吗？和普通互相关比呢？</li>
+<li>把白化分母里的 <code>1e-12</code> 换成互功率谱最大幅度的 1%，误差怎么变？这相当于一种什么加权？</li>
+<li>对裁剪视场的数据，把 Hanning 窗换成只在边缘 10% 衰减的 Tukey 窗，误差怎么变？</li>
+</ol>
+<h2 id="13-扩展深挖档">13. 扩展（深挖档）</h2>
+<ul>
+<li>装上 <code>scikit-image</code>，用 <code>phase_cross_correlation(ref, mov, upsample_factor=100)</code> 重画图 4 中间一栏，和抛物线、迭代两种做法比较。</li>
+<li>用 <code>cv2.findTransformECC</code> 估计平移加小角度旋转，体会迭代法对初值的依赖。</li>
+<li>按 <code>data/README.md</code> 的建议用手机拍两张方格纸，报告你的对齐结果，并按第 10 节的格式写清条件。</li>
+</ul>
+<h2 id="14-和后续章节的关系">14. 和后续章节的关系</h2>
+<ul>
+<li>第 18 章的金模板比对假设图已经对齐，图 1 就是没对齐时它会看到的东西。</li>
+<li>第 24 章综合项目里，对齐质量直接决定误报数。</li>
+<li>第 17 章标定后，对齐结果可以从像素换算成物理距离（微米）。</li>
+<li>第 15 章的积分图可以用来加速 ZNCC 的分母。</li>
+</ul>
+<h2 id="自测问题">自测问题</h2>
+<ol>
+<li>为什么 ZNCC 比 SSD 更适合照明不稳定的产线？</li>
+<li>相位相关为什么要除以互功率谱的模长？不除会怎样？</li>
+<li>估计结果是 (60, 5)，图像尺寸 64×64，真实平移是多少？</li>
+<li>周期 16 px 的图案、机台误差 ±10 px，只限制搜索范围能不能唯一确定平移？</li>
+<li>你怎样证明自己的亚像素实现没有系统偏差？</li>
+<li>什么样的图像上白化会帮倒忙？有哪些补救办法？</li>
+<li>裁剪视场和循环平移两种数据上，加窗的结论为什么相反？</li>
+</ol></article><nav class="prev-next"><a href="15.html">← 第 15 章 C++ 视觉工程</a><a href="17.html">第 17 章 相机标定 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#1-为什么要对齐03-像素的代价">1. 为什么要对齐：0.3 像素的代价</a></li><li><a href="#2-先选变换模型">2. 先选变换模型</a></li><li><a href="#3-三类方法">3. 三类方法</a></li><li><a href="#4-模板匹配与三种相似度">4. 模板匹配与三种相似度</a></li><li><a href="#5-相位相关用频域一次算出平移">5. 相位相关：用频域一次算出平移</a></li><li class="sub"><a href="#51-傅里叶平移定理">5.1 傅里叶平移定理</a></li><li class="sub"><a href="#52-互功率谱与白化">5.2 互功率谱与白化</a></li><li class="sub"><a href="#53-两个必须处理的细节">5.3 两个必须处理的细节</a></li><li><a href="#6-亚像素从整数峰到小数">6. 亚像素：从整数峰到小数</a></li><li class="sub"><a href="#61-三点抛物线">6.1 三点抛物线</a></li><li class="sub"><a href="#62-抛物线有系统偏差">6.2 抛物线有系统偏差</a></li><li class="sub"><a href="#63-三种改进">6.3 三种改进</a></li><li class="sub"><a href="#64-噪声下谁先垮">6.4 噪声下谁先垮</a></li><li><a href="#7-加窗取决于边界是否连续">7. 加窗：取决于边界是否连续</a></li><li><a href="#8-周期图案最重要的失败模式">8. 周期图案：最重要的失败模式</a></li><li><a href="#9-交互演示">9. 交互演示</a></li><li><a href="#10-怎样评估对齐精度">10. 怎样评估对齐精度</a></li><li><a href="#11-常见错误">11. 常见错误</a></li><li><a href="#12-破坏实验">12. 破坏实验</a></li><li><a href="#13-扩展深挖档">13. 扩展（深挖档）</a></li><li><a href="#14-和后续章节的关系">14. 和后续章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

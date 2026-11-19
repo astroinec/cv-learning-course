@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 15 章 C++ 视觉工程 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li class="current" data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 15 章 <span class="tag P0">P0</span> <span class="badge ok">已升级</span></div><h1>C++ 视觉工程</h1><p class="scene"><b>用在哪：</b>读写产线上的 C++ 视觉代码：内存布局、积分图、连通域、CMake</p><div class="meta-row"><span class="chip"><b>速通</b> 4 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 22 小时</span><span class="chip">前置：无</span></div><div class="meta-row"><span class="chip mono">验收：python 15_C++视觉工程/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="15"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章的数字都来自实测，记录在 <a href="../../15_C++视觉工程/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch15.py</code> 生成。这个脚本用 <code>g++</code> 把参考实现和几个小基准程序编译到 <code>/tmp</code> 下运行，内存布局、溢出、边界、取整这类和语言无关的概念用 numpy 和 Python 版 OpenCV 复现。<strong>耗时都是在这台机器上一次测量的结果</strong>：一台 Apple 芯片的 Mac（Apple M5 Pro，macOS 26.4，命令 <code>g++</code> 在这台机器上实际是 Apple clang 21，单线程），在机器空闲时测的。耗时和由耗时算出的倍数只写两位有效数字。这些值钉在 JSON 里，重跑脚本默认沿用，设置环境变量 <code>CH15_RETIME=1</code> 才重新计时。同一个脚本在这台机器很忙时还跑过一次（JSON 里“另一次运行的对照”一组）：多数耗时大了一到两成，同一次运行里算出的倍数大多只差百分之几，个别倍数差了一倍。下文依赖耗时的结论，两次运行都成立的照常写；不稳的写成范围，并给出两次各是多少。耗时只适合比较量级和明显的倍数，换一台机器、换编译器都会变，你在自己的 Windows 笔记本上要再测一遍。深度、阈值、误差这类不是耗时的数字，每次重跑脚本都重新计算，结果不变。</p>
+</div>
+<p>这一章不是完整的 C++ 教程，而是一份“工业视觉团队里最常用到、最容易出错”的清单。语法细节请配合 LearnCpp 查。</p>
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：读写产线上的 C++ 视觉代码：内存布局、积分图、连通域、CMake。算法验证常在 Python 里做，上机台的版本几乎都是 C++，新人最常见的卡点不是算法，而是看不懂工程、编不过、跑起来崩溃或者慢。</p>
+<p><strong>优先级</strong>：P0。没有前置章节，有一点 C 或 C++ 基础即可。第 1 章的 <code>uint8</code> 溢出和第 3 章的连通域在这里换成 C++ 再看一遍；后面第 16 章的 NCC、第 18 章的连通域、第 24 章的 C++ 重写都直接用到本章。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">4 小时</td>
+<td>读第 1、2、4、9 节，看懂图 1 到图 4 和图 6，把第 11 节演示的五步做一遍，答完 5 道小测</td>
+<td>能讲清 step 和宽度的区别、积分图为什么用 64 位整数而不是 <code>float</code>、连通域为什么不能递归、Debug 和 Release 的耗时差多少</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">15 小时</td>
+<td>读完全章，在 <code>15-1_图像基础.cpp</code> 里实现 4 个函数并验收通过，开 Sanitizer 编译一次，做第 14 节前三个破坏实验，填实验记录</td>
+<td>4 项测试 PASS、零警告，实验记录里有 r=1 和 r=30 的耗时、一次 ASan 报错的定位过程</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">22 小时</td>
+<td>再做第 14 节后三个破坏实验和第 15 节的扩展，自己用 CMake 建一个链接 OpenCV 的工程</td>
+<td>能在自己的机器上按第 12 节的格式报告一组耗时，并和 OpenCV 对拍出一致的结果</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。C++ 基础薄弱时，先用 LearnCpp 补引用、<code>const</code>、<code>vector</code> 和智能指针，再回来做作业。</p>
+</div>
+<h2 id="1-图像在内存里长什么样">1. 图像在内存里长什么样</h2>
+<p>一张 <code>H x W</code> 的单通道 8 位图，在内存里是 <code>H * W</code> 个连续字节，按行排列：</p>
+<div class="highlight"><pre><span></span><code>地址：  0        1        ...  W-1      W        W+1 ...
+像素：  (0,0)    (0,1)    ...  (0,W-1)  (1,0)    (1,1) ...
+</code></pre></div>
+<p>下标公式 <code>index = y * step + x</code>。<code>step</code> 是“一行占多少个元素”，通常等于 <code>W</code>，但不总是：</p>
+<ul>
+<li>从大图里取 ROI 时，子图的 <code>step</code> 还是大图的宽度，数据不连续。</li>
+<li>有些相机 SDK 为了对齐会在每行末尾补字节（padding），<code>step &gt; W</code>。</li>
+</ul>
+<p>所以写遍历代码时，用 <code>step</code> 而不是 <code>W</code> 算行首地址，这是新人改别人代码时最常见的越界来源。OpenCV 里对应 <code>mat.step</code>（字节数）和 <code>mat.ptr&lt;T&gt;(y)</code>（第 y 行行首指针）。本章的 <code>cpp/image.hpp</code> 为了简单没有 <code>step</code> 成员，数据总是连续的，行首就是 <code>y * cols</code>。</p>
+<h3 id="11-读错-step-会怎样">1.1 读错 step 会怎样</h3>
+<p>下面用 numpy 模拟读内存：一张 120 行、250 列的合成 die 图，每行后面补 2 个字节（step = 252）；另一张同样的图嵌在一张 200×400 的大图的 (40, 80) 处，作为 ROI。</p>
+<figure><img src="../../15_C++视觉工程/figures/fig01_内存布局读错.svg" alt="图 1：最左，一块 4 行的缓冲区，每行 6 个像素加 2 个填充字节，格子里是字节地址，行首等于 y 乘 step。左二，按 step 读出的图。右二，把 W 当成 step 读同一块缓冲区，每往下一行多错开 2 个像素，图被拉成斜的。最右，把 ROI 当成连续内存拷出 W×H 个字节，读到的是大图里相邻的内容" loading="lazy"><figcaption>图 1：最左，一块 4 行的缓冲区，每行 6 个像素加 2 个填充字节，格子里是字节地址，行首等于 y 乘 step。左二，按 step 读出的图。右二，把 W 当成 step 读同一块缓冲区，每往下一行多错开 2 个像素，图被拉成斜的。最右，把 ROI 当成连续内存拷出 W×H 个字节，读到的是大图里相邻的内容</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>读法（120×250 的图）</th>
+<th style="text-align: right;">整行完全正确的行数</th>
+<th style="text-align: right;">平均绝对误差（灰度）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>行首 = y × step</td>
+<td style="text-align: right;">120 / 120</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr>
+<td>把 W 当成 step 读带填充的缓冲区</td>
+<td style="text-align: right;">1 / 120</td>
+<td style="text-align: right;">47.6</td>
+</tr>
+<tr>
+<td>把 ROI 当成连续内存，拷 W×H 个字节</td>
+<td style="text-align: right;">1 / 120</td>
+<td style="text-align: right;">47.8</td>
+</tr>
+</tbody>
+</table></div>
+<p>只有第 0 行是对的，后面每一行都错开，而且程序不会报任何错。ROI 这一行就是自测问题 2 的答案：ROI 视图的行步长是大图的 400 字节，不是自己的 250，数据在内存里不连续。</p>
+<p><strong>多通道</strong>：BGR 三通道是交错存储 <code>B G R B G R ...</code>。原讲义写的下标 <code>(y * step + x) * 3 + c</code> 只在 <code>step</code> 按像素计、而且没有行尾填充时成立。通用的写法是把 <code>step</code> 按字节算：</p>
+<div class="highlight"><pre><span></span><code>第 y 行行首 = y * step（字节）
+像素 (y, x) 的第 c 个通道 = y * step + x * 3 + c
+</code></pre></div>
+<p>同样大小的 BGR 图，每行 750 个字节补齐到 4 的倍数（step = 752 字节）时，用通用写法读 G 通道 120 行全对；用原来的写法只有 1 行对。OpenCV 的 <code>mat.step</code> 就是按字节的。</p>
+<h3 id="12-遍历顺序">1.2 遍历顺序</h3>
+<p>外层循环 y、内层循环 x，按地址顺序访问，缓存命中最好。反过来写（外层 x、内层 y），每次访问都跳过一整行。</p>
+<p>实测：N×N 的 8 位随机图，同一个函数只交换内外层循环，每像素耗时取多次里最快的一次。“统计直方图”这个循环，按编译器自己的报告两种顺序都没有被自动向量化，所以差距只来自访存。下表是这台机器上一次测量的结果；标“另一次”的三行是机器很忙时另一次运行的同一组倍数，放在一起看波动有多大。</p>
+<figure><img src="../../15_C++视觉工程/figures/fig02_遍历顺序.svg" alt="图 2：左，统计直方图的每像素耗时随图像边长的变化（-O2，两个轴都是对数轴），行优先几乎是平的，列优先在边长是 2 的幂时（红色虚线）明显更慢。右，四个边长下列优先比行优先慢的倍数，橙色是 -O2，灰色是 -O0" loading="lazy"><figcaption>图 2：左，统计直方图的每像素耗时随图像边长的变化（-O2，两个轴都是对数轴），行优先几乎是平的，列优先在边长是 2 的幂时（红色虚线）明显更慢。右，四个边长下列优先比行优先慢的倍数，橙色是 -O2，灰色是 -O0</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>边长 N</th>
+<th style="text-align: right;">1000</th>
+<th style="text-align: right;">1024</th>
+<th style="text-align: right;">2000</th>
+<th style="text-align: right;">2048</th>
+<th style="text-align: right;">4000</th>
+<th style="text-align: right;">4096</th>
+<th style="text-align: right;">8000</th>
+<th style="text-align: right;">8192</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>统计直方图，-O2，列优先慢的倍数</td>
+<td style="text-align: right;">1.2</td>
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">1.4</td>
+<td style="text-align: right;">3.4</td>
+<td style="text-align: right;">2.2</td>
+<td style="text-align: right;">5.3</td>
+<td style="text-align: right;">4.4</td>
+<td style="text-align: right;">9.8</td>
+</tr>
+<tr>
+<td>同上，另一次</td>
+<td style="text-align: right;">1.2</td>
+<td style="text-align: right;">2.3</td>
+<td style="text-align: right;">1.9</td>
+<td style="text-align: right;">3.5</td>
+<td style="text-align: right;">2.6</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">4.8</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>统计直方图，-O0，列优先慢的倍数</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">1.2</td>
+<td style="text-align: right;">2.5</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>同上，另一次</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;">1.5</td>
+<td style="text-align: right;">3.2</td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr>
+<td>求和，-O2，列优先慢的倍数</td>
+<td style="text-align: right;">5.4</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">5.4</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">66</td>
+</tr>
+<tr>
+<td>同上，另一次</td>
+<td style="text-align: right;">5.5</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">5.6</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">67</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">66</td>
+</tr>
+</tbody>
+</table></div>
+<p>读这张表的三个结论：</p>
+<ol>
+<li><strong>原讲义说“大图上可能慢好几倍”，方向对，但倍数取决于尺寸</strong>。两次运行里 1000×1000 都只慢 1.2 倍，4000×4000 慢 2.2 到 2.6 倍；边长恰好是 2 的幂时，两次都比相邻的尺寸明显更慢，8192 两次都是 10 倍左右。具体的倍数不稳：4096 这次是 5.3 倍，机器很忙的那次是 10 倍，差了将近一倍；2000 是 1.4 倍和 1.9 倍。所以这张表只能读出“图越大越慢、2 的幂更慢”，不能把某一格的倍数当成定值。常见的解释是：行宽是 2 的幂时，同一列的像素落在缓存的同一组里，互相挤掉。本章没有单独验证这个解释，但相机分辨率经常是 2048、4096 这样的数，值得记住。</li>
+<li><strong>不开优化时差距反而小</strong>。-O0 下 1000×1000 两种顺序几乎一样快（1.0 倍，另一次 1.1 倍），4096 是 2.5 倍（另一次 3.2 倍）；两次运行里测过的四个尺寸，-O0 的倍数都不超过 -O2 的。原因是 -O0 每访问一个像素要多执行好几条指令，访存在总耗时里的占比小了。所以在 Debug 版里测出“顺序无所谓”，换到 Release 就不成立。</li>
+<li><strong>能向量化的循环差得更多</strong>。求和这种简单循环两种顺序编译器都报告做了向量化，但列优先时每个向量要从相隔一整行的地址拼起来，1000×1000 上列优先慢 5.4 倍，8192 慢 66 倍，另一次运行几乎一样（5.5 倍和 66 倍）。波动最大的还是 4096 这一列：这次 29 倍，另一次 67 倍。</li>
+</ol>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>同一个统计直方图的循环，把内外层循环交换（变成列优先）。在 1000×1000 的图上用 -O0 编译，慢多少？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>慢好几倍，因为缓存全部失效</span></button><button type="button" data-k="B"><b>B</b><span>基本不慢，-O0 下访存只占总耗时的一小部分</span></button><button type="button" data-k="C"><b>C</b><span>反而更快</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 -O0 下 1000×1000 两种顺序的倍数是 1.0（机器很忙的另一次是 1.1），4096×4096 是 2.5（另一次 3.2）。同样的代码用 -O2 编译，4096 上慢 5.3 倍（另一次 10 倍）。遍历顺序的影响要在 Release 下测才看得出来。</p></div></div>
+<h2 id="2-类型与溢出">2. 类型与溢出</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>坑</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>两个 <code>uint8_t</code> 相加</td>
+<td>255 + 1 在存回 <code>uint8_t</code> 时变成 0</td>
+<td>先提升到 <code>int</code> 计算，再饱和截断（OpenCV 的 <code>saturate_cast</code>）</td>
+</tr>
+<tr>
+<td>积分图</td>
+<td>全白图的像素和随面积增长，<code>int32</code> 在 2902×2902 就装不下</td>
+<td>用 <code>uint64_t</code> 或 <code>double</code>，不要用 <code>float</code></td>
+</tr>
+<tr>
+<td>平方和（方差、NCC）</td>
+<td><code>int</code> 很容易溢出</td>
+<td>用 <code>double</code> 或 <code>int64_t</code></td>
+</tr>
+<tr>
+<td>有符号和无符号混用</td>
+<td><code>size_t i; i - 1</code> 在 i=0 时变成巨大正数</td>
+<td>下标用 <code>int</code>，或者先判断再减</td>
+</tr>
+<tr>
+<td>浮点比较</td>
+<td><code>a == b</code> 不可靠</td>
+<td>用 <code>std::fabs(a - b) &lt; eps</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><code>-Wall -Wextra</code> 会提示有符号和无符号的比较，警告要清零，不要忽略。但它管不了表里的大多数问题，第 8 节有实测。</p>
+<p>实测（C++ 小程序，-O2）：<code>uint8_t</code> 的 255 + 1 存回 <code>uint8_t</code> 是 0，200 + 100 是 44，100 - 200 是 156；同样的加法存到 <code>int</code> 是 300。<code>size_t</code> 的 0 - 1 是 18446744073709551615。<code>0.1 + 0.2 == 0.3</code> 是 false。<code>float</code> 的 16777216 + 1 仍然等于 16777216。</p>
+<figure><img src="../../15_C++视觉工程/figures/fig03_类型与溢出.svg" alt="图 3：左，给 0 到 255 的每个灰度加 60 后存进 uint8，蓝线是先提升到 int 再饱和截断，红色虚线是直接存回，最亮的 60 级回绕成最暗。中，全白 N×N 图的积分图右下角的值随边长的变化，三条虚线是 float32 能精确表示的连续整数上限、int32 上限和 uint32 上限，星号是测试用的 4000×4000。右，用 float32 存积分图时，盒式均值误差超过 0.5 灰度的像素比例随图像边长的变化" loading="lazy"><figcaption>图 3：左，给 0 到 255 的每个灰度加 60 后存进 uint8，蓝线是先提升到 int 再饱和截断，红色虚线是直接存回，最亮的 60 级回绕成最暗。中，全白 N×N 图的积分图右下角的值随边长的变化，三条虚线是 float32 能精确表示的连续整数上限、int32 上限和 uint32 上限，星号是测试用的 4000×4000。右，用 float32 存积分图时，盒式均值误差超过 0.5 灰度的像素比例随图像边长的变化</figcaption></figure>
+<h3 id="21-积分图到底要多少位">2.1 积分图到底要多少位</h3>
+<p>全白（255）的 N×N 图，像素和是 <span class="arithmatex">\(255N^2\)</span>。它第一次超过各类型上限的边长：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类型</th>
+<th style="text-align: right;">上限</th>
+<th style="text-align: right;">像素和超限的边长</th>
+<th style="text-align: right;">窗口平方和超限的边长</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>float</code>（能精确表示的连续整数）</td>
+<td style="text-align: right;">16777216</td>
+<td style="text-align: right;">257</td>
+<td style="text-align: right;">17</td>
+</tr>
+<tr>
+<td><code>int32_t</code></td>
+<td style="text-align: right;">2147483647</td>
+<td style="text-align: right;">2902</td>
+<td style="text-align: right;">182</td>
+</tr>
+<tr>
+<td><code>uint32_t</code></td>
+<td style="text-align: right;">4294967295</td>
+<td style="text-align: right;">4105</td>
+<td style="text-align: right;">258</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>纠正原讲义的一个数</strong>。原讲义写“4000x4000 的全白图求和约 4e9，超过 <code>uint32_t</code> 上限”。实际是 4080000000，只占 <code>uint32_t</code> 上限的 95.0%，没有超过；它超过的是 <code>int32_t</code>。所以本章测试里的这张大图能抓住用 <code>int</code> 累加的实现，抓不住用 <code>uint32_t</code> 的。</p>
+<p>一个容易踩的坑：Python 版 OpenCV 的 <code>cv2.integral</code> 对 8 位图默认输出 <code>int32</code>。2901×2901 的全白图结果正确，2902×2902 的右下角变成了 -2147458276。大图上调它要显式传 <code>sdepth=cv2.CV_64F</code>。</p>
+<h3 id="22-反直觉uint32_t-回绕了也能算对float-没溢出却算错">2.2 反直觉：<code>uint32_t</code> 回绕了也能算对，<code>float</code> 没溢出却算错</h3>
+<p><strong><code>uint32_t</code> 回绕之后，矩形求和仍然是对的</strong>。无符号整数的加减是模 <span class="arithmatex">\(2^{32}\)</span> 的运算，积分图里存的是真值模 <span class="arithmatex">\(2^{32}\)</span>，四个角一加一减之后，只要真正的窗口和小于 <span class="arithmatex">\(2^{32}\)</span>，结果就是对的。实测：5000×5000、灰度 240 到 255 的随机图，5.2% 的积分图单元已经回绕，右下角存的是 1892555749（真值 6187523045），但右下四分之一里 6240004 个 3×3 窗口的和全部正确，15×15 窗口也全部正确。这个性质只对无符号类型成立，<code>int</code> 溢出是未定义行为。工程上仍然推荐 <code>uint64_t</code>，因为整图总和、全图均值这类量会直接用到右下角那个值。</p>
+<p><strong><code>float</code> 积分图在常见尺寸上就不能用</strong>。<code>float</code> 只有 24 位有效数字，积分图里的大数相减，小窗口的和被舍入误差吞掉。用 <code>float</code> 递推积分图，再算盒式均值（随机图，只统计窗口完整的内部像素）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>图像边长</th>
+<th style="text-align: right;">500</th>
+<th style="text-align: right;">1000</th>
+<th style="text-align: right;">2000</th>
+<th style="text-align: right;">4000</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3×3 均值的最大误差（灰度）</td>
+<td style="text-align: right;">0.67</td>
+<td style="text-align: right;">2.44</td>
+<td style="text-align: right;">9.67</td>
+<td style="text-align: right;">39.0</td>
+</tr>
+<tr>
+<td>3×3 均值误差超过 0.5 的像素比例</td>
+<td style="text-align: right;">0.1%</td>
+<td style="text-align: right;">9.5%</td>
+<td style="text-align: right;">40.7%</td>
+<td style="text-align: right;">70.4%</td>
+</tr>
+<tr>
+<td>15×15 均值误差超过 0.5 的像素比例</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.0%</td>
+<td style="text-align: right;">0.3%</td>
+<td style="text-align: right;">15.2%</td>
+</tr>
+</tbody>
+</table></div>
+<p>2000×2000 的随机图像素总和只有 510061896，远没到任何整数类型的上限，<code>float</code> 版的 3×3 均值却有 40.7% 的像素错了半个灰度以上。<code>cv2.integral(sdepth=cv2.CV_32F)</code> 在 2000×2000 上的结果和这里完全一样。<code>double</code> 的有效位数多得多，全白图的平方和要到边长 372181 才会超出它能精确表示的整数范围，够用。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一张 5000×5000、很亮的图，积分图用 <code>uint32_t</code> 存，右下角已经回绕成了一个比真值小得多的数。用它算 3×3 窗口的像素和，结果怎样？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>回绕区域里的窗口全部算错</span></button><button type="button" data-k="B"><b>B</b><span>全部正确，只要单个窗口的和不超过 uint32 上限</span></button><button type="button" data-k="C"><b>C</b><span>有一半左右算错</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。无符号加减是模 <span class="arithmatex">\(2^{32}\)</span> 的运算，四个角一加一减把回绕抵消了。实测 6240004 个 3×3 窗口没有一个算错。真正危险的反而是没有溢出的 <code>float</code>：2000×2000 的图上 40.7% 的 3×3 均值误差超过 0.5。</p></div></div>
+<h2 id="3-值语义引用和拷贝">3. 值语义、引用和拷贝</h2>
+<div class="highlight"><pre><span></span><code><span class="kt">void</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">Image</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">img</span><span class="p">);</span><span class="w">         </span><span class="c1">// 按值传：整张图拷贝一次，慢</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Image</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">img</span><span class="p">);</span><span class="w">  </span><span class="c1">// const 引用：不拷贝，也不能改，读图首选</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">Image</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">img</span><span class="p">);</span><span class="w">        </span><span class="c1">// 非 const 引用：原地修改</span>
+</code></pre></div>
+<p>“慢”有多慢：把一张图传给一个只读一个像素的函数，每次调用的耗时（ms，这台机器上一次测量）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>图像</th>
+<th style="text-align: right;">按值，-O2</th>
+<th style="text-align: right;">按值，-O0</th>
+<th style="text-align: right;">按 const 引用，-O2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2000×2000（4 MB）</td>
+<td style="text-align: right;">0.047</td>
+<td style="text-align: right;">7.7</td>
+<td style="text-align: right;">低于 0.001</td>
+</tr>
+<tr>
+<td>4000×4000（16 MB）</td>
+<td style="text-align: right;">0.21</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">低于 0.001</td>
+</tr>
+</tbody>
+</table></div>
+<p>-O2 下拷一张 16 MB 的图只要零点二几毫秒（这次 0.21 ms，机器很忙的另一次 0.29 ms，相差约四成），单次看不出来；放进逐帧处理的循环里，或者在 Debug 版里，就是几十毫秒。读图一律传 <code>const&amp;</code>。</p>
+<p><code>std::vector</code> 是值语义，赋值就是深拷贝。<strong><code>cv::Mat</code> 不一样</strong>：它是引用计数的句柄，<code>Mat b = a;</code> 只拷贝句柄，<code>b</code> 和 <code>a</code> 指向同一块像素。要深拷贝用 <code>a.clone()</code> 或 <code>a.copyTo(b)</code>。这个差异导致过无数“我明明改的是副本，原图怎么也变了”的 bug。numpy 的切片也是视图：实测改 ROI 视图里 10×10 个像素，大图里变了 100 个像素；改 <code>.copy()</code> 得到的副本，大图里变了 0 个。</p>
+<p><strong>RAII</strong>：资源跟对象生命周期绑定。用 <code>std::vector</code>、<code>std::unique_ptr</code> 管理内存，不要手写 <code>new</code>/<code>delete</code>。相机缓冲区、文件句柄也用类包起来，在析构函数里释放。</p>
+<div class="callout callout-warn"><div class="callout-title">注意</div><p>构造函数里的检查要放在分配之前。<code>cpp/image.hpp</code> 的 <code>Image(rows, cols)</code> 先用 <code>rows * cols</code> 分配 <code>vector</code>，再检查负数：<code>Image(-1, 5)</code> 实测抛出的是 <code>std::length_error</code>（负数乘积转成 <code>size_t</code> 变成巨大的数，分配失败），而不是注释里说的 <code>std::invalid_argument</code>；两个都为负时乘积是正的，才走到检查。作业不会构造负尺寸的图，这里只是提醒自己写类时把校验放在成员初始化之前。</p>
+</div>
+<h2 id="4-不要用递归做连通域和泛洪填充">4. 不要用递归做连通域和泛洪填充</h2>
+<p>一个 3000x3000 的蛇形前景区域，递归深度可达几百万层，默认栈（macOS 主线程 8 MB，子线程通常更小）一定会溢出，表现是程序直接崩溃（Segmentation fault），而且只在大图上出现。正确做法是用 <code>std::queue</code>（BFS）或 <code>std::vector</code> 当显式栈（DFS）。本章测试专门放了一个蛇形大区域来检查这一点。</p>
+<p>实测：一个最朴素的递归泛洪填充（4 连通，按上、下、左、右的顺序递归），在 N×N 的图上运行。蛇形和测试里的完全相同，实心块是全前景。这台 Mac 上主线程的栈是 7.98 MB，<code>pthread</code> 子线程默认 512 KB。</p>
+<figure><img src="../../15_C++视觉工程/figures/fig04_递归深度和栈.svg" alt="图 4：左，递归的最大深度随图像边长的变化，两条虚线是 -O2 编译时主线程和子线程的栈最多能容纳的层数，两个轴都是对数轴。右，3000×3000 的实心块和蛇形上，递归深度、显式栈峰值、队列峰值三者的对比，纵轴是对数轴" loading="lazy"><figcaption>图 4：左，递归的最大深度随图像边长的变化，两条虚线是 -O2 编译时主线程和子线程的栈最多能容纳的层数，两个轴都是对数轴。右，3000×3000 的实心块和蛇形上，递归深度、显式栈峰值、队列峰值三者的对比，纵轴是对数轴</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>条件（这份递归代码，这个编译器）</th>
+<th style="text-align: right;">每层占用的栈</th>
+<th style="text-align: right;">主线程：实心块最大边长</th>
+<th style="text-align: right;">主线程：蛇形最大边长</th>
+<th style="text-align: right;">子线程：实心块最大边长</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-O2</td>
+<td style="text-align: right;">80 字节</td>
+<td style="text-align: right;">323（104329 层）</td>
+<td style="text-align: right;">456</td>
+<td style="text-align: right;">81</td>
+</tr>
+<tr>
+<td>-O0</td>
+<td style="text-align: right;">48 字节</td>
+<td style="text-align: right;">417（173889 层）</td>
+<td style="text-align: right;">589</td>
+<td style="text-align: right;">105</td>
+</tr>
+</tbody>
+</table></div>
+<p>几点读法：</p>
+<ol>
+<li><strong>几百像素见方就够崩溃</strong>。不需要 3000×3000，-O2 编译时一个 324×324 的实心块就在主线程上溢出。递归深度随前景面积线性增长：3000×3000 的蛇形是 4501500 层，实心块是 9000000 层，按每层 80 字节要 343 MB 和 687 MB 的栈。</li>
+<li><strong>子线程更容易崩</strong>。512 KB 的栈只够 81×81 的实心块。产线软件的算法通常跑在工作线程里，在主线程上测过不等于安全。主线程溢出收到的是 SIGSEGV，子线程收到的是 SIGBUS，验收脚本里看到的返回码会不同。</li>
+<li><strong>反直觉：Debug 版能处理的图比 Release 版大</strong>。这份代码在 -O2 下每层用 80 字节，-O0 下只用 48 字节（多半是优化后的版本在函数开头保存了更多寄存器，本章没有逐条核对汇编）。370×370 的实心块，-O0 编译跑完了，-O2 编译栈溢出。“Debug 里好好的，Release 里崩了”不一定是未定义行为，也可能只是栈帧大小变了。</li>
+<li><strong>显式栈不等于省内存</strong>。不用递归时，容器里最多同时有多少像素（3000×3000）：</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>形状、连通性</th>
+<th style="text-align: right;">前景像素</th>
+<th style="text-align: right;">队列（BFS）峰值</th>
+<th style="text-align: right;">显式栈（DFS）峰值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>实心块，4 连通</td>
+<td style="text-align: right;">9000000</td>
+<td style="text-align: right;">3000</td>
+<td style="text-align: right;">4498501（50.0%）</td>
+</tr>
+<tr>
+<td>实心块，8 连通</td>
+<td style="text-align: right;">9000000</td>
+<td style="text-align: right;">5999</td>
+<td style="text-align: right;">3004500（33.4%）</td>
+</tr>
+<tr>
+<td>蛇形，4 连通</td>
+<td style="text-align: right;">4501500</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>蛇形，8 连通</td>
+<td style="text-align: right;">4501500</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3000</td>
+</tr>
+</tbody>
+</table></div>
+<p>两种写法都“入队或入栈时就标记”。显式栈在实心块上峰值是前景的一半，每个元素是 8 字节的 <code>std::pair&lt;int, int&gt;</code>，共 34.3 MB，放在堆上不会崩，但比队列多三个数量级。队列的峰值大约是连通域的一条“波前”，和边长同量级。</p>
+<p>把测试里的 3000×3000 蛇形交给递归实现，-O0 和 -O2 都在主线程上溢出。验收脚本只会显示“程序异常退出（返回码 -11）”（负号表示进程被信号 11，也就是 SIGSEGV 杀掉），前面已经通过的几项也看不到了（测试程序的输出还在缓冲区里，进程就被杀掉了）。</p>
+<p>第 11 节的交互演示可以在小图上看三种写法各自要记住多少像素。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>同一份递归泛洪填充，分别用 -O0 和 -O2 编译，在主线程上处理一个 370×370 的全前景块。结果是？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>两个都崩溃</span></button><button type="button" data-k="B"><b>B</b><span>-O0 跑完，-O2 栈溢出</span></button><button type="button" data-k="C"><b>C</b><span>-O2 跑完，-O0 栈溢出</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。递归深度相同（每个前景像素一层），但 -O2 版每层占 80 字节，-O0 版只占 48 字节，-O0 的极限是 417×417，-O2 是 323×323。优化不一定让栈用得更少，Debug 里能跑的图，Release 里可能崩。</p></div></div>
+<h2 id="5-积分图让任意矩形求和变成-o1">5. 积分图：让任意矩形求和变成 O(1)</h2>
+<p>定义 <code>II(y, x) = sum(img[0..y-1, 0..x-1])</code>，尺寸为 <code>(H+1) x (W+1)</code>，多出的第 0 行和第 0 列全为 0，这样就不用处理边界特判。矩形 <code>[y0, y1) x [x0, x1)</code> 的和是：</p>
+<div class="highlight"><pre><span></span><code>S = II(y1, x1) - II(y0, x1) - II(y1, x0) + II(y0, x0)
+</code></pre></div>
+<p>递推：<code>II(y+1, x+1) = II(y, x+1) + rowsum(y, 0..x)</code>。</p>
+<p>用途：盒式滤波、局部均值和方差（同时维护平方的积分图）、NCC 分母加速、Haar 特征。本章的盒式均值要求“耗时与半径无关”，测试会对比 r=1 和 r=30 的耗时。</p>
+<h3 id="51-三种复杂度实测">5.1 三种复杂度实测</h3>
+<p>同一个盒式均值（边界约定相同），三种写法，1000×1000 的随机图，-O2，耗时 ms（这台机器上一次测量）：</p>
+<figure><img src="../../15_C++视觉工程/figures/fig05_积分图与边界.svg" alt="图 5：左，三种盒式均值的耗时随半径的变化，两个轴都是对数轴，只有积分图的曲线是平的。右，左边界处是一段斜坡的一行图像，用 15×15 窗口按三种边界约定算出的均值，竖虚线是 x = r，右边三条线重合" loading="lazy"><figcaption>图 5：左，三种盒式均值的耗时随半径的变化，两个轴都是对数轴，只有积分图的曲线是平的。右，左边界处是一段斜坡的一行图像，用 15×15 窗口按三种边界约定算出的均值，竖虚线是 x = r，右边三条线重合</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>半径 r</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">30</th>
+<th style="text-align: right;">100</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>朴素：每个像素把窗口加一遍，<span class="arithmatex">\(O(r^2)\)</span></td>
+<td style="text-align: right;">3.5</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">120</td>
+<td style="text-align: right;">630</td>
+<td style="text-align: right;">没测</td>
+</tr>
+<tr>
+<td>可分离：先行后列，<span class="arithmatex">\(O(r)\)</span></td>
+<td style="text-align: right;">3.2</td>
+<td style="text-align: right;">5.9</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">95</td>
+</tr>
+<tr>
+<td>积分图，<span class="arithmatex">\(O(1)\)</span></td>
+<td style="text-align: right;">0.91</td>
+<td style="text-align: right;">0.89</td>
+<td style="text-align: right;">0.87</td>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">0.89</td>
+</tr>
+</tbody>
+</table></div>
+<p>积分图在所有半径下的耗时，最慢的是最快的 1.1 倍；r=30 时朴素写法慢 700 倍左右，可分离写法慢 38 倍。机器很忙的另一次运行里这些耗时都大了一到两成，这三个倍数只差百分之几，结论相同。</p>
+<h3 id="52-测试的计时检查能抓住什么">5.2 测试的计时检查能抓住什么</h3>
+<p>测试的判据是：r=30 的耗时超过 r=1 耗时的 4 倍再加 0.05 秒，才判“没做到 O(1)”。按测试的写法（2000×2000，两个半径各调用一次）单独计时，每种实现跑 5 次取中位数（这台机器上一次测量）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>实现</th>
+<th style="text-align: right;">r=1（ms）</th>
+<th style="text-align: right;">r=30（ms）</th>
+<th style="text-align: right;">判据允许的 r=30 上限（ms）</th>
+<th style="text-align: right;">通过次数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>积分图</td>
+<td style="text-align: right;">7.3</td>
+<td style="text-align: right;">3.8</td>
+<td style="text-align: right;">79</td>
+<td style="text-align: right;">5 / 5</td>
+</tr>
+<tr>
+<td>可分离 <span class="arithmatex">\(O(r)\)</span></td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">82</td>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">5 / 5</td>
+</tr>
+<tr>
+<td>朴素 <span class="arithmatex">\(O(r^2)\)</span></td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">2500</td>
+<td style="text-align: right;">120</td>
+<td style="text-align: right;">0 / 3</td>
+</tr>
+</tbody>
+</table></div>
+<p>朴素写法超出上限二十倍左右，两次运行都被拦下；<strong>可分离的 <span class="arithmatex">\(O(r)\)</span> 写法在这台机器上两次运行都是 5 次全过</strong>，因为 0.05 秒的余量比它多出来的耗时还大。不过它离上限只有一两成（这次 82 ms 对 100 ms），机器再忙一些或者换一台机器，就可能时过时不过，不要把“能通过”当成定论。所以验收通过只说明你没写成 <span class="arithmatex">\(O(r^2)\)</span>，不能证明耗时和半径无关。自己在实验记录里填 r=1 和 r=30 的耗时，看两个数是不是差不多。积分图一栏 r=1 比 r=30 还慢（两次运行都是这样），多半是因为 r=1 是第一次调用、要先向系统申请内存，单次计时就是这么不稳（第 12 节）。</p>
+<h3 id="53-边界约定">5.3 边界约定</h3>
+<p>作业的契约是“窗口裁剪到图像内，只对图像内像素求平均”。OpenCV 的 <code>cv::blur</code> 默认是反射 101（<code>BORDER_REFLECT_101</code>，实测和不传参数的结果完全一样），另一种常见做法是补零。三种约定只在离边不到 r 的像素上不同，图 5 右栏：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>15×15 窗口（r=7），2000×2000 随机图</th>
+<th style="text-align: right;">数值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>离边不到 r 的像素占比</td>
+<td style="text-align: right;">1.4%</td>
+</tr>
+<tr>
+<td>裁剪窗口与反射 101 的最大差（灰度）</td>
+<td style="text-align: right;">8.0</td>
+</tr>
+<tr>
+<td>裁剪窗口与补零的最大差（灰度）</td>
+<td style="text-align: right;">92.6</td>
+</tr>
+<tr>
+<td>内部像素上三者的最大差</td>
+<td style="text-align: right;">3e-14</td>
+</tr>
+</tbody>
+</table></div>
+<p>补零在边上把均值拉低一大截（图 5 右栏 x=0 处：裁剪 61.0，反射 62.4，补零 32.5），反射和裁剪差得不多。和 OpenCV 对拍时只比内部区域，或者先把边界约定对齐（第 10 节）。</p>
+<h2 id="6-ncc-模板匹配的工程细节">6. NCC 模板匹配的工程细节</h2>
+<p>公式和第 16 章的 ZNCC 相同（第 16 章把不减均值的版本叫 NCC，减了均值的叫 ZNCC；本章作业和原讲义沿用 NCC 这个名字，算的是减均值的版本）：</p>
+<div class="arithmatex">\[
+\mathrm{NCC} = \frac{\sum (I - \bar I)(T - \bar T)}{\sqrt{\sum (I - \bar I)^2 \cdot \sum (T - \bar T)^2}}
+\]</div>
+<ul>
+<li>模板的均值和方差只算一次。</li>
+<li>窗口方差为 0（平坦区域）时分母为 0，必须特判，否则产生 NaN。NaN 和任何数比较都是 false，后果取决于你怎么找最大值（第 6.2 节）。</li>
+<li>直接实现是 O(H·W·h·w)，大图大模板很慢。工程上的做法：积分图算窗口均值和方差，FFT 算分子；或者图像金字塔先在缩小图上粗搜，再在原图局部精搜。</li>
+</ul>
+<h3 id="61-耗时随模板大小">6.1 耗时随模板大小</h3>
+<p>320×240 的随机图，模板是从图里截下的 t×t 小块，-O2，耗时 ms（这台机器上一次测量）。“分母用积分图”是脚本里的对照实现：窗口的和与平方和查积分图，分子仍然逐像素相乘。OpenCV 一栏从 Python 调 <code>cv2.matchTemplate(TM_CCOEFF_NORMED)</code>，限制为单线程。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模板边长 t</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">16</th>
+<th style="text-align: right;">24</th>
+<th style="text-align: right;">32</th>
+<th style="text-align: right;">48</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>直接计算（参考实现）</td>
+<td style="text-align: right;">4.3</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">82</td>
+<td style="text-align: right;">170</td>
+</tr>
+<tr>
+<td>分母用积分图</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">3.4</td>
+<td style="text-align: right;">6.3</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td>OpenCV <code>matchTemplate</code></td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">1.0</td>
+<td style="text-align: right;">0.98</td>
+<td style="text-align: right;">0.99</td>
+</tr>
+</tbody>
+</table></div>
+<p>t 从 8 到 48，模板面积大 36 倍，直接计算的耗时大 38 倍，和 <span class="arithmatex">\(O(hw)\)</span> 相符。只把分母换成积分图就快 4.0 到 8.4 倍。直接计算每个位置要扫两遍窗口（先求均值，再求协方差和方差），换成积分图后只剩一遍整数乘加，这是主要原因之一。OpenCV 的耗时几乎不随模板变大，t=48 时比直接计算快 170 倍左右，它内部用的是别的算法（具体以 OpenCV 的文档和源码为准）。机器很忙的另一次运行里耗时普遍大一成多，这几个倍数只差百分之几。两种 C++ 实现找到的位置完全相同，分数最多差 2e-16。</p>
+<h3 id="62-nan-会怎样影响最大值">6.2 NaN 会怎样影响最大值</h3>
+<p>四个分数里有一个是 NaN，真正的最大值 0.9 在下标 2。不同的找最大值写法返回的下标：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>写法</th>
+<th style="text-align: right;">NaN 在下标 1</th>
+<th style="text-align: right;">NaN 在下标 0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最好分数初始化成 -2，用 <code>&gt;</code> 更新</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>用第一个元素初始化，用 <code>&gt;</code> 更新</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td><code>std::max_element</code></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>numpy <code>np.argmax</code></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table></div>
+<p>原讲义说 NaN“会导致最大值找错”，要看写法。初始化成一个很小的数再用 <code>&gt;</code> 比较，NaN 会被悄悄跳过，位置反而是对的；NaN 恰好在开头、或者用了第一个元素做初值，就会返回 NaN 的位置；所有位置都是 NaN 时，“初始化成 -2”的写法返回 -1，调用方拿到一个非法坐标。不管哪种，特判都不能省：作业契约要求平坦窗口的分数是 0，测试会查。</p>
+<p>另一个对拍时的坑：OpenCV 5.0 的 <code>matchTemplate</code> 在全平坦的图和模板上给出的分数是 1.0，本章契约是 0。两边都“对”，只是约定不同。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>NCC 的分母在平坦窗口上为 0，算出了 NaN。找最大值的代码是 <code>best = -2; if (s &gt; best) {...}</code>。会发生什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>一定返回 NaN 所在的位置</span></button><button type="button" data-k="B"><b>B</b><span>NaN 被跳过；只有全部是 NaN 时，返回一个从没被赋值的 -1 位置</span></button><button type="button" data-k="C"><b>C</b><span>程序崩溃</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。<code>NaN &gt; best</code> 永远是 false，这个位置被跳过。实测 NaN 在开头或中间时都返回了真正的最大值；四个分数全是 NaN 时返回 -1。换成用第一个元素做初值，NaN 在开头时就会返回 0。行为依赖写法，所以要在算分数时就特判。</p></div></div>
+<h2 id="7-cmake-最小知识">7. CMake 最小知识</h2>
+<div class="highlight"><pre><span></span><code><span class="nb">cmake_minimum_required</span><span class="p">(</span><span class="s">VERSION</span><span class="w"> </span><span class="s">3.16</span><span class="p">)</span>
+<span class="nb">project</span><span class="p">(</span><span class="s">demo</span><span class="w"> </span><span class="s">CXX</span><span class="p">)</span>
+<span class="nb">set</span><span class="p">(</span><span class="s">CMAKE_CXX_STANDARD</span><span class="w"> </span><span class="s">17</span><span class="p">)</span>
+<span class="nb">find_package</span><span class="p">(</span><span class="s">OpenCV</span><span class="w"> </span><span class="s">REQUIRED</span><span class="p">)</span><span class="w">                 </span><span class="c"># 找到 brew 安装的 OpenCV</span>
+<span class="nb">add_executable</span><span class="p">(</span><span class="s">demo</span><span class="w"> </span><span class="s">main.cpp</span><span class="p">)</span>
+<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">demo</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="o">${</span><span class="nv">OpenCV_LIBS</span><span class="o">}</span><span class="p">)</span>
+</code></pre></div>
+<p>构建三步：</p>
+<div class="highlight"><pre><span></span><code>cmake<span class="w"> </span>-S<span class="w"> </span>.<span class="w"> </span>-B<span class="w"> </span>build<span class="w"> </span>-DCMAKE_BUILD_TYPE<span class="o">=</span>Release<span class="w">   </span><span class="c1"># 配置</span>
+cmake<span class="w"> </span>--build<span class="w"> </span>build<span class="w"> </span>-j<span class="w">                           </span><span class="c1"># 编译</span>
+./build/demo<span class="w">                                     </span><span class="c1"># 运行</span>
+</code></pre></div>
+<p>几个要点：</p>
+<ul>
+<li><strong>Debug 和 Release 性能差距可以是 10 倍以上</strong>，测速一定用 Release。实测的倍数见第 7.1 节，从 4 倍到 30 多倍不等。</li>
+<li>用 <code>target_*</code> 系列命令（<code>target_include_directories</code>、<code>target_link_libraries</code>），不要用全局的 <code>include_directories</code>。</li>
+<li>构建目录和源码分开（<code>-B build</code>），不要在源码目录里直接 <code>cmake .</code>。</li>
+</ul>
+<div class="callout callout-note"><div class="callout-title">说明</div><p>这台测试机上没有装 CMake，本章的 <code>CMakeLists.txt</code> 没有在升级时重新跑过。下面所有耗时都是直接用 <code>g++</code> 加对应的编译选项测的。按 CMake 的文档，GCC 和 Clang 下 Debug 默认只加 <code>-g</code>（不优化），Release 默认是 <code>-O3 -DNDEBUG</code>。</p>
+</div>
+<h3 id="71-优化级别差多少">7.1 优化级别差多少</h3>
+<p>参考实现的四个函数，同一份源码只换编译选项，耗时 ms（这台机器上一次测量）：</p>
+<figure><img src="../../15_C++视觉工程/figures/fig06_优化级别与访问方式.svg" alt="图 6：左，参考实现的四个函数在 -O0、-O1 加 Sanitizer、-O1、-O3 下的耗时相对 -O2 的倍数，纵轴是对数轴，柱子上标的是倍数。右，3×3 均值用 at()、operator() 和三个行指针三种写法，在 -O2、-O2 关掉向量化、-O0 三种编译下的耗时" loading="lazy"><figcaption>图 6：左，参考实现的四个函数在 -O0、-O1 加 Sanitizer、-O1、-O3 下的耗时相对 -O2 的倍数，纵轴是对数轴，柱子上标的是倍数。右，3×3 均值用 at()、operator() 和三个行指针三种写法，在 -O2、-O2 关掉向量化、-O0 三种编译下的耗时</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>编译选项</th>
+<th style="text-align: right;">积分图 2000×2000</th>
+<th style="text-align: right;">盒式均值 2000×2000，r=7</th>
+<th style="text-align: right;">NCC 320×240，模板 24×24</th>
+<th style="text-align: right;">连通域计数 2000×2000</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-O0（相当于 Debug）</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: right;">120</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: right;">260</td>
+</tr>
+<tr>
+<td>-O1</td>
+<td style="text-align: right;">1.9</td>
+<td style="text-align: right;">5.0</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">56</td>
+</tr>
+<tr>
+<td>-O2</td>
+<td style="text-align: right;">1.3</td>
+<td style="text-align: right;">3.6</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">57</td>
+</tr>
+<tr>
+<td>-O3</td>
+<td style="text-align: right;">1.3</td>
+<td style="text-align: right;">3.6</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">58</td>
+</tr>
+<tr>
+<td>-O1 加 ASan 和 UBSan</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">62</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">150</td>
+</tr>
+<tr>
+<td>-O0 比 -O2 慢的倍数</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">5.2</td>
+<td style="text-align: right;">4.5</td>
+</tr>
+</tbody>
+</table></div>
+<p>-O0 比 -O2 慢 4.5 到 34 倍，取决于函数：积分图和盒式均值是简单的连续访存，优化后能向量化，差 30 多倍；NCC 和连通域是浮点运算和队列操作，只差 5 倍左右。机器很忙的另一次运行里每个耗时都大一到两成，这个范围是 4.4 到 35 倍，几乎一样。-O3 和 -O2 的耗时这次最多差 3%，另一次最多差 7%，有快有慢，都在计时的波动以内，这组函数上没有可见的差别。所以“Release 快多少”没有一个固定的数，要对自己的函数测。</p>
+<h3 id="72-在-windows-上编译">7.2 在 Windows 上编译</h3>
+<div class="callout callout-warn"><div class="callout-title">注意</div><p>这一小节<strong>没有在 Windows 上实测过</strong>，只写通用做法。按它做遇到问题，以你机器上的报错为准，并记到实验记录里。</p>
+</div>
+<p>三条路，按和本章环境的差异从小到大：</p>
+<ol>
+<li><strong>WSL2 里的 Ubuntu</strong>。装好后在 WSL 里 <code>sudo apt install g++ cmake</code>，课程仓库放在 WSL 的文件系统里，验收脚本、编译选项和 Sanitizer 都和本章一致。最省事。</li>
+<li><strong>MSYS2 的 MinGW-w64 <code>g++</code></strong>。把它的 <code>bin</code> 目录加进 <code>PATH</code> 之后，<code>tests/check_progress.py</code> 能找到 <code>g++</code>。Windows 下的 MinGW 对 Sanitizer 的支持有限，ASan 实验建议放到 WSL 里做。</li>
+<li>
+<p><strong>Visual Studio（MSVC）</strong>。安装时勾选“使用 C++ 的桌面开发”，里面带了 CMake。几个和 macOS 不同的地方：
+   - 验收脚本只找 <code>c++</code>、<code>clang++</code>、<code>g++</code>，找不到 MSVC 的 <code>cl</code>，只装了 VS 时要走 CMake。
+   - VS 的生成器是多配置的，<code>CMAKE_BUILD_TYPE</code> 不起作用，要在编译时选：<code>cmake --build build --config Release</code>，可执行文件在 <code>build/Release/</code> 下。
+   - 本章 <code>CMakeLists.txt</code> 里的 <code>-Wall -Wextra</code> 和 <code>-fsanitize=address,undefined</code> 是 GCC/Clang 的写法。MSVC 对应的是 <code>/W4</code> 和 <code>/fsanitize=address</code>，MSVC 没有 UBSan。源文件和头文件里有中文的字符串和注释，MSVC 要加 <code>/utf-8</code>。需要时在自己的副本里改成：</p>
+<div class="highlight"><pre><span></span><code><span class="nb">if</span><span class="p">(</span><span class="s">MSVC</span><span class="p">)</span>
+<span class="w">  </span><span class="nb">target_compile_options</span><span class="p">(</span><span class="s">ch15</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="s">/W4</span><span class="w"> </span><span class="s">/utf-8</span><span class="p">)</span>
+<span class="nb">else</span><span class="p">()</span>
+<span class="w">  </span><span class="nb">target_compile_options</span><span class="p">(</span><span class="s">ch15</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="s">-Wall</span><span class="w"> </span><span class="s">-Wextra</span><span class="p">)</span>
+<span class="nb">endif</span><span class="p">()</span>
+</code></pre></div>
+</li>
+</ol>
+<ul>
+<li>按微软的文档，MSVC 链接器默认只给主线程保留 1 MB 的栈，第 4 节的递归在 Windows 上会更早崩溃。</li>
+<li>64 位 Windows 上 <code>long</code> 是 32 位（64 位 macOS 和 Linux 上是 64 位）。积分图写 <code>long</code> 在 Mac 上能过、在 Windows 上溢出，一律写 <code>std::uint64_t</code>。</li>
+</ul>
+<p>OpenCV 的 C++ 版在 Windows 上可以用官方发布的预编译包或者 vcpkg 安装，<code>find_package(OpenCV)</code> 找不到时把 <code>OpenCV_DIR</code> 指向包里含 <code>OpenCVConfig.cmake</code> 的目录。具体路径以你安装的版本为准。</p>
+<h2 id="8-调试与定位">8. 调试与定位</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>越界、use-after-free</td>
+<td>编译加 <code>-fsanitize=address</code>，出错时直接打印出错行和调用栈</td>
+</tr>
+<tr>
+<td>整数溢出、未定义行为</td>
+<td><code>-fsanitize=undefined</code></td>
+</tr>
+<tr>
+<td>崩溃后看现场</td>
+<td><code>lldb ./build/demo</code>，<code>run</code> 后 <code>bt</code> 看调用栈</td>
+</tr>
+<tr>
+<td>慢</td>
+<td>macOS 上 Instruments 的 Time Profiler；或者先用 <code>std::chrono</code> 给各阶段计时</td>
+</tr>
+</tbody>
+</table></div>
+<p>本章 <code>CMakeLists.txt</code> 已经提供 <code>-DWITH_SANITIZERS=ON</code> 选项。建议故意在 <code>box_mean</code> 里把 <code>y1</code> 写成 <code>y + r + 2</code>，体验一次 ASan 报错，记住它长什么样。实测（没有用 CMake，直接用 <code>g++</code> 加 <code>-O1 -g</code> 和与 <code>CMakeLists.txt</code> 相同的 Sanitizer 选项）：不开 Sanitizer 时程序不崩溃，只是盒式均值一项 FAIL（“均值或边界裁剪不对（r=0）”）；开了 ASan 之后报 <code>heap-buffer-overflow</code>，第一行调用栈直接指到 <code>box_mean</code> 里出错的那一行。</p>
+<h3 id="81-警告和-sanitizer-各管什么">8.1 警告和 Sanitizer 各管什么</h3>
+<p>同一个小程序里放六种典型错误，看谁报（Apple clang 21）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>错误</th>
+<th><code>-Wall -Wextra</code></th>
+<th>再加 <code>-Wconversion -Wfloat-equal</code></th>
+<th>运行时 <code>-fsanitize=undefined</code></th>
+<th>再加两项扩展检查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>int</code> 和 <code>size()</code> 比较</td>
+<td>报</td>
+<td>报</td>
+<td>不报</td>
+<td>不报</td>
+</tr>
+<tr>
+<td><code>uint8_t</code> 相加后存回 <code>uint8_t</code></td>
+<td>不报</td>
+<td>不报</td>
+<td>不报</td>
+<td>报</td>
+</tr>
+<tr>
+<td><code>size_t</code> 的 0 - 1</td>
+<td>不报</td>
+<td>不报</td>
+<td>不报</td>
+<td>报</td>
+</tr>
+<tr>
+<td><code>int</code> 乘法溢出</td>
+<td>不报</td>
+<td>不报</td>
+<td>报</td>
+<td>报</td>
+</tr>
+<tr>
+<td><code>uint32_t</code> 累加回绕</td>
+<td>不报</td>
+<td>不报</td>
+<td>不报</td>
+<td>报</td>
+</tr>
+<tr>
+<td>浮点数用 <code>==</code> 比较</td>
+<td>不报</td>
+<td>报</td>
+<td>不报</td>
+<td>不报</td>
+</tr>
+</tbody>
+</table></div>
+<p>扩展检查指 <code>-fsanitize=unsigned-integer-overflow,implicit-conversion</code>，只有 Clang 有。六种里 <code>-Wall -Wextra</code> 只报了 1 种；无符号回绕在语言里是合法的，标准的 UBSan 不管。零警告是底线，不是证明。</p>
+<h3 id="82-asan-抓不到行内越界">8.2 ASan 抓不到“行内越界”</h3>
+<p>4 行 6 列的图，用不检查边界的 <code>operator()</code> 读第 6 列（越界一列）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>读的位置</th>
+<th>ASan 报不报</th>
+<th>读到什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第 0 行第 6 列</td>
+<td>不报</td>
+<td>第 1 行第 0 列的值（100）</td>
+</tr>
+<tr>
+<td>最后一行第 6 列</td>
+<td>报 <code>heap-buffer-overflow</code></td>
+<td>读出了缓冲区</td>
+</tr>
+<tr>
+<td>同样的下标改用 <code>at()</code></td>
+<td></td>
+<td>抛出 <code>std::out_of_range</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>ASan 只知道整块缓冲区的边界。列下标越界但地址还在缓冲区里，读到的是下一行的像素，ASan 看不到，图 1 那种错位也就悄悄发生了。调试阶段用 <code>at()</code> 或者自己加 <code>assert(x &lt; cols)</code>，确认无误再换回不检查的版本。</p>
+<h2 id="9-性能的几条朴素规则">9. 性能的几条朴素规则</h2>
+<ol>
+<li>先测量再优化，只优化最热的那一段。</li>
+<li>热循环里不要用带边界检查的 <code>at()</code>，用行指针。</li>
+<li>不要在循环里分配内存（<code>std::vector</code> 的 <code>push_back</code> 提前 <code>reserve</code>）。</li>
+<li>能用积分图、可分离滤波（先行后列）降低复杂度的，先降复杂度，再考虑 SIMD 和多线程。</li>
+<li>OpenCV 的大部分函数已经做了 SIMD 和多线程优化，自己重写前先对比一下。</li>
+</ol>
+<h3 id="91-第-2-条慢的不是边界检查">9.1 第 2 条：慢的不是边界检查</h3>
+<p>2000×2000 的图做 3×3 均值（输出 8 位），四种取像素的写法，耗时 ms（这台机器上一次测量，图 6 右栏）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>写法</th>
+<th style="text-align: right;">-O2</th>
+<th style="text-align: right;">-O2 关掉自动向量化</th>
+<th style="text-align: right;">-O0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>img.at(y, x)</code>，带边界检查</td>
+<td style="text-align: right;">4.7</td>
+<td style="text-align: right;">4.7</td>
+<td style="text-align: right;">120</td>
+</tr>
+<tr>
+<td><code>img(y, x)</code>，不检查</td>
+<td style="text-align: right;">4.3</td>
+<td style="text-align: right;">4.3</td>
+<td style="text-align: right;">78</td>
+</tr>
+<tr>
+<td>把 <code>data</code> 指针和宽度取到局部变量，再算下标</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">2.8</td>
+<td style="text-align: right;">35</td>
+</tr>
+<tr>
+<td>三个行指针</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">2.8</td>
+<td style="text-align: right;">10</td>
+</tr>
+</tbody>
+</table></div>
+<p>-O2 下 <code>at()</code> 只比 <code>operator()</code> 慢 11%，边界检查本身很便宜。行指针快 5.4 倍，原因在另一处：把 <code>data</code> 指针和宽度先取到局部变量（不用行指针，照样算 <code>y * W + x</code>）就一样快。关掉向量化后这个差距缩到 1.5 倍，说明大部分收益来自向量化。机器很忙的另一次运行里表中每个耗时都大一成多，这三个数几乎没变，结论相同。和测得的数字一致的解释是：循环里每写一次 <code>out(y, x)</code> 就是存一个 <code>uint8_t</code>，而 <code>uint8_t</code> 按语言规则可以指向任何对象，编译器不能排除这次写入改到了 <code>img</code> 的 <code>data</code> 指针或者 <code>cols</code>，只好每次重新读，循环也就没法向量化。规则 2 的做法没错，理由要换成：<strong>把要反复用的指针和尺寸提到循环外面</strong>。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>3×3 均值用 -O2 编译。把 <code>img.at(y, x)</code> 换成不检查边界的 <code>img(y, x)</code>，再换成三个行指针。哪一步带来了大部分提速？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>去掉边界检查（<code>at</code> 换成 <code>operator()</code>）</span></button><button type="button" data-k="B"><b>B</b><span>换成行指针（或者把 data 指针提到循环外）</span></button><button type="button" data-k="C"><b>C</b><span>两步差不多</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 <code>at()</code> 4.7 ms，<code>operator()</code> 4.3 ms，只差 11% 左右；行指针 0.79 ms，又快了 5.4 倍。只把 data 指针和宽度取到局部变量、不用行指针，是 0.78 ms，一样快。真正起作用的是让编译器确信指针不会变，从而能向量化。这些是这台机器上一次测量的数，机器很忙的另一次运行里比例几乎相同。</p></div></div>
+<h3 id="92-第-3-条和第-5-条">9.2 第 3 条和第 5 条</h3>
+<p><strong>循环里分配内存</strong>（-O2，600×600 的图做 5×5 中值，窗口缓冲区是一个 <code>std::vector</code>，这台机器上一次测量）：每个像素新建一个不 <code>reserve</code> 的 <code>vector</code>，87 ms；新建但先 <code>reserve(25)</code>，58 ms；提到循环外复用，52 ms。不 <code>reserve</code> 慢 1.7 倍，<code>reserve</code> 了但仍在循环里新建还慢 13%。往 <code>vector</code> 里 <code>push_back</code> 400 万个元素，不 <code>reserve</code> 慢 1.6 倍。机器很忙的另一次运行里这三个比值几乎相同。</p>
+<p><strong>和 OpenCV 对照</strong>（同样尺寸的随机图，参考实现 -O2 在 C++ 里计时，OpenCV 从 Python 调用、单线程，输出类型和边界约定不完全相同，只比量级；这台机器上一次测量）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>函数</th>
+<th style="text-align: right;">参考实现（ms）</th>
+<th style="text-align: right;">OpenCV（ms）</th>
+<th style="text-align: right;">参考实现慢的倍数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>积分图 2000×2000（<code>cv2.integral</code>，64 位浮点输出）</td>
+<td style="text-align: right;">1.3</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">1.3</td>
+</tr>
+<tr>
+<td>盒式均值 2000×2000，r=7（<code>cv2.boxFilter</code>）</td>
+<td style="text-align: right;">3.6</td>
+<td style="text-align: right;">2.0</td>
+<td style="text-align: right;">1.8</td>
+</tr>
+<tr>
+<td>NCC 320×240，模板 24×24（<code>cv2.matchTemplate</code>）</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">46</td>
+</tr>
+<tr>
+<td>连通域 2000×2000（<code>cv2.connectedComponents</code>）</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">4.9</td>
+</tr>
+</tbody>
+</table></div>
+<p>积分图和盒式均值写对了就和 OpenCV 同一个量级；NCC 差了 46 倍（机器很忙的另一次是 50 倍，另外三个倍数两次只差 0.1），是算法层面的差距（第 6.1 节），不是写法问题。所以规则 5 要具体到函数：简单的逐像素操作自己写没问题，NCC、连通域这类 OpenCV 做了专门算法的，先用它的。</p>
+<h2 id="10-python-和-c-怎么协作">10. Python 和 C++ 怎么协作</h2>
+<p>常见模式是 Python 里做算法原型和评估，验证完再移植到 C++。差距有多大：同一个积分图递推，纯 Python 双重循环每像素 33 ns，numpy 两次 <code>cumsum</code> 4.5 ns，C++ 参考实现 0.32 ns（这台机器上一次测量）。纯 Python 比 C++ 慢 100 倍左右，numpy 也慢十几倍（numpy 要分配中间数组、做类型转换）。机器很忙的另一次运行里三个耗时都大一到三成，这两个倍数的量级没变。</p>
+<p>移植时：</p>
+<ul>
+<li>用同一组输入图和同一份期望输出做对拍，逐像素比较差异。</li>
+<li>注意边界策略（反射、复制、补零）、取整方式（四舍五入还是截断）、颜色通道顺序（OpenCV 是 BGR）这三类最容易不一致的地方。</li>
+<li>需要在 Python 里调用 C++ 时，了解 pybind11 即可，入门阶段不必深挖。</li>
+</ul>
+<p>这三类各差多少：</p>
+<p><strong>边界</strong>：见第 5.3 节，15×15 窗口时裁剪和补零在边上最多差 92.6 个灰度。</p>
+<p><strong>取整</strong>：0.5、1.5、2.5、254.5 四个数转成整数：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>做法</th>
+<th style="text-align: right;">0.5</th>
+<th style="text-align: right;">1.5</th>
+<th style="text-align: right;">2.5</th>
+<th style="text-align: right;">254.5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C++ <code>static_cast&lt;uint8_t&gt;</code>（截断）</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">254</td>
+</tr>
+<tr>
+<td>C++ <code>std::round</code>（.5 远离零）</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">255</td>
+</tr>
+<tr>
+<td>C++ <code>std::nearbyint</code>（默认舍入模式，.5 取偶数）</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">254</td>
+</tr>
+<tr>
+<td>numpy <code>np.round</code></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">254</td>
+</tr>
+<tr>
+<td>OpenCV 饱和转换到 8 位</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">254</td>
+</tr>
+</tbody>
+</table></div>
+<p>C++ 的 <code>std::round</code> 和 numpy、OpenCV 都不一样。随机图上的影响：2×2 均值转成整数，截断和四舍五入有 50.0% 的像素不同，四舍五入和取偶有 12.5% 不同（2×2 均值的小数部分正好是 .5 的情况很多）；3×3 均值截断和四舍五入有 44.5% 不同，取偶和四舍五入 0.0% 不同（除以 9 不会正好得到 .5）。</p>
+<p><strong>通道顺序</strong>：同一张随机彩色图按 BGR 和按 RGB 转灰度，平均差 15.8 个灰度，最大差 48。</p>
+<h2 id="11-交互演示">11. 交互演示</h2>
+<p>在一张 N×N 的小图上数连通域，对比递归、显式栈、队列三种写法“还没处理完、必须先记住”的像素有多少。递归的调用栈上限可以调，超过上限就是栈溢出。邻居顺序和第 4 节的实验一致，按页面下方“按顺序试”的五步操作，每一步先预测再看：</p>
+<ol>
+<li>实心块、递归、32×32、上限 1000 层：1024 个前景像素，递归深度会达到前景像素数，溢出；拖到 31×31（961 个像素）就跑完了。</li>
+<li>换成显式栈：不会溢出，但栈里最多同时有 497 个像素，约占前景的一半。</li>
+<li>换成队列：峰值只有 32，8 连通时是 63，和边长同量级。</li>
+<li>蛇形：前景 528 个，递归深度也是 528；队列峰值是 1。</li>
+<li>斜线和方块：比较 4 连通和 8 连通数出的个数（第 3 章的结论）。</li>
+</ol>
+<div class="embed"><iframe src="../../demos/连通域遍历.html" height="940" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/连通域遍历.html">打开交互演示：连通域的三种遍历</a></p>
+<h2 id="12-怎样评估测性能和对拍">12. 怎样评估：测性能和对拍</h2>
+<p><strong>计时</strong>。同一段代码（盒式均值 2000×2000、r=7、-O2）在这台机器上连续计时 30 次，这次测到最快 3.6 ms，中位数 4.1 ms，最慢 11 ms；机器很忙的另一次是 3.9 ms、5.0 ms 和 10 ms。两次里最慢的一次都是最快的两三倍，单次计时的数不能用。做法：</p>
+<ul>
+<li>用 Release（-O2 或 -O3）编译，计时前先跑一次预热（第 5.2 节积分图 r=1 的第一次调用比 r=30 还慢）。</li>
+<li>重复多次，报最小值或中位数，同时报重复次数。比较两种写法时交替运行，让机器负载平摊到两边。</li>
+<li>写清条件：处理器、操作系统、编译器和版本、编译选项、单线程还是多线程、图像尺寸。本章 <code>实测数字.json</code> 的“计时条件”一组就是这个格式。</li>
+<li>用 <code>volatile</code> 变量或者把结果写出去，防止编译器把整段计算优化掉。</li>
+</ul>
+<p><strong>正确性</strong>。和 Python 原型或 OpenCV 对拍：同一组输入，逐像素比较，报最大绝对差和超过容差的像素个数。先把三类约定（边界、取整、通道顺序）对齐，再看剩下的差异。浮点结果给容差，例如 OpenCV 的 <code>cv::blur</code> 输出 8 位，内部像素和浮点均值的最大差实测是 0.498，容差设 0.5 就够。</p>
+<p><strong>内存错误</strong>。至少用 <code>-fsanitize=address,undefined</code> 跑一遍全部测试。开 Sanitizer 后比 -O2 慢 2.7 到 19 倍（第 7.1 节那组测量，这台机器上一次的结果；另一次运行也是 2.7 到 19 倍），所以平时不开，提交前开一次。</p>
+<h2 id="13-常见错误">13. 常见错误</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>验收显示“程序异常退出（返回码 -11）”，前面几项的结果也没了</td>
+<td>连通域用了递归，栈溢出</td>
+<td>在 324×324 的全前景图上单独调 <code>count_blobs</code>；改成队列</td>
+</tr>
+<tr>
+<td>积分图一项 FAIL：“大图累加溢出”</td>
+<td>用 <code>int</code> 累加，4000×4000 全白图的和超过 int32</td>
+<td>打印右下角的值，应为 4080000000</td>
+</tr>
+<tr>
+<td>盒式均值 FAIL，r=0 时就不对</td>
+<td>窗口右边界或下边界没裁剪，或者开区间多加了 1</td>
+<td>开 ASan 编译；手算一个 3×3 小图的 r=0 结果</td>
+</tr>
+<tr>
+<td>盒式均值 FAIL，r=1 时不对</td>
+<td>边上按补零算，除以了固定的 <span class="arithmatex">\((2r+1)^2\)</span></td>
+<td>看左上角像素，应只除以图像内的像素个数</td>
+</tr>
+<tr>
+<td>盒式均值 FAIL：“r 增大时耗时明显增长”</td>
+<td>写成了每个像素把窗口加一遍</td>
+<td>自己计 r=1 和 r=30 的耗时</td>
+</tr>
+<tr>
+<td>验收通过，但 r=30 比 r=1 慢好几倍</td>
+<td>写成了可分离的 <span class="arithmatex">\(O(r)\)</span>，测试的计时余量在本章的测试机上抓不到它（第 5.2 节，离上限只差一两成，换机器可能时过时不过）</td>
+<td>同上，两个耗时应基本相同</td>
+</tr>
+<tr>
+<td>NCC FAIL：“平坦窗口分数应为 0”</td>
+<td>没特判方差为 0，算出了 NaN</td>
+<td>用一张常数图和常数模板测</td>
+</tr>
+<tr>
+<td>NCC 的分数略大于 1 或者位置偶尔不对</td>
+<td>用 <code>float</code> 累加平方和，或者用单精度积分图算方差</td>
+<td>全部换成 <code>double</code> 和 <code>uint64_t</code></td>
+</tr>
+<tr>
+<td>在 Mac 上通过，在 Windows 上积分图溢出</td>
+<td>用了 <code>long</code>，Windows 上是 32 位</td>
+<td>用 <code>std::uint64_t</code></td>
+</tr>
+<tr>
+<td>结果整体错开、像斜的</td>
+<td>用宽度代替 step 算行首</td>
+<td>在带填充或 ROI 的图上测（图 1）</td>
+</tr>
+<tr>
+<td>编译警告 “comparison of integers of different signs”</td>
+<td><code>int</code> 和 <code>size()</code> 比较</td>
+<td>下标统一用 <code>int</code>，或者把 <code>size()</code> 先转成 <code>int</code></td>
+</tr>
+<tr>
+<td>Debug 能跑，Release 崩溃</td>
+<td>递归在 -O2 下栈帧更大；或者确实有未定义行为</td>
+<td>先开 <code>-fsanitize=address,undefined</code>；再看是不是递归</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="14-破坏实验">14. 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>把你的 <code>count_blobs</code> 临时改成递归，在主线程上找出能跑完的最大全前景正方形。用 -O0 和 -O2 各找一次，和第 4 节的表比较。再把它放进一个 <code>std::thread</code> 里跑。</li>
+<li>把积分图的累加类型依次换成 <code>int</code>、<code>uint32_t</code>、<code>float</code>，各跑一次验收。哪个 FAIL，哪个能通过？通过的那个在 2000×2000 的随机图上，3×3 均值和暴力均值最多差多少？</li>
+<li>按第 8 节把 <code>y1</code> 写成 <code>y + r + 2</code>，分别不开和开 ASan 运行，记下两次的输出。再把越界改成只在列方向多读一列，ASan 还报吗？</li>
+<li>把 2.2 节的实验换成 <code>int</code> 积分图：回绕之后，矩形求和还对吗？用 <code>-fsanitize=undefined</code> 运行会报什么？</li>
+<li>在 1024×1024 和 1000×1000 的图上，分别用 -O0 和 -O2 测行优先和列优先的耗时，复现图 2 右栏。</li>
+<li>把盒式均值写成可分离的 <span class="arithmatex">\(O(r)\)</span> 版本，跑验收（本章的测试机上两次运行都通过了，但余量只有一两成，你的机器上不一定），再自己测 r=1、10、30、100 的耗时，画出和图 5 左栏一样的曲线。</li>
+</ol>
+<h2 id="15-扩展深挖档">15. 扩展（深挖档）</h2>
+<ul>
+<li>用 <code>brew install cmake opencv</code>（Windows 见第 7.2 节）装好 C++ 版 OpenCV，打开 <code>-DWITH_OPENCV=ON</code> 编译 <code>cpp/opencv_compare.cpp</code>，在你的机器上复现第 9.2 节的对照表，并按第 12 节的格式写清条件。</li>
+<li>用积分图加平方积分图实现 NCC 的分母，复现第 6.1 节“分母用积分图”一行；再用 FFT 或者 OpenCV 的 <code>cv::dft</code> 算分子，看耗时能不能和模板大小无关。</li>
+<li>实现两遍扫描加并查集的连通域标记，和 BFS 比较耗时与峰值内存。</li>
+<li>用 pybind11 把 <code>box_mean</code> 包成 Python 模块，和 numpy 版本对拍，测一次调用的额外开销。</li>
+<li>用 OpenMP 或 <code>std::thread</code> 把盒式均值按行分块并行，测 1、2、4、8 个线程的耗时，说明为什么加速比到不了线程数。</li>
+</ul>
+<h2 id="16-和后续章节的关系">16. 和后续章节的关系</h2>
+<ul>
+<li>第 1 章讲了 numpy 的 <code>uint8</code> 回绕和 BGR 顺序，本章是同样的问题在 C++ 里的版本。第 3 章的连通域和 4、8 连通在这里自己实现一遍。</li>
+<li>第 16 章的 ZNCC 就是本章的 NCC，它的分母可以用本章的积分图加速。</li>
+<li>第 18 章的缺陷检测要对差值图数连通域，那一章引用了本章第 4 节“不要用递归”。</li>
+<li>第 24 章的综合项目建议把流水线里最耗时的一步用 C++ 重写，对拍结果一致后比较耗时，用的就是第 10 节和第 12 节的方法。</li>
+</ul>
+<h2 id="自测问题">自测问题</h2>
+<ol>
+<li>一个 1920x1080 的 BGR 图，像素 (y=100, x=200) 的 G 通道在第几个字节？</li>
+<li>从大图取 ROI 后，为什么不能用 <code>memcpy(dst, roi.data, W*H)</code> 拷贝？</li>
+<li><code>Mat a = imread(...); Mat b = a; b.setTo(0);</code> 之后 <code>a</code> 是什么？</li>
+<li>用积分图求局部方差需要几张积分图？</li>
+<li>为什么 NCC 对亮度的线性变化不敏感？</li>
+<li>积分图用 <code>uint32_t</code> 存，大图上已经回绕了，矩形求和为什么还能是对的？为什么用 <code>float</code> 存反而不行？</li>
+<li>同一份递归代码，为什么可能 Debug 版能跑、Release 版栈溢出？产线软件的算法跑在工作线程里，这会让问题更严重还是更轻？</li>
+</ol></article><nav class="prev-next"><a href="14.html">← 第 14 章 综合项目与部署</a><a href="16.html">第 16 章 图像对齐与亚像素 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#1-图像在内存里长什么样">1. 图像在内存里长什么样</a></li><li class="sub"><a href="#11-读错-step-会怎样">1.1 读错 step 会怎样</a></li><li class="sub"><a href="#12-遍历顺序">1.2 遍历顺序</a></li><li><a href="#2-类型与溢出">2. 类型与溢出</a></li><li class="sub"><a href="#21-积分图到底要多少位">2.1 积分图到底要多少位</a></li><li class="sub"><a href="#22-反直觉uint32_t-回绕了也能算对float-没溢出却算错">2.2 反直觉：uint32_t 回绕了也能算对，float 没溢出却算错</a></li><li><a href="#3-值语义引用和拷贝">3. 值语义、引用和拷贝</a></li><li><a href="#4-不要用递归做连通域和泛洪填充">4. 不要用递归做连通域和泛洪填充</a></li><li><a href="#5-积分图让任意矩形求和变成-o1">5. 积分图：让任意矩形求和变成 O(1)</a></li><li class="sub"><a href="#51-三种复杂度实测">5.1 三种复杂度实测</a></li><li class="sub"><a href="#52-测试的计时检查能抓住什么">5.2 测试的计时检查能抓住什么</a></li><li class="sub"><a href="#53-边界约定">5.3 边界约定</a></li><li><a href="#6-ncc-模板匹配的工程细节">6. NCC 模板匹配的工程细节</a></li><li class="sub"><a href="#61-耗时随模板大小">6.1 耗时随模板大小</a></li><li class="sub"><a href="#62-nan-会怎样影响最大值">6.2 NaN 会怎样影响最大值</a></li><li><a href="#7-cmake-最小知识">7. CMake 最小知识</a></li><li class="sub"><a href="#71-优化级别差多少">7.1 优化级别差多少</a></li><li class="sub"><a href="#72-在-windows-上编译">7.2 在 Windows 上编译</a></li><li><a href="#8-调试与定位">8. 调试与定位</a></li><li class="sub"><a href="#81-警告和-sanitizer-各管什么">8.1 警告和 Sanitizer 各管什么</a></li><li class="sub"><a href="#82-asan-抓不到行内越界">8.2 ASan 抓不到“行内越界”</a></li><li><a href="#9-性能的几条朴素规则">9. 性能的几条朴素规则</a></li><li class="sub"><a href="#91-第-2-条慢的不是边界检查">9.1 第 2 条：慢的不是边界检查</a></li><li class="sub"><a href="#92-第-3-条和第-5-条">9.2 第 3 条和第 5 条</a></li><li><a href="#10-python-和-c-怎么协作">10. Python 和 C++ 怎么协作</a></li><li><a href="#11-交互演示">11. 交互演示</a></li><li><a href="#12-怎样评估测性能和对拍">12. 怎样评估：测性能和对拍</a></li><li><a href="#13-常见错误">13. 常见错误</a></li><li><a href="#14-破坏实验">14. 破坏实验</a></li><li><a href="#15-扩展深挖档">15. 扩展（深挖档）</a></li><li><a href="#16-和后续章节的关系">16. 和后续章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

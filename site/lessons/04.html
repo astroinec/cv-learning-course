@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 4 章 几何变换 | 视觉算法动手课程</title>
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/pygments.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cv-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body class="lesson">
+<header class="topbar">
+  <button class="icon-btn menu-btn" type="button" aria-label="打开目录">&#9776;</button>
+  <a class="brand" href="../index.html"><span class="brand-mark">CV</span><span>视觉算法动手课程</span></a>
+  <span class="spacer"></span>
+  <span class="overall" title="已完成章节数（任意档位）"><span class="bar"><i></i></span><span class="overall-text"></span></span>
+  <button class="icon-btn theme-btn" type="button" aria-label="切换深色或浅色">&#9680;</button>
+</header>
+<div class="layout">
+  <nav class="sidebar" aria-label="课程目录">
+<div class="side-part">第一部分 通用计算机视觉</div><ul>
+<li data-ch="01"><a href="../lessons/01.html"><span class="dot P0"></span><span class="side-n">01</span>像素与色彩</a></li>
+<li data-ch="02"><a href="../lessons/02.html"><span class="dot P0"></span><span class="side-n">02</span>卷积与边缘</a></li>
+<li data-ch="03"><a href="../lessons/03.html"><span class="dot P0"></span><span class="side-n">03</span>形态学</a></li>
+<li class="current" data-ch="04"><a href="../lessons/04.html"><span class="dot P1"></span><span class="side-n">04</span>几何变换</a></li>
+<li data-ch="05"><a href="../lessons/05.html"><span class="dot P1"></span><span class="side-n">05</span>特征点与描述子</a></li>
+<li data-ch="06"><a href="../lessons/06.html"><span class="dot P3"></span><span class="side-n">06</span>光流与运动</a></li>
+<li data-ch="07"><a href="../lessons/07.html"><span class="dot P1"></span><span class="side-n">07</span>相机与三维视觉</a></li>
+<li data-ch="08"><a href="../lessons/08.html"><span class="dot P3"></span><span class="side-n">08</span>神经网络基础</a></li>
+<li data-ch="09"><a href="../lessons/09.html"><span class="dot P3"></span><span class="side-n">09</span>CNN 核心</a></li>
+<li data-ch="10"><a href="../lessons/10.html"><span class="dot P3"></span><span class="side-n">10</span>迁移学习与模型分析</a></li>
+<li data-ch="11"><a href="../lessons/11.html"><span class="dot P3"></span><span class="side-n">11</span>目标检测</a></li>
+<li data-ch="12"><a href="../lessons/12.html"><span class="dot P3"></span><span class="side-n">12</span>图像分割</a></li>
+<li data-ch="13"><a href="../lessons/13.html"><span class="dot P3"></span><span class="side-n">13</span>生成与自监督</a></li>
+<li data-ch="14"><a href="../lessons/14.html"><span class="dot P3"></span><span class="side-n">14</span>综合项目与部署</a></li>
+</ul>
+<div class="side-part">第二部分 工业视觉专项</div><ul>
+<li data-ch="15"><a href="../lessons/15.html"><span class="dot P0"></span><span class="side-n">15</span>C++ 视觉工程</a></li>
+<li data-ch="16"><a href="../lessons/16.html"><span class="dot P0"></span><span class="side-n">16</span>图像对齐与亚像素</a></li>
+<li data-ch="17"><a href="../lessons/17.html"><span class="dot P0"></span><span class="side-n">17</span>相机标定</a></li>
+<li data-ch="18"><a href="../lessons/18.html"><span class="dot P0"></span><span class="side-n">18</span>传统缺陷检测</a></li>
+<li data-ch="19"><a href="../lessons/19.html"><span class="dot P1"></span><span class="side-n">19</span>异常检测与深度缺陷检测</a></li>
+<li data-ch="20"><a href="../lessons/20.html"><span class="dot P2"></span><span class="side-n">20</span>合成缺陷与生成模型</a></li>
+<li data-ch="21"><a href="../lessons/21.html"><span class="dot P2"></span><span class="side-n">21</span>3D 数学与渲染管线</a></li>
+<li data-ch="22"><a href="../lessons/22.html"><span class="dot P1"></span><span class="side-n">22</span>成像与设备仿真</a></li>
+<li data-ch="23"><a href="../lessons/23.html"><span class="dot P0"></span><span class="side-n">23</span>半导体检测领域知识</a></li>
+<li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
+</ul>
+<div class="side-part">第三部分 前沿方法</div><ul>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
+<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
+<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
+<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+</ul>
+  </nav>
+  <main class="content">
+<div class="lesson-head"><div class="crumbs">第 4 章 <span class="tag P1">P1</span> <span class="badge ok">已升级</span></div><h1>几何变换</h1><p class="scene"><b>用在哪：</b>图像校正、拼接，把不同视角的图变到同一坐标系</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 10 小时</span><span class="chip"><b>深挖</b> 12 小时</span><span class="chip">前置：<a href="../lessons/01.html">第 1 章 像素与色彩</a></span></div><div class="meta-row"><span class="chip mono">验收：python 04_几何变换/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="04"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自合成数据上的实测，记录在 <a href="../../04_几何变换/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch04.py</code> 生成。点的投影用本章作业的参考实现，图像重采样和 <code>findHomography</code> 的对照用 OpenCV 5.0.0。换成真实图像或别的 OpenCV 版本，数值会变，结论的方向要自己再测一遍。</p>
+</div>
+<p>自动验收的作业是 <a href="../../04_几何变换/4-1_齐次点变换.py"><code>4-1_齐次点变换.py</code></a>。扩展练习 4-1（文档扫描器）和 4-2（图像拼接）的题目在 <a href="../../视觉算法学习计划.md"><code>视觉算法学习计划.md</code></a> 的“第 4 天”一节，需要自己新建 <code>4-1_文档扫描器.py</code>、<code>4-2_图像拼接.py</code> 完成。</p>
+<hr />
+<h2 id="0-本章怎么学">0. 本章怎么学</h2>
+<p><strong>应用场景</strong>：图像校正、拼接，把不同视角的图变到同一坐标系。把斜拍的文档拉正、把相邻视场拼成大图、把模板对到待测图上、数据增强里的旋转和缩放，做法都是先算一个变换矩阵，再按它重新采样。</p>
+<p><strong>优先级</strong>：P1，主线能力。前置是第 1 章（图像是数组，<code>(x, y)</code> 和 <code>shape</code> 的顺序相反）。后面第 5 章的特征匹配给本章提供点对，第 16 章的对齐从本章的变换层次里选模型，第 17 章的标定直接用本章的单应和 DLT。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th style="text-align: right;">累计用时</th>
+<th>做什么</th>
+<th>做到什么算完</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>速通</td>
+<td style="text-align: right;">3 小时</td>
+<td>读 4.1、4.2、4.4、4.5 节，看懂图 1 到图 6，做 4.5 节末尾演示的前 3 步，答完 5 道小测</td>
+<td>能讲清为什么用反向映射，仿射和单应差在哪，4 对点为什么不够用，RANSAC 的迭代次数和阈值怎么定</td>
+</tr>
+<tr>
+<td>标准</td>
+<td style="text-align: right;">10 小时</td>
+<td>读完全章，跑 Notebook，完成 <code>4-1_齐次点变换.py</code> 并验收通过，做 4.11 节前三个破坏实验，填实验记录</td>
+<td>验收 PASS，实验记录里有一次点序错误或退化点集的表现，自测问题都能答</td>
+</tr>
+<tr>
+<td>深挖</td>
+<td style="text-align: right;">12 小时</td>
+<td>再做 4.11 节其余的破坏实验和 4.12 节的扩展（文档扫描器和图像拼接选一个）</td>
+<td>在自己拍的照片上跑通，并报告内点数、内点比例和留出点上的误差</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-tip"><div class="callout-title">提示</div><p>用时超过所选档位的 1.5 倍还没做完，就把卡点写进 <code>学习进度.md</code>，先往下一章走。本章的作业很短，时间主要花在 4.4 和 4.5 节。速通档可以只记这两节的结论，第 16、17 章用到时再回来。</p>
+</div>
+<hr />
+<h2 id="41-几何变换到底在变什么">4.1 几何变换到底在变什么</h2>
+<p>前面几章主要修改像素值：让图像更亮、去掉噪声、提取边缘。几何变换不关心“这个像素有多亮”，而关心“这个像素应该搬到哪里”。旋转照片、把斜拍文档拉正、将两张风景照拼成全景，本质都是建立旧坐标与新坐标之间的映射。</p>
+<p>最容易混淆的是映射方向。设原图坐标为 <code>(x, y)</code>，目标图坐标为 <code>(x', y')</code>：</p>
+<ul>
+<li><strong>前向映射</strong>：把每个原像素投到目标位置，直觉直接，但目标图可能出现没有像素落入的“洞”。</li>
+<li><strong>反向映射</strong>：遍历每个目标像素，反推它应从原图哪里取值。OpenCV 的 <code>warpAffine</code>、<code>warpPerspective</code> 内部主要采用这种思路。</li>
+</ul>
+<p>反推得到的坐标往往是小数，例如 <code>(12.4, 8.7)</code>，而图像只在整数格点有值，因此还需要<strong>插值</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>插值</th>
+<th>OpenCV 标志</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最近邻</td>
+<td><code>cv2.INTER_NEAREST</code></td>
+<td>最快、边缘呈锯齿，适合标签图和掩码</td>
+</tr>
+<tr>
+<td>双线性</td>
+<td><code>cv2.INTER_LINEAR</code></td>
+<td>速度与质量平衡，默认常用</td>
+</tr>
+<tr>
+<td>双三次</td>
+<td><code>cv2.INTER_CUBIC</code></td>
+<td>放大较平滑，但更慢</td>
+</tr>
+<tr>
+<td>区域插值</td>
+<td><code>cv2.INTER_AREA</code></td>
+<td>缩小图像通常最好，但只在 <code>cv2.resize</code> 里起作用（见本节末尾的实测）</td>
+</tr>
+</tbody>
+</table></div>
+<p>语义分割掩码不能用双线性插值，因为类别编号 <code>1</code> 和 <code>2</code> 插值出 <code>1.5</code> 没有语义；普通照片则通常不选最近邻。</p>
+<h3 id="前向映射的空洞有多少">前向映射的空洞有多少</h3>
+<p>“可能出现洞”可以直接数出来。取一张 256×256 的图，把每个源像素按变换算出目标位置，四舍五入后写进去，再数目标图里有多少像素本该有值却没有被写到。</p>
+<figure><img src="../../04_几何变换/figures/fig01_前向映射的空洞.svg" alt="图 1：左一，一张 128×128 的图用前向映射旋转 30° 后的局部放大，红色是没有被写到的像素。左二，同一区域用反向映射加双线性插值的结果。右二，只旋转不缩放时，空洞和被重复写入的像素各占多少，横轴是旋转角。最右，只放大时空洞比例随放大倍数的变化，灰线是理论值" loading="lazy"><figcaption>图 1：左一，一张 128×128 的图用前向映射旋转 30° 后的局部放大，红色是没有被写到的像素。左二，同一区域用反向映射加双线性插值的结果。右二，只旋转不缩放时，空洞和被重复写入的像素各占多少，横轴是旋转角。最右，只放大时空洞比例随放大倍数的变化，灰线是理论值</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>只旋转、不缩放（256×256）</th>
+<th style="text-align: right;">5°</th>
+<th style="text-align: right;">10°</th>
+<th style="text-align: right;">20°</th>
+<th style="text-align: right;">30°</th>
+<th style="text-align: right;">45°</th>
+<th style="text-align: right;">90°</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>空洞占目标像素的比例</td>
+<td style="text-align: right;">0.7%</td>
+<td style="text-align: right;">2.6%</td>
+<td style="text-align: right;">7.9%</td>
+<td style="text-align: right;">13.4%</td>
+<td style="text-align: right;">16.9%</td>
+<td style="text-align: right;">0%</td>
+</tr>
+<tr>
+<td>被写了两次以上的比例</td>
+<td style="text-align: right;">0.7%</td>
+<td style="text-align: right;">2.5%</td>
+<td style="text-align: right;">7.9%</td>
+<td style="text-align: right;">13.3%</td>
+<td style="text-align: right;">17.2%</td>
+<td style="text-align: right;">0%</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>只放大（256×256）</th>
+<th style="text-align: right;">1.1 倍</th>
+<th style="text-align: right;">1.5 倍</th>
+<th style="text-align: right;">2 倍</th>
+<th style="text-align: right;">3 倍</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>空洞比例，实测</td>
+<td style="text-align: right;">17.0%</td>
+<td style="text-align: right;">55.3%</td>
+<td style="text-align: right;">74.9%</td>
+<td style="text-align: right;">88.8%</td>
+</tr>
+<tr>
+<td>理论值 <span class="arithmatex">\(1 - 1/s^2\)</span></td>
+<td style="text-align: right;">17.4%</td>
+<td style="text-align: right;">55.6%</td>
+<td style="text-align: right;">75.0%</td>
+<td style="text-align: right;">88.9%</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>放大 <span class="arithmatex">\(s\)</span> 倍，空洞比例是 <span class="arithmatex">\(1 - 1/s^2\)</span></strong>。源像素只有那么多，目标面积变成 <span class="arithmatex">\(s^2\)</span> 倍，放大 2 倍就有四分之三的像素没有被写到。</li>
+<li><strong>只旋转、面积不变，也有空洞</strong>。旋转 45° 时 16.9% 的目标像素是空的，另有 17.2% 的目标像素被两个源像素先后写入，后写的把先写的盖掉。旋转后的网格和原网格错开，四舍五入之后有的格子落进两个点，有的一个也没有。只有 90° 的整数倍没有这个问题。</li>
+</ol>
+<p>反向映射对每个目标像素都去源图取一次值，既没有空洞也没有覆盖。代价是取值的位置是小数，需要插值。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一张图只旋转 45°、不缩放，用前向映射（算出目标位置后四舍五入写入）。目标图里大约有多少像素是空的？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>没有，因为面积没有变</span></button><button type="button" data-k="B"><b>B</b><span>大约 17%</span></button><button type="button" data-k="C"><b>C</b><span>大约一半</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 16.9%，同时还有 17.2% 的目标像素被写了两次。面积不变只说明源像素和目标像素一样多，四舍五入之后它们并不是一一对应的。放大 2 倍时才会到 74.9%。</p></div></div>
+<h3 id="插值误差会累积">插值误差会累积</h3>
+<p>反向映射每做一次就插值一次，每次都有损失。下面把一张 256×256 的 8 位合成图（网格线、实心圆、文字）绕中心每次转 10°，连续转 72 次，每转满 90° 用 <code>np.rot90</code> 无损转回去和原图比较。误差只统计中央的圆形区域，单位是灰度级（0 到 255），原图在这个区域里的标准差是 40.8。</p>
+<figure><img src="../../04_几何变换/figures/fig02_插值误差累积.svg" alt="图 2：上排，原图和四种插值各转 36 次（正好一圈）之后的同一块局部。左下，和原图的均方根误差随旋转次数的变化。右下，对比度比值随旋转次数的变化，1 表示和原图相同" loading="lazy"><figcaption>图 2：上排，原图和四种插值各转 36 次（正好一圈）之后的同一块局部。左下，和原图的均方根误差随旋转次数的变化。右下，对比度比值随旋转次数的变化，1 表示和原图相同</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>旋转次数（每次 10°，256×256）</th>
+<th style="text-align: right;">9</th>
+<th style="text-align: right;">18</th>
+<th style="text-align: right;">36</th>
+<th style="text-align: right;">54</th>
+<th style="text-align: right;">72</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最近邻：RMSE</td>
+<td style="text-align: right;">16.7</td>
+<td style="text-align: right;">23.4</td>
+<td style="text-align: right;">26.8</td>
+<td style="text-align: right;">27.4</td>
+<td style="text-align: right;">27.2</td>
+</tr>
+<tr>
+<td>双线性：RMSE</td>
+<td style="text-align: right;">10.9</td>
+<td style="text-align: right;">14.6</td>
+<td style="text-align: right;">18.2</td>
+<td style="text-align: right;">20.2</td>
+<td style="text-align: right;">21.5</td>
+</tr>
+<tr>
+<td>双三次：RMSE</td>
+<td style="text-align: right;">4.2</td>
+<td style="text-align: right;">7.9</td>
+<td style="text-align: right;">16.5</td>
+<td style="text-align: right;">25.3</td>
+<td style="text-align: right;">33.6</td>
+</tr>
+<tr>
+<td>Lanczos4：RMSE</td>
+<td style="text-align: right;">1.5</td>
+<td style="text-align: right;">2.2</td>
+<td style="text-align: right;">3.5</td>
+<td style="text-align: right;">4.7</td>
+<td style="text-align: right;">5.8</td>
+</tr>
+<tr>
+<td>双线性：对比度比值</td>
+<td style="text-align: right;">0.89</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">0.74</td>
+<td style="text-align: right;">0.71</td>
+</tr>
+<tr>
+<td>双三次：对比度比值</td>
+<td style="text-align: right;">1.04</td>
+<td style="text-align: right;">1.09</td>
+<td style="text-align: right;">1.23</td>
+<td style="text-align: right;">1.37</td>
+<td style="text-align: right;">1.50</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>双线性越转越糊</strong>。转 36 次后对比度只剩原来的 0.78。把一个脉冲平移半个像素可以读出它的权重是 (0.5, 0.5)，相当于一次两点平均。在正好错开半个像素这种最不利的位置上，周期 4 px 的细节每次只剩 0.707，连乘 36 次只剩 3.8e-06。</li>
+<li><strong>双三次单次误差小，但对比度越转越高</strong>。转 9 次时它的误差（4.2）不到双线性（10.9）的一半。可是它的对比度比值一路上升，36 次时 1.23，72 次时 1.50，图 2 上排能看到文字和网格线旁边出现了亮边。从第 45 次起它的误差（21.0）超过双线性（19.3），72 次时（33.6）比最近邻（27.2）还大。同样用半像素平移读出的权重是 (-0.0938, 0.5938, 0.5938, -0.0938)，和三次卷积公式取 <span class="arithmatex">\(a = -0.75\)</span> 时一致。平移半个像素时，这个带负权重的核在周期 6.4 px 附近的增益是 1.029，略大于 1，连乘 36 次是 2.79 倍，和对比度上升的方向一致。</li>
+<li><strong>最近邻不模糊，但像素被搬错位置</strong>。对比度比值始终在 1.00 到 1.01 之间，误差却最大（36 次时 26.8），图 2 里文字已经碎掉。</li>
+<li><strong>只转一个来回也有损失</strong>。先转 +17° 再转 -17°，最近邻、双线性、双三次、Lanczos4 的误差分别是 4.95、4.27、1.40、0.73 个灰度级。</li>
+<li><strong>哪种插值损失最小，和图像内容有关</strong>。上面这张合成图先做过轻微的模糊，接近相机拍到的图。本章 Notebook 里的网格图线宽只有 1 px，没有任何模糊。把它做一次透视变换再变回来（<code>tilt=35</code>），平均绝对误差是最近邻 3.62、双三次 9.17、双线性 11.24 个灰度级，最近邻反而最小；<code>tilt=90</code> 时是 10.72、15.3、15.41，顺序相同。所以不要把一张图上的排序当成一般规律，换了图像要重新测。</li>
+</ol>
+<p>所以“双三次比双线性好”只在变换次数少的时候成立。更重要的是工程上的做法：<strong>先把矩阵乘起来，只插值一次</strong>。把上面 36 个 10° 的矩阵乘在一起，和单位矩阵的最大差是 2.9e-13，用它变换一次，误差是 0。4.3 节讲的齐次坐标正是为了让变换能这样合并。</p>
+<div class="quiz" data-answer="C"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>把一张图每次旋转 10°，连续转 72 次（两圈），再和原图比。最近邻、双线性、双三次三种插值里，哪一种的结果离原图最远？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>最近邻</span></button><button type="button" data-k="B"><b>B</b><span>双线性</span></button><button type="button" data-k="C"><b>C</b><span>双三次</span></button></div><div class="quiz-exp" hidden><p><strong>C</strong>。72 次后的 RMSE：双三次 33.6，最近邻 27.2，双线性 21.5。双三次单次误差最小（转 9 次时 4.2，双线性 10.9），但它的核带负权重，对比度每转一次高一点，72 次后到了原图的 1.50 倍。正确的做法是把矩阵合并后只插值一次，而不是换一种插值。</p></div></div>
+<h3 id="缩小和掩码两个要单独处理的情况">缩小和掩码：两个要单独处理的情况</h3>
+<p><strong>缩小</strong>。上面的表说 <code>INTER_AREA</code> 缩小最好。用一张 480×480 的竖条纹来测：周期 3 px（1 px 亮 255，2 px 暗 0，平均值 85.0），缩小到四分之一。缩小后条纹的周期不到 1 px，已经无法表示，理想的结果是一片均匀的灰色，标准差为 0。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>做法（480×480 缩到 120×120）</th>
+<th style="text-align: right;">平均值</th>
+<th style="text-align: right;">标准差</th>
+<th style="text-align: right;">最小</th>
+<th style="text-align: right;">最大</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resize</code>，最近邻</td>
+<td style="text-align: right;">85.0</td>
+<td style="text-align: right;">120.2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">255</td>
+</tr>
+<tr>
+<td><code>resize</code>，双线性</td>
+<td style="text-align: right;">85.3</td>
+<td style="text-align: right;">60.3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">128</td>
+</tr>
+<tr>
+<td><code>resize</code>，双三次</td>
+<td style="text-align: right;">100.7</td>
+<td style="text-align: right;">71.2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">151</td>
+</tr>
+<tr>
+<td><code>resize</code>，<code>INTER_AREA</code></td>
+<td style="text-align: right;">85.3</td>
+<td style="text-align: right;">30.2</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">128</td>
+</tr>
+<tr>
+<td><code>warpAffine</code>，双线性</td>
+<td style="text-align: right;">85.0</td>
+<td style="text-align: right;">120.2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">255</td>
+</tr>
+<tr>
+<td><code>warpAffine</code>，传 <code>INTER_AREA</code></td>
+<td style="text-align: right;">85.0</td>
+<td style="text-align: right;">120.2</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">255</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>在 <code>resize</code> 里，<code>INTER_AREA</code> 的条纹残留最少（标准差 30.2）。最近邻的输出仍然是纯黑白的条纹，只是周期变了，这就是混叠。双三次还把平均亮度从 85.0 抬到了 100.7。</li>
+<li><strong><code>warpAffine</code> 和 <code>warpPerspective</code> 传 <code>INTER_AREA</code> 不起作用</strong>。在 OpenCV 5.0.0 上，它们传 <code>INTER_AREA</code> 和传 <code>INTER_LINEAR</code> 的结果逐像素相同（最大差 0）。这个例子里缩小 4 倍的采样点正好落在整数位置，双线性等于直接取那一个像素，所以和最近邻一样差。为了排除这是整数倍缩小的巧合，又测了一组一般的变换：256×256 的合成图缩小到 0.3 倍并旋转 17°（<code>warpPerspective</code> 另加一点透视），两个函数传 <code>INTER_AREA</code> 和传 <code>INTER_LINEAR</code> 的最大差仍然是 0，而同一组里双线性和最近邻的最大差是 104 个灰度级。</li>
+</ul>
+<p>要在一次 warp 里做大比例缩小，先用 <code>resize(..., interpolation=cv2.INTER_AREA)</code> 缩到接近目标的尺寸（或者先做一次模糊），再做 warp。</p>
+<p><strong>掩码</strong>。上面说掩码不能用双线性。取一张 200×200 的标签图，类别编号是 0（背景）、1、3、5，8 位整数，绕中心旋转 17°。类别边界上的目标像素一共 883 个。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>插值（200×200 标签图，旋转 17°）</th>
+<th>输出里出现的编号</th>
+<th style="text-align: right;">编号不在原有类别里的像素</th>
+<th style="text-align: right;">编号合法、但周围 4 个源像素里没有这一类的像素</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最近邻</td>
+<td>0、1、3、5</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>双线性</td>
+<td>0 到 5</td>
+<td style="text-align: right;">197</td>
+<td style="text-align: right;">184</td>
+</tr>
+<tr>
+<td>双三次</td>
+<td>0 到 6</td>
+<td style="text-align: right;">215</td>
+<td style="text-align: right;">160</td>
+</tr>
+</tbody>
+</table></div>
+<p>双线性造出了原来没有的编号 2 和 4，共 197 个像素，这一类错误用 <code>np.unique</code> 一查就能发现。更隐蔽的是另外 184 个像素：编号是合法的，周围 4 个源像素里却没有这一类。例如背景 0 和类别 5 的边界上可以插出 1 和 3，那里既没有类别 1 也没有类别 3。如果类别编号是连续的 0、1、2、3，双线性造成的错误全都属于这一种，检查编号集合发现不了。双三次还会过冲，造出比最大编号更大的 6。第 12 章 12.7 节在训练分割模型时会再次遇到这个问题。</p>
+<hr />
+<h2 id="42-变换的层次自由度越多能力越强">4.2 变换的层次：自由度越多，能力越强</h2>
+<p>二维变换可以按“允许发生什么变化”分层理解：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模型</th>
+<th>可保持的性质</th>
+<th style="text-align: right;">自由度</th>
+<th style="text-align: right;">最少点对</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>欧几里得变换</td>
+<td>长度、角度、平行性</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>相似变换</td>
+<td>角度、平行性、长度比例</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>仿射变换</td>
+<td>平行性、直线性、同一直线上的比例</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td>投影变换（单应）</td>
+<td>直线性</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">4</td>
+</tr>
+</tbody>
+</table></div>
+<p>每对点给出 x、y 两个方程，所以最少点对数是自由度除以 2 再向上取整。</p>
+<h3 id="欧几里得与相似变换">欧几里得与相似变换</h3>
+<p>欧几里得变换只允许旋转和平移：</p>
+<div class="highlight"><pre><span></span><code>[x']   [ cosθ  -sinθ ] [x]   [tx]
+[y'] = [ sinθ   cosθ ] [y] + [ty]
+</code></pre></div>
+<p>加入统一缩放 <code>s</code> 就得到相似变换。它能把图像整体放大，但不能把正方形拉成平行四边形。</p>
+<p>OpenCV 常用：</p>
+<div class="highlight"><pre><span></span><code><span class="n">M</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getRotationMatrix2D</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="p">(</span><span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">),</span> <span class="n">angle</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">rotated</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">warpAffine</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
+</code></pre></div>
+<p>注意正角度在图像坐标中表现为逆时针旋转；同时图像的 y 轴向下，所以手算时不要直接套用笛卡尔坐标的视觉印象。</p>
+<p>这两句话放在一起容易弄反，实测一下。取中心 (100, 100)、角度 +90°，测试点 (150, 100) 在中心的正右方：</p>
+<ul>
+<li><code>getRotationMatrix2D</code> 把它映射到 (100, 50)，屏幕上在中心的正上方，是逆时针。它返回的左上 2×2 是 <code>[[0, 1], [-1, 0]]</code>，也就是 <code>[[cosθ, sinθ], [-sinθ, cosθ]]</code>。</li>
+<li>按上面的公式 <code>[[cosθ, -sinθ], [sinθ, cosθ]]</code> 绕同一个中心算，它到了 (100, 150)，屏幕上在中心的正下方，是顺时针。</li>
+</ul>
+<p>两者的 <code>sinθ</code> 符号相反。上面的公式在 y 轴向上的数学坐标系里是逆时针；图像的 y 轴向下，同一个公式在屏幕上看就成了顺时针。OpenCV 为了让“正角度等于屏幕上逆时针”，把符号反了过来。自己写旋转矩阵时，用一个测试点确认方向。</p>
+<h3 id="仿射变换">仿射变换</h3>
+<p>仿射变换允许旋转、平移、缩放、错切，公式为：</p>
+<div class="highlight"><pre><span></span><code>x' = a11*x + a12*y + tx
+y' = a21*x + a22*y + ty
+</code></pre></div>
+<p>共有 6 个未知数。一个点对提供 x、y 两个方程，因此 3 组不共线点恰好能求解。仿射变换仍会保持平行线平行：铁轨不会在远处汇聚，所以它无法真实描述透视。</p>
+<div class="highlight"><pre><span></span><code><span class="n">src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span> <span class="p">[</span><span class="mi">250</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span> <span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">200</span><span class="p">]])</span>
+<span class="n">dst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([[</span><span class="mi">30</span><span class="p">,</span> <span class="mi">80</span><span class="p">],</span> <span class="p">[</span><span class="mi">270</span><span class="p">,</span> <span class="mi">40</span><span class="p">],</span> <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">230</span><span class="p">]])</span>
+<span class="n">M</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getAffineTransform</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">warpAffine</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">260</span><span class="p">))</span>
+</code></pre></div>
+<p>点的顺序必须一一对应。<code>src[0]</code> 要变到 <code>dst[0]</code>，顺序错了通常不会报错，只会得到一张“扭曲得很合理”的错误结果。</p>
+<p>三点共线时也不会报错：在 OpenCV 5.0.0 上，<code>getAffineTransform</code> 对三个共线的点返回一个全零的矩阵，要自己检查。</p>
+<h3 id="投影变换">投影变换</h3>
+<p>斜拍一张纸时，纸面上的平行边在照片中可能汇聚，矩形也会变成任意四边形。此时需要单应矩阵 <code>H</code>：</p>
+<div class="highlight"><pre><span></span><code>          [h11 h12 h13] [x]
+λ [x'] =  [h21 h22 h23] [y]
+  [y']    [h31 h32 h33] [1]
+  [ 1 ]
+</code></pre></div>
+<p>展开并除以第三个分量：</p>
+<div class="highlight"><pre><span></span><code>x' = (h11*x + h12*y + h13) / (h31*x + h32*y + h33)
+y' = (h21*x + h22*y + h23) / (h31*x + h32*y + h33)
+</code></pre></div>
+<p>分母随位置变化，正是它让“近处大、远处小”成为可能。<code>H</code> 有 9 个元素，但整体乘任意非零常数表示同一变换，所以只有 8 个自由度。4 个点对提供 8 个独立方程，刚好可解；四点中任意三点不能共线，接近共线也不行（4.4 节有实测）。</p>
+<h3 id="选哪个模型参数不够和参数太多都有代价">选哪个模型：参数不够和参数太多都有代价</h3>
+<p>标题说“自由度越多，能力越强”，这只是一半。另一半是自由度越多，同样的点数下越怕噪声。两头各测一次。</p>
+<figure><img src="../../04_几何变换/figures/fig03_仿射还是单应.svg" alt="图 3：左，平面倾斜 20° 时网格点的真实位置（蓝点）和仿射拟合给出的位置（橙色叉），红线是两者的差。中，仿射拟合的最大误差随平面倾斜角的变化，两条线是两个工作距离。右，真实变换是仿射时，按仿射和按单应拟合的误差随点对数的变化，两个坐标轴都是对数" loading="lazy"><figcaption>图 3：左，平面倾斜 20° 时网格点的真实位置（蓝点）和仿射拟合给出的位置（橙色叉），红线是两者的差。中，仿射拟合的最大误差随平面倾斜角的变化，两条线是两个工作距离。右，真实变换是仿射时，按仿射和按单应拟合的误差随点对数的变化，两个坐标轴都是对数</figcaption></figure>
+<p><strong>参数不够：用仿射去对付透视</strong>。一块 800×600 mm 的平面，正对相机时刚好铺满 640×480 的画面。让它绕竖直轴倾斜，用仿射去拟合 17×13 个网格点从正对到倾斜的对应关系，不加噪声。两台相机的放大倍率相同，一台焦距 800 px、工作距离 1 m，另一台焦距 3200 px、工作距离 4 m。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>平面倾斜角（无噪声，17×13 个网格点）</th>
+<th style="text-align: right;">1°</th>
+<th style="text-align: right;">2°</th>
+<th style="text-align: right;">5°</th>
+<th style="text-align: right;">10°</th>
+<th style="text-align: right;">20°</th>
+<th style="text-align: right;">30°</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>工作距离 1 m：仿射拟合的最大误差（px）</td>
+<td style="text-align: right;">2.2</td>
+<td style="text-align: right;">4.4</td>
+<td style="text-align: right;">11.1</td>
+<td style="text-align: right;">22.6</td>
+<td style="text-align: right;">46.0</td>
+<td style="text-align: right;">69.2</td>
+</tr>
+<tr>
+<td>工作距离 4 m：仿射拟合的最大误差（px）</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">1.1</td>
+<td style="text-align: right;">2.7</td>
+<td style="text-align: right;">5.4</td>
+<td style="text-align: right;">10.6</td>
+<td style="text-align: right;">15.3</td>
+</tr>
+<tr>
+<td>工作距离 1 m：只用三个角求仿射，第四个角的误差（px）</td>
+<td style="text-align: right;">6.7</td>
+<td style="text-align: right;">13.4</td>
+<td style="text-align: right;">33.5</td>
+<td style="text-align: right;">67.0</td>
+<td style="text-align: right;">133.8</td>
+<td style="text-align: right;">200.0</td>
+</tr>
+</tbody>
+</table></div>
+<p>同样的数据用单应拟合，最大误差在 1e-13 px 的量级，也就是只剩浮点舍入。</p>
+<ul>
+<li>工作距离 1 m 时，平面只倾斜 5°，仿射的最大误差就有 11.1 px。如果像 <code>getAffineTransform</code> 那样只取三个角，第四个角差 33.5 px。</li>
+<li>放大倍率不变、工作距离拉到 4 倍，误差降到四分之一左右（5° 时 2.7 px）。物体离得远、视场角小的时候透视弱，仿射才够用。第 16 章第 2 节把仿射的适用场景写成“轻微斜视”，量化出来就是这张表。</li>
+</ul>
+<p><strong>参数太多：用单应去拟合本来是仿射的数据</strong>。真实变换就是仿射，点在 640×480 内均匀随机，噪声 1 px，各 300 次。误差是估出的变换把全画面 17×13 个网格点映射后和真值的均方根距离，取中位数。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>点对数（真实变换是仿射，噪声 1 px）</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">6</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">12</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">50</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>按仿射拟合（px）</td>
+<td style="text-align: right;">3.30</td>
+<td style="text-align: right;">1.99</td>
+<td style="text-align: right;">1.54</td>
+<td style="text-align: right;">1.23</td>
+<td style="text-align: right;">1.03</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">0.55</td>
+<td style="text-align: right;">0.35</td>
+</tr>
+<tr>
+<td>按单应拟合（px）</td>
+<td style="text-align: right;">不够解</td>
+<td style="text-align: right;">11.15</td>
+<td style="text-align: right;">3.22</td>
+<td style="text-align: right;">2.26</td>
+<td style="text-align: right;">1.60</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: right;">0.71</td>
+<td style="text-align: right;">0.43</td>
+</tr>
+</tbody>
+</table></div>
+<p>同样 4 对点，按单应拟合的误差是按仿射拟合的 5.6 倍。点数加到 50 对，单应仍然差一些（0.43 对 0.35）。多出来的两个参数没有东西可拟合，只能去拟合噪声。</p>
+<p>结论和第 16 章第 2 节一致：<strong>用能解释数据的最简单模型</strong>。先判断场景里有没有透视，再决定用仿射还是单应，不要默认用自由度最多的。</p>
+<hr />
+<h2 id="43-齐次坐标为什么平移也能乘矩阵">4.3 齐次坐标：为什么平移也能乘矩阵</h2>
+<p>普通二维线性变换写成 <code>p' = A p</code> 时，原点永远映射到原点，因此不能表达平移。齐次坐标给二维点补一个分量：</p>
+<div class="highlight"><pre><span></span><code>(x, y)  →  (x, y, 1)
+</code></pre></div>
+<p>于是平移可以写成：</p>
+<div class="highlight"><pre><span></span><code>[x']   [1 0 tx] [x]
+[y'] = [0 1 ty] [y]
+[ 1]   [0 0  1] [1]
+</code></pre></div>
+<p>这样旋转、缩放、平移都变成矩阵乘法，而且多个操作可以直接相乘组合。若先旋转 <code>R</code>，再平移 <code>T</code>，列向量约定下总矩阵是 <code>T @ R</code>。矩阵乘法不交换，<code>T @ R</code> 与 <code>R @ T</code> 通常完全不同。</p>
+<p>差多少可以用一个点算出来：点 (50, 20)，<code>R</code> 是绕原点转 30°，<code>T</code> 是沿 x 平移 100 px。<code>T @ R</code>（先转后移）把它映射到 (133.3, 42.3)，<code>R @ T</code>（先移后转）把它映射到 (119.9, 92.3)，两个结果相距 51.8 px。</p>
+<p>齐次坐标中的 <code>(x, y, w)</code> 与 <code>(kx, ky, kw)</code> 表示同一点，最后要除以 <code>w</code> 回到二维。这也解释了单应矩阵为什么只有 8 个自由度。</p>
+<p>OpenCV 中仿射矩阵通常是 <code>2×3</code>，必要时可补成 <code>3×3</code>：</p>
+<div class="highlight"><pre><span></span><code><span class="n">M3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">M</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+</code></pre></div>
+<p>补成 3×3 之后，仿射和单应就能用同一套代码相乘、求逆、作用到点上。4.1 节“先把矩阵乘起来，只插值一次”靠的就是这一点。</p>
+<h3 id="第三个分量过零时会发生什么">第三个分量过零时会发生什么</h3>
+<p>仿射矩阵的第三行是 <code>(0, 0, 1)</code>，<code>w</code> 恒等于 1。单应的第三行不是，<code>w = h31*x + h32*y + h33</code> 会随位置变化，也会变成 0 或负数。用作业文件里演示用的矩阵 <code>[[1, 0.2, 3], [0.1, 1, 2], [0.01, 0.02, 1]]</code>，看直线 y = 0 上相邻的三个点（下面是参考实现的输出）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>输入点</th>
+<th style="text-align: right;">第三个分量 <code>w</code></th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(-99, 0)</td>
+<td style="text-align: right;">+0.01</td>
+<td>(-9600, -790)</td>
+</tr>
+<tr>
+<td>(-100, 0)</td>
+<td style="text-align: right;">0</td>
+<td>(NaN, NaN)</td>
+</tr>
+<tr>
+<td>(-101, 0)</td>
+<td style="text-align: right;">-0.01</td>
+<td>(9800, 810)</td>
+</tr>
+</tbody>
+</table></div>
+<p>相邻 1 px 的两个点被甩到了相反方向的远处，中间那个点被映射到无穷远。满足 <code>h31*x + h32*y + h33 = 0</code> 的点组成一条直线，它的像在无穷远。这条线如果穿过你要变换的区域，<code>warpPerspective</code> 的结果会在那里撕开并翻到另一侧。</p>
+<p>作业要求 <code>|w| &lt;= 1e-12</code> 时返回 NaN，就是为了不让一个除零结果悄悄混进后面的计算。排查单应时，先把图像四个角代进去看 <code>w</code> 的符号是否一致。</p>
+<hr />
+<h2 id="44-单应矩阵怎样从点对中求出">4.4 单应矩阵怎样从点对中求出</h2>
+<p>把一组对应点 <code>(x, y) ↔ (u, v)</code> 代入单应公式并移项，可以得到两条关于 <code>h11...h33</code> 的线性方程。多组点堆叠后写成：</p>
+<div class="highlight"><pre><span></span><code>A h = 0
+</code></pre></div>
+<p>用 SVD 找到使 <code>||Ah||</code> 最小、且 <code>||h||=1</code> 的向量，再重排成 <code>3×3</code> 矩阵。这种方法称为 DLT（Direct Linear Transform）。实际计算前通常还会对坐标做归一化（Hartley 归一化）。它在什么条件下起作用、原因是什么，见本节后面的实测和第 17 章第 5 节，并不只是“数值过大”这一个原因。</p>
+<p>把两条方程写出来。记 <span class="arithmatex">\(H\)</span> 的元素为 <span class="arithmatex">\(H_{ij}\)</span>，把单应公式两边乘以分母再移项：</p>
+<div class="arithmatex">\[
+\begin{aligned}
+-x H_{11} - y H_{12} - H_{13} + u x H_{31} + u y H_{32} + u H_{33} &amp;= 0 \\
+-x H_{21} - y H_{22} - H_{23} + v x H_{31} + v y H_{32} + v H_{33} &amp;= 0
+\end{aligned}
+\]</div>
+<p><span class="arithmatex">\(N\)</span> 对点叠成 <span class="arithmatex">\(2N \times 9\)</span> 的矩阵 <span class="arithmatex">\(A\)</span>。9 个未知数差一个尺度，是 8 个自由度，所以至少 4 对点。这里的记号和第 17 章 3.2 节相同，那一章的作业要自己实现 DLT。</p>
+<p>OpenCV 提供两条常用路径：</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 恰好 4 组可靠点</span>
+<span class="n">H</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getPerspectiveTransform</span><span class="p">(</span><span class="n">src4</span><span class="p">,</span> <span class="n">dst4</span><span class="p">)</span>
+
+<span class="c1"># 多于 4 组，允许噪声和误匹配</span>
+<span class="n">H</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findHomography</span><span class="p">(</span><span class="n">src_pts</span><span class="p">,</span> <span class="n">dst_pts</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RANSAC</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span>
+</code></pre></div>
+<p><code>getPerspectiveTransform</code> 直接使用四对点；<code>findHomography</code> 可以使用更多点，并通过最小二乘或 RANSAC 提高鲁棒性。返回的 <code>mask</code> 标记哪些匹配被判定为内点，不要丢掉它——内点比例是判断匹配是否可信的重要信号。</p>
+<p>单应有一个关键前提：对应点位于<strong>同一平面</strong>，或者相机只绕光心旋转。若场景有明显前后层次且相机发生平移，一张单应矩阵不能同时对齐近处人物和远处建筑，这种错位叫视差。</p>
+<h3 id="点数噪声和点的位置">点数、噪声和点的位置</h3>
+<p>“4 对点刚好可解”只说明方程够数，不说明解得准。下面的实验都用随机单应（把 640×480 画面的四个角各自随机挪动最多 60 px），点在画面内均匀随机，用归一化 DLT 求解。<strong>真实误差</strong>是估出的单应把全画面 17×13 个网格点映射后，和真值位置的均方根距离。<strong>拟合残差</strong>是估出的单应在参与拟合的那些点上的均方根重投影误差。</p>
+<figure><img src="../../04_几何变换/figures/fig04_点数噪声与点的位置.svg" alt="图 4：左，真实误差随点对数的变化，三条实线是三种噪声，灰色虚线是噪声 1 px 时的拟合残差，4 对点时残差为 0，画在纵轴最底下。中，只用 4 对点时，点放在三种位置的误差。右，4 对点里有三个点接近共线时的误差，横轴是第四个点到另外两点连线的距离，越往右越接近共线" loading="lazy"><figcaption>图 4：左，真实误差随点对数的变化，三条实线是三种噪声，灰色虚线是噪声 1 px 时的拟合残差，4 对点时残差为 0，画在纵轴最底下。中，只用 4 对点时，点放在三种位置的误差。右，4 对点里有三个点接近共线时的误差，横轴是第四个点到另外两点连线的距离，越往右越接近共线</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>点对数（噪声 1 px，各 300 次）</th>
+<th style="text-align: right;">4</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">6</th>
+<th style="text-align: right;">8</th>
+<th style="text-align: right;">12</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">50</th>
+<th style="text-align: right;">100</th>
+<th style="text-align: right;">200</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真实误差中位数（px）</td>
+<td style="text-align: right;">11.985</td>
+<td style="text-align: right;">3.303</td>
+<td style="text-align: right;">2.255</td>
+<td style="text-align: right;">1.495</td>
+<td style="text-align: right;">0.998</td>
+<td style="text-align: right;">0.739</td>
+<td style="text-align: right;">0.445</td>
+<td style="text-align: right;">0.295</td>
+<td style="text-align: right;">0.211</td>
+</tr>
+<tr>
+<td>真实误差 90% 分位（px）</td>
+<td style="text-align: right;">123.18</td>
+<td style="text-align: right;">12.38</td>
+<td style="text-align: right;">6.52</td>
+<td style="text-align: right;">3.11</td>
+<td style="text-align: right;">1.61</td>
+<td style="text-align: right;">1.08</td>
+<td style="text-align: right;">0.60</td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">0.29</td>
+</tr>
+<tr>
+<td>拟合残差中位数（px）</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.519</td>
+<td style="text-align: right;">0.786</td>
+<td style="text-align: right;">0.955</td>
+<td style="text-align: right;">1.159</td>
+<td style="text-align: right;">1.258</td>
+<td style="text-align: right;">1.355</td>
+<td style="text-align: right;">1.380</td>
+<td style="text-align: right;">1.401</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>恰好 4 对点时最不准</strong>。残差是 0，真实误差的中位数却是 12 px，有十分之一的情况超过 123 px。加到 5 对降到 3.3 px，8 对 1.5 px，20 对 0.74 px。</li>
+<li><strong>误差和噪声成正比</strong>。20 对点时，噪声 0.5、1、2 px 对应的误差是 0.370、0.739、1.471 px。</li>
+<li><strong>点数多了以后按 <span class="arithmatex">\(1/\sqrt{N}\)</span> 下降</strong>。噪声 1 px 时，误差乘以 <span class="arithmatex">\(\sqrt{N}\)</span> 在 20 对以上稳定在 3 左右（3.30、3.15、2.95、2.99）。想把误差减半，点数要变成 4 倍。</li>
+<li><strong>拟合残差不能当精度用</strong>。点越少残差越小，4 对点时是 0；点很多时它趋向 1.4 px，反映的是噪声的大小。残差只说明模型在参与拟合的点上自洽，第 17 章第 6 节的重投影误差是同一个道理。</li>
+</ol>
+<p><strong>同样 4 对点，放在哪里差别很大</strong>（噪声 1 px，各 500 次）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>4 个点的位置</th>
+<th style="text-align: right;">画面四角</th>
+<th style="text-align: right;">画面内随机</th>
+<th style="text-align: right;">集中在中央 160×120</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真实误差中位数（px）</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: right;">9.27</td>
+<td style="text-align: right;">6.31</td>
+</tr>
+<tr>
+<td>真实误差 90% 分位（px）</td>
+<td style="text-align: right;">1.6</td>
+<td style="text-align: right;">84.6</td>
+<td style="text-align: right;">11.7</td>
+</tr>
+</tbody>
+</table></div>
+<p>“画面内随机”和上表 4 对点那一格是同一种情况，只是换了一组随机数，中位数在 9 到 12 px 之间，分布的尾巴很长。四个点放在画面四角时误差只有 1.05 px，是随机放的九分之一左右。文档矫正用纸的四个角，正好是最有利的摆法。点挤在中央一小块时误差是 6.31 px：小块里的一点偏差外推到全画面就被放大了。</p>
+<p><strong>三点接近共线</strong>（噪声 1 px，各 300 次）。三个点固定在 (100, 100)、(540, 100)、(540, 380)，第四个点从 (100, 380) 沿对角线移向第一、三个点的连线：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>第四个点到连线的距离（px）</th>
+<th style="text-align: right;">236</th>
+<th style="text-align: right;">100</th>
+<th style="text-align: right;">50</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">10</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真实误差中位数（px）</td>
+<td style="text-align: right;">1.45</td>
+<td style="text-align: right;">2.28</td>
+<td style="text-align: right;">4.31</td>
+<td style="text-align: right;">11.1</td>
+<td style="text-align: right;">22.15</td>
+<td style="text-align: right;">44.42</td>
+<td style="text-align: right;">128.45</td>
+<td style="text-align: right;">1473.76</td>
+</tr>
+</tbody>
+</table></div>
+<p>距离从 100 px 减到 5 px 的过程中，每减一半误差大约翻一倍；减到 1 px 时误差已经上千像素。完全共线时 OpenCV 并不报错：把第四个点正好放在连线的中点，目标点由真实单应算出、不加噪声，100 个随机单应里 <code>getPerspectiveTransform</code> 没有一次抛出异常。返回的矩阵把这 4 个点自己映射回去，误差最大 0.012 px；在全画面网格点上的误差中位数是 260.8 px，只有 2 次小于 1 px。也就是说它返回了一个只在这 4 个点上成立的矩阵。</p>
+<p>所以“任意三点不能共线”要当成硬性条件，而且要留出足够的距离。拿到 4 个点之后，先检查它们围成的四边形是不是凸的、面积是不是够大。</p>
+<h3 id="归一化在这里有没有用">归一化在这里有没有用</h3>
+<p>第 17 章第 5 节测过：用 SVD 解 DLT 时，常规坐标下归一化与否没有差别；角点集中在小范围时不归一化会差一些；数值很大又用法方程求解时不归一化会彻底失效。那里的源点是标定板上的毫米坐标。本章的源点和目标点都是像素坐标，再测一次，比较三种预处理：Hartley 归一化、只把两组点各自平移到质心、不处理。</p>
+<p>点铺满 640×480 的画面，各 300 次，全画面网格点上的误差中位数（px）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>条件</th>
+<th style="text-align: right;">归一化</th>
+<th style="text-align: right;">只平移到质心</th>
+<th style="text-align: right;">不处理</th>
+<th style="text-align: right;"><code>cv2.findHomography</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>50 对点，噪声 0.5 px</td>
+<td style="text-align: right;">0.217</td>
+<td style="text-align: right;">0.231</td>
+<td style="text-align: right;">0.223</td>
+<td style="text-align: right;">0.215</td>
+</tr>
+<tr>
+<td>50 对点，噪声 2 px</td>
+<td style="text-align: right;">0.864</td>
+<td style="text-align: right;">1.633</td>
+<td style="text-align: right;">1.143</td>
+<td style="text-align: right;">0.859</td>
+</tr>
+<tr>
+<td>200 对点，噪声 0.5 px</td>
+<td style="text-align: right;">0.106</td>
+<td style="text-align: right;">0.139</td>
+<td style="text-align: right;">0.117</td>
+<td style="text-align: right;">0.106</td>
+</tr>
+<tr>
+<td>200 对点，噪声 2 px</td>
+<td style="text-align: right;">0.427</td>
+<td style="text-align: right;">1.399</td>
+<td style="text-align: right;">0.832</td>
+<td style="text-align: right;">0.426</td>
+</tr>
+</tbody>
+</table></div>
+<p>20 对点、噪声 0.5 px、各 300 次，点只分布在画面中央的一块区域里，误差也只在这块区域里统计（px）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>点的分布范围</th>
+<th style="text-align: right;">归一化</th>
+<th style="text-align: right;">只平移到质心</th>
+<th style="text-align: right;">不处理</th>
+<th style="text-align: right;"><code>cv2.findHomography</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>639×479（整个画面）</td>
+<td style="text-align: right;">0.381</td>
+<td style="text-align: right;">0.404</td>
+<td style="text-align: right;">0.394</td>
+<td style="text-align: right;">0.382</td>
+</tr>
+<tr>
+<td>320×240</td>
+<td style="text-align: right;">0.378</td>
+<td style="text-align: right;">0.428</td>
+<td style="text-align: right;">0.445</td>
+<td style="text-align: right;">0.379</td>
+</tr>
+<tr>
+<td>160×120</td>
+<td style="text-align: right;">0.377</td>
+<td style="text-align: right;">0.410</td>
+<td style="text-align: right;">1.226</td>
+<td style="text-align: right;">0.379</td>
+</tr>
+<tr>
+<td>64×48</td>
+<td style="text-align: right;">0.375</td>
+<td style="text-align: right;">0.396</td>
+<td style="text-align: right;">10.92</td>
+<td style="text-align: right;">0.379</td>
+</tr>
+</tbody>
+</table></div>
+<p>前三列是自己写的 DLT，用 float64；换成 float32，每一格到三位小数都相同。最后一列是把同样的点交给 <code>cv2.findHomography(src, dst, 0)</code>（全部点做最小二乘）。</p>
+<ol>
+<li><strong>点铺满画面、噪声 0.5 px 时，归一化与否只差 3%</strong>（0.217 对 0.223）。这和第 17 章“常规坐标下没有差别”的结论一致，那里用的也是 0.5 px 噪声。</li>
+<li><strong>差别随噪声和点数增大</strong>。噪声 2 px、200 对点时，不处理的误差接近归一化的 2 倍（0.832 对 0.427）。200 对点时，噪声从 0.5 px 加到 2 px，归一化的误差跟着变成 4 倍（0.106 到 0.427），不处理的变成了 7 倍（0.117 到 0.832）。噪声 2 px 时，点数从 50 对加到 200 对，归一化的误差减半（0.864 到 0.427），不处理的只从 1.143 降到 0.832。第 17 章只测了 0.5 px 这一档噪声，这一条是对它的补充。</li>
+<li><strong>点集中在小区域时，不归一化基本不可用</strong>。点只占 64×48 px 时，不处理的误差是 10.92 px，归一化是 0.375 px。这时只把两组点各自平移到质心就恢复到了 0.396 px，起主要作用的是平移这一步。但在第一张表里，只平移比不处理还差（1.633 对 1.143），所以平移和缩放两步都要做。第 17 章对应的那一行只差 13%，比这里小得多。区别在于那里的源点是从 0 开始的标定板坐标：把这里的源点也换成从 0 开始、宽 120 的坐标，目标点仍用像素坐标，不做归一化的误差就只有 0.395 px。差别有多大取决于两组坐标各自怎么取，所以不要去记哪种情况可以省掉归一化。</li>
+<li><strong>float32 和 float64 的结果相同，差别不是舍入误差造成的</strong>。DLT 最小化的是代数误差，各个方程占多大权重取决于坐标怎么取，归一化之后代数误差更接近几何误差。这是第 17 章第 5 节的分析，这里的实测与它相符。“数值过大造成病态”只在第 17 章测到的那种情况下才是主因：坐标数值很大，并且用法方程求解。</li>
+</ol>
+<p>实用的结论和第 17 章相同：归一化成本很低，作为默认步骤。<code>cv2.findHomography</code> 在两张表的每一行都和归一化那一列相差不到 0.01 px，点只占 64×48 px 时也是 0.379 px，直接用它不需要自己再处理坐标。</p>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>用 4 对点求出一个单应，把这 4 个点代回去，重投影误差是 0。这说明什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>这个单应很准</span></button><button type="button" data-k="B"><b>B</b><span>说明不了精度，8 个未知数配 8 个方程，残差必然是 0</span></button><button type="button" data-k="C"><b>C</b><span>说明这 4 个点没有噪声</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。噪声 1 px 时，4 对随机点求出的单应残差是 0，在全画面上的真实误差中位数却是 12 px，有十分之一的情况超过 123 px。精度要用没有参与拟合的点来检验。把点数加到 20 对，真实误差降到 0.74 px，残差反而升到 1.26 px。</p></div></div>
+<hr />
+<h2 id="45-ransac让错误匹配失去投票权">4.5 RANSAC：让错误匹配失去投票权</h2>
+<p>假设两张图中有 100 对特征匹配，其中 30 对是错的。直接用全部点做最小二乘，少量离群点就可能把模型拉偏。RANSAC 的核心不是“精确计算”，而是反复进行<strong>假设 + 验证</strong>：</p>
+<ol>
+<li>随机抽取估计模型所需的最小样本，例如单应矩阵抽 4 对点。</li>
+<li>用这 4 对点求一个候选 <code>H</code>。</li>
+<li>用 <code>H</code> 投影全部源点，计算与目标点的重投影误差。</li>
+<li>误差小于阈值的点记为内点。</li>
+<li>重复多次，保留内点最多、误差最小的模型。</li>
+<li>最后用所有内点重新估计模型。</li>
+</ol>
+<p>重投影误差可写为：</p>
+<div class="highlight"><pre><span></span><code>e_i = || p'_i - normalize(H p_i) ||₂
+</code></pre></div>
+<p>阈值不是越小越好。阈值过小会把真实但有定位噪声的匹配排除；过大会让错误匹配混入。对普通分辨率图像，<code>3~5</code> 像素常是起点，但应结合分辨率、关键点精度和应用容忍度调整。</p>
+<p>RANSAC 也不是万能的：如果错误匹配本身形成另一套一致结构，或者真实内点比例太低，它可能选错模型。应同时检查内点数量、内点比例、变换后四角位置和最终视觉效果。</p>
+<p>下面把这几段里的“可能”“太低”“过小”“过大”逐个量出来。实验数据都是 100 对匹配，内点服从一个随机单应并加 1 px 的噪声，外点的目标位置在画面内均匀随机。RANSAC 是配图脚本里按上面六步写的一个朴素版本，第 6 步用内点重新拟合两轮。</p>
+<h3 id="最小二乘有多怕外点">最小二乘有多怕外点</h3>
+<p>各 200 次，RANSAC 用阈值 3 px、迭代 500 次，误差是全画面网格点上的均方根，取中位数（px）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>外点比例（100 对匹配，噪声 1 px）</th>
+<th style="text-align: right;">0%</th>
+<th style="text-align: right;">1%</th>
+<th style="text-align: right;">2%</th>
+<th style="text-align: right;">5%</th>
+<th style="text-align: right;">10%</th>
+<th style="text-align: right;">30%</th>
+<th style="text-align: right;">50%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全部点做最小二乘</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">6.23</td>
+<td style="text-align: right;">10.37</td>
+<td style="text-align: right;">21.01</td>
+<td style="text-align: right;">33.65</td>
+<td style="text-align: right;">112.13</td>
+<td style="text-align: right;">325.66</td>
+</tr>
+<tr>
+<td>RANSAC</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">0.302</td>
+<td style="text-align: right;">0.305</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">0.326</td>
+<td style="text-align: right;">0.372</td>
+<td style="text-align: right;">0.433</td>
+</tr>
+<tr>
+<td>只用真正的内点做最小二乘（理想情况）</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">0.294</td>
+<td style="text-align: right;">0.295</td>
+<td style="text-align: right;">0.307</td>
+<td style="text-align: right;">0.318</td>
+<td style="text-align: right;">0.356</td>
+<td style="text-align: right;">0.411</td>
+</tr>
+</tbody>
+</table></div>
+<p>100 对里只错 1 对，最小二乘的误差就从 0.31 px 变成 6.23 px，是原来的 20 倍。RANSAC 在外点 50% 时仍然贴着理想情况。</p>
+<h3 id="要迭代多少次">要迭代多少次</h3>
+<p>设内点比例是 <span class="arithmatex">\(w\)</span>，最小样本是 <span class="arithmatex">\(s\)</span> 对点。一次抽样抽到的全是内点的概率是 <span class="arithmatex">\(w^s\)</span>，抽 <span class="arithmatex">\(K\)</span> 次至少有一次全是内点的概率是 <span class="arithmatex">\(1 - (1 - w^s)^K\)</span>。让它不小于置信度 <span class="arithmatex">\(p\)</span>，解出</p>
+<div class="arithmatex">\[
+K = \frac{\log(1 - p)}{\log(1 - w^s)}
+\]</div>
+<p>取 <span class="arithmatex">\(p = 0.99\)</span>，由脚本算出的 <span class="arithmatex">\(K\)</span>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>外点比例</th>
+<th style="text-align: right;">10%</th>
+<th style="text-align: right;">30%</th>
+<th style="text-align: right;">50%</th>
+<th style="text-align: right;">60%</th>
+<th style="text-align: right;">70%</th>
+<th style="text-align: right;">80%</th>
+<th style="text-align: right;">90%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>相似变换，<span class="arithmatex">\(s = 2\)</span></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">113</td>
+<td style="text-align: right;">459</td>
+</tr>
+<tr>
+<td>仿射，<span class="arithmatex">\(s = 3\)</span></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">70</td>
+<td style="text-align: right;">169</td>
+<td style="text-align: right;">574</td>
+<td style="text-align: right;">4603</td>
+</tr>
+<tr>
+<td>单应，<span class="arithmatex">\(s = 4\)</span></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: right;">178</td>
+<td style="text-align: right;">567</td>
+<td style="text-align: right;">2876</td>
+<td style="text-align: right;">46050</td>
+</tr>
+</tbody>
+</table></div>
+<p>外点比例越高、模型的最小样本越大，需要的次数涨得越快。外点 80% 时，单应需要的次数是相似变换的 25 倍。这是“用最简单模型”的又一个理由。</p>
+<p>公式说的是“至少抽到一组全内点”。抽到了是不是就等于成功，要测。成功的定义是最终单应在全画面网格点上的均方根误差小于 3 px，阈值 3 px，各 300 次。</p>
+<figure><img src="../../04_几何变换/figures/fig05_RANSAC迭代次数.svg" alt="图 5：左，全部点做最小二乘、RANSAC 和只用真正内点三种做法的误差随外点比例的变化，纵轴是对数。中，四种迭代次数下的成功率随外点比例的变化，线是公式值，点是实测成功率。右，一组全内点的 4 对点求出的单应，在 3 px 阈值下能找回多少比例的内点，红色虚线是中位数" loading="lazy"><figcaption>图 5：左，全部点做最小二乘、RANSAC 和只用真正内点三种做法的误差随外点比例的变化，纵轴是对数。中，四种迭代次数下的成功率随外点比例的变化，线是公式值，点是实测成功率。右，一组全内点的 4 对点求出的单应，在 3 px 阈值下能找回多少比例的内点，红色虚线是中位数</figcaption></figure>
+<p>迭代 50 次时（%）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>外点比例（K = 50，各 300 次）</th>
+<th style="text-align: right;">30%</th>
+<th style="text-align: right;">40%</th>
+<th style="text-align: right;">50%</th>
+<th style="text-align: right;">60%</th>
+<th style="text-align: right;">70%</th>
+<th style="text-align: right;">80%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>公式值</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">99.9</td>
+<td style="text-align: right;">96.0</td>
+<td style="text-align: right;">72.7</td>
+<td style="text-align: right;">33.4</td>
+<td style="text-align: right;">7.7</td>
+</tr>
+<tr>
+<td>实测：至少抽到一组全内点</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">99.7</td>
+<td style="text-align: right;">95.7</td>
+<td style="text-align: right;">70.7</td>
+<td style="text-align: right;">31.3</td>
+<td style="text-align: right;">6.0</td>
+</tr>
+<tr>
+<td>实测：成功率</td>
+<td style="text-align: right;">99.7</td>
+<td style="text-align: right;">97.0</td>
+<td style="text-align: right;">80.7</td>
+<td style="text-align: right;">51.7</td>
+<td style="text-align: right;">21.3</td>
+<td style="text-align: right;">3.3</td>
+</tr>
+</tbody>
+</table></div>
+<p>迭代次数按公式取（<span class="arithmatex">\(p = 0.99\)</span>，<span class="arithmatex">\(s = 4\)</span>），以及取它的 2 倍、3 倍时的实测成功率（%，各 300 次）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>外点比例</th>
+<th style="text-align: right;">10%</th>
+<th style="text-align: right;">30%</th>
+<th style="text-align: right;">50%</th>
+<th style="text-align: right;">70%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>公式给的 <span class="arithmatex">\(K\)</span></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: right;">567</td>
+</tr>
+<tr>
+<td>迭代 <span class="arithmatex">\(K\)</span> 次</td>
+<td style="text-align: right;">95.3</td>
+<td style="text-align: right;">95.0</td>
+<td style="text-align: right;">91.7</td>
+<td style="text-align: right;">85.7</td>
+</tr>
+<tr>
+<td>迭代 <span class="arithmatex">\(2K\)</span> 次</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">99.3</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">96.0</td>
+</tr>
+<tr>
+<td>迭代 <span class="arithmatex">\(3K\)</span> 次</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">99.3</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>公式对“至少抽到一组全内点”算得基本准</strong>。外点 50%、迭代 50 次时公式值 96.0%，实测 95.7%。外点很多时公式略偏乐观，因为从 100 对里不放回地抽 4 对，全是内点的概率比 <span class="arithmatex">\(w^4\)</span> 小。迭代 1000 次、外点 80% 时，公式值是 79.8%，按不放回抽样算的精确值是 71.0%，实测 70.3%。</li>
+<li><strong>成功率比公式值低一截</strong>。外点 50%、迭代 50 次时成功率只有 80.7%。按公式取迭代次数，名义上是 99%，实测只有 85.7% 到 95.3%。</li>
+<li><strong>原因是抽到全内点不等于得到好模型</strong>。把迭代次数实验的全部结果合在一起：抽到过全内点样本的 7551 次里成功了 93.0%，一次都没抽到的 2049 次里成功率是 0。抽到全内点是必要条件，但不充分。图 5 右给出了原因：噪声 1 px、阈值 3 px 时，一组全内点的 4 对点求出的单应，找回的内点比例中位数只有 30%，69.1% 的样本找回不到一半，只有 3.4% 的样本能找回九成以上。这正是 4.4 节的结论，4 对随机点求出的单应本身就不准。</li>
+<li><strong>实用的做法是取公式值的 2 到 3 倍</strong>。取 3 倍时，表里四种外点比例的成功率都不低于 99.3%。</li>
+</ol>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>外点比例 50%，按公式（置信度 0.99，单应 s = 4）算出要迭代 72 次。照这个次数跑，实测的成功率最接近哪个？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>99%</span></button><button type="button" data-k="B"><b>B</b><span>92%</span></button><button type="button" data-k="C"><b>C</b><span>50%</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 91.7%。公式保证的是“至少抽到一组全内点”，而一组全内点的 4 对点在 3 px 阈值下找回的内点比例中位数只有 30%，不一定能胜出。迭代次数加到 2 倍（144 次）后，300 次实验全部成功。</p></div></div>
+<h3 id="阈值怎么定">阈值怎么定</h3>
+<p>同一批假设换不同的阈值打分，迭代 1000 次，各 300 次。内点噪声是 x、y 方向各 1 px。</p>
+<figure><img src="../../04_几何变换/figures/fig06_RANSAC阈值.svg" alt="图 6：左，单应误差随阈值的变化，实线是中位数，点线是 90% 分位，两种颜色是两种外点比例。中，真正的内点里被判为内点的比例，灰色虚线是用真值模型算的理论值。右，平均每次有多少个外点被判成了内点。三幅图的横轴都是对数" loading="lazy"><figcaption>图 6：左，单应误差随阈值的变化，实线是中位数，点线是 90% 分位，两种颜色是两种外点比例。中，真正的内点里被判为内点的比例，灰色虚线是用真值模型算的理论值。右，平均每次有多少个外点被判成了内点。三幅图的横轴都是对数</figcaption></figure>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阈值（px），外点 30%</th>
+<th style="text-align: right;">0.5</th>
+<th style="text-align: right;">1</th>
+<th style="text-align: right;">2</th>
+<th style="text-align: right;">3</th>
+<th style="text-align: right;">5</th>
+<th style="text-align: right;">12</th>
+<th style="text-align: right;">20</th>
+<th style="text-align: right;">40</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单应误差中位数（px）</td>
+<td style="text-align: right;">1.414</td>
+<td style="text-align: right;">1.025</td>
+<td style="text-align: right;">0.474</td>
+<td style="text-align: right;">0.375</td>
+<td style="text-align: right;">0.368</td>
+<td style="text-align: right;">0.371</td>
+<td style="text-align: right;">0.377</td>
+<td style="text-align: right;">0.43</td>
+</tr>
+<tr>
+<td>内点被判为内点的比例（%）</td>
+<td style="text-align: right;">18.26</td>
+<td style="text-align: right;">39.96</td>
+<td style="text-align: right;">85.95</td>
+<td style="text-align: right;">98.92</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+<tr>
+<td>理论值（%）</td>
+<td style="text-align: right;">11.8</td>
+<td style="text-align: right;">39.3</td>
+<td style="text-align: right;">86.5</td>
+<td style="text-align: right;">98.9</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+</tr>
+<tr>
+<td>平均每次混进来的外点数</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.01</td>
+<td style="text-align: right;">0.02</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: right;">0.48</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>阈值要按定位噪声来定，3 倍噪声是合适的起点</strong>。阈值 3 px 时 98.92% 的内点被留下。理论值是用真值模型算的：内点的误差小于阈值的概率只和“阈值除以噪声”有关。实测在阈值 1 px 以上和它基本重合，阈值 0.5 px 时偏高（18.26% 对 11.8%）。一个可能的原因是最后一步只用被留下的点重新拟合，模型会向这些点靠拢，这一点没有单独验证。</li>
+<li><strong>阈值太小，伤害来得快</strong>。阈值 0.5 px 时只有 18.26% 的内点被留下，误差是 1.414 px，为阈值 3 px 时的 3.8 倍。“更严格”并没有换来更准。</li>
+<li><strong>阈值太大，在这组实验里影响很小</strong>。阈值 12 px 时误差是 0.371 px，平均每次只混进 0.06 个外点；到 40 px 才升到 0.43 px。原因是这里的外点是均匀随机的，碰巧落在正确位置附近的机会很小。如果外点就在正确位置旁边（例如重复纹理上错开一个周期的匹配），大阈值会把它们收进来。这种情况本章没有测，不能把“阈值大一点无所谓”当成一般结论。</li>
+<li>上面原文说的“3~5 像素常是起点”，对应的是 1 px 到 2 px 左右的定位噪声。如果特征点定位到 0.1 px 的精度，阈值也应该跟着减小。</li>
+</ol>
+<div class="quiz" data-answer="C"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>内点的定位噪声是 1 px。把 RANSAC 的阈值从 3 px 收紧到 0.5 px，最终单应的误差会怎样？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>变小，因为只留下最准的点</span></button><button type="button" data-k="B"><b>B</b><span>基本不变</span></button><button type="button" data-k="C"><b>C</b><span>变大，接近原来的 4 倍</span></button></div><div class="quiz-exp" hidden><p><strong>C</strong>。外点 30% 时，误差从 0.375 px 升到 1.414 px。阈值 0.5 px 只留下 18.26% 的内点，参与最后拟合的点少了，4.4 节已经看到点少误差就大。反过来把阈值放宽到 12 px，误差是 0.371 px，几乎没有变化（前提是外点均匀随机）。</p></div></div>
+<h3 id="opencv-的-findhomography-实测">OpenCV 的 findHomography 实测</h3>
+<p>实际工作中用的是 <code>cv2.findHomography(src, dst, cv2.RANSAC, 3.0)</code>。其余参数用默认值，在 OpenCV 5.0.0 上测，100 对匹配，噪声 1 px，各 200 次：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>外点比例</th>
+<th style="text-align: right;">50%</th>
+<th style="text-align: right;">70%</th>
+<th style="text-align: right;">80%</th>
+<th style="text-align: right;">85%</th>
+<th style="text-align: right;">90%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>真正的内点数</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>成功率（%）</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: right;">96.0</td>
+<td style="text-align: right;">66.5</td>
+<td style="text-align: right;">11.0</td>
+</tr>
+<tr>
+<td>返回的内点数中位数</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">5</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>默认参数在外点 80% 以内基本可靠</strong>，到 85% 只剩 66.5%，到 90% 只剩 11.0%。</li>
+<li><strong>返回了矩阵不等于成功</strong>。把 100 对匹配全部换成随机的，200 次调用每一次都返回了矩阵，报告的内点数中位数是 5，最大是 6。4 对点恰好确定一个单应，这 4 对自己必然是“内点”，再碰巧凑上一两对。内点数只有个位数时，返回的矩阵没有意义。</li>
+<li><strong>同一组输入调用两次，结果逐位相同</strong>（20 组里 20 组如此）。把点对的顺序打乱再算，结果和原来相差 0.417 px（中位数），最大 0.937 px。所以在这个版本上，随机性表现为结果依赖输入的顺序。复现问题时要把点对的顺序也固定下来。</li>
+<li><strong>OpenCV 的一次迭代不等于一次普通抽样</strong>。把 <code>maxIters</code> 设成和图 5 一样的 <span class="arithmatex">\(K\)</span> 再测（各 200 次），它的成功率比上面的朴素实现高，还高过公式值：<span class="arithmatex">\(K = 50\)</span>、外点 60% 时是 85.0%，公式值是 72.7%；<span class="arithmatex">\(K = 10\)</span>、外点 50% 时是 59.5%，公式值是 47.6%。公式值是“<span class="arithmatex">\(K\)</span> 次普通抽样里至少一组全内点”的概率，朴素实现不可能超过它。OpenCV 能超过，说明它在抽样或打分上做了额外的处理。具体做了什么本章没有查证，以 OpenCV 的源码和文档为准。所以公式和图 5 用来理解规律，实际调用时以上面这张默认参数的表为准。</li>
+<li><strong>另一套一致的结构会把模型抢走</strong>。100 对匹配里 40 对服从单应 A、45 对服从单应 B、15 对随机，用本章的朴素 RANSAC（阈值 3 px，迭代 2000 次）跑 200 组，结果更接近 A 的只有 2.5%，其余都跟了点数更多的 B。RANSAC 选的是内点最多的模型，它不知道哪一套才是你要的。</li>
+</ul>
+<h3 id="交互演示亲手跑一遍-ransac">交互演示：亲手跑一遍 RANSAC</h3>
+<p>演示页里是同样的设置：100 对匹配，可以调外点比例、噪声、阈值和迭代次数，看每次迭代后最好的内点数怎么变，以及重复 200 次的成功率和公式值差多少。页面下方有五步引导，第 1 步对应“最小二乘有多怕外点”，第 2、3、4 步对应“要迭代多少次”，第 5 步对应“阈值怎么定”。演示页里求单应用的是固定 <span class="arithmatex">\(H_{33} = 1\)</span> 的线性最小二乘，数据和随机数也和配图脚本不同，所以数值和上面的表不会完全相同，现象相同。</p>
+<div class="embed"><iframe src="../../demos/RANSAC单应估计.html" height="1160" loading="lazy" title="交互演示"></iframe></div>
+<p><a href="../../demos/RANSAC单应估计.html">打开交互演示：RANSAC 估计单应</a></p>
+<hr />
+<h2 id="46-逐步例子把斜拍文档拉正">4.6 逐步例子：把斜拍文档拉正</h2>
+<p>目标：检测纸张四角，将任意四边形映射为正视矩形。</p>
+<h3 id="第一步准备四个角点">第一步：准备四个角点</h3>
+<p>练习中可以通过轮廓近似自动寻找；先用手工点理解变换：</p>
+<div class="highlight"><pre><span></span><code><span class="n">src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">180</span><span class="p">,</span> <span class="mi">120</span><span class="p">],</span>   <span class="c1"># 左上</span>
+    <span class="p">[</span><span class="mi">620</span><span class="p">,</span> <span class="mi">80</span><span class="p">],</span>    <span class="c1"># 右上</span>
+    <span class="p">[</span><span class="mi">680</span><span class="p">,</span> <span class="mi">520</span><span class="p">],</span>   <span class="c1"># 右下</span>
+    <span class="p">[</span><span class="mi">120</span><span class="p">,</span> <span class="mi">560</span><span class="p">],</span>   <span class="c1"># 左下</span>
+<span class="p">])</span>
+</code></pre></div>
+<p>角点必须按环形顺序排列。常见排序策略：坐标和 <code>x+y</code> 最小的是左上、最大的是右下；差值 <code>y-x</code> 最小的是右上、最大的是左下。纸在画面内转到接近 45° 时，或者四边形是凹的，简单和差法会失效，应结合轮廓方向检查。</p>
+<p>失效的范围可以量出来。取一张 A4 纸（210×297 mm），相机焦距 800 px、距离 700 mm。纸先在自己的平面内旋转一个角度，再朝随机方向倾斜（倾斜角在 0 到上限之间均匀取），各 2000 次。“出错”指得到的四个角不是四个互不相同、按环形顺序排列的点。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>纸面内旋转角</th>
+<th style="text-align: right;">0°</th>
+<th style="text-align: right;">10°</th>
+<th style="text-align: right;">20°</th>
+<th style="text-align: right;">30°</th>
+<th style="text-align: right;">35°</th>
+<th style="text-align: right;">40°</th>
+<th style="text-align: right;">45°</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>和差法出错，倾斜上限 30°</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">17.3%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>和差法出错，倾斜上限 50°</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">5.5%</td>
+<td style="text-align: right;">18.5%</td>
+<td style="text-align: right;">47.5%</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td>按绕中心的角度排序出错，倾斜上限 50°</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">0%</td>
+</tr>
+</tbody>
+</table></div>
+<p>纸面内旋转不超过 20° 时，和差法在这组实验里没有出错。倾斜大的时候 30° 就开始出错，正好 45° 时每次都错：这时有两个角的 <code>x+y</code> 几乎相等，谁最小由透视的细微差别决定，同一个角可能被选中两次，或者选出来的顺序不再是环形。所以失效并不需要多么极端的旋转。</p>
+<p>另一种排序是算出四个点的中心，按每个点相对中心的方向角排序。对凸四边形，这样得到的一定是环形顺序，表里所有条件下都没有出错。它只保证环形顺序，不知道哪个角是“左上”。纸转过 45° 以后，哪条边算“上边”本来就要靠内容（文字方向）来定。</p>
+<h3 id="第二步决定输出尺寸">第二步：决定输出尺寸</h3>
+<p>取上下边宽度、左右边高度的较大值，减少裁切：</p>
+<div class="highlight"><pre><span></span><code><span class="n">width_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">src</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">width_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">src</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">height_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">height_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">src</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">W</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">width_a</span><span class="p">,</span> <span class="n">width_b</span><span class="p">))</span>
+<span class="n">H</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">height_a</span><span class="p">,</span> <span class="n">height_b</span><span class="p">))</span>
+</code></pre></div>
+<p>这里的 <code>H</code> 是高度变量，不要与单应矩阵也命名为 <code>H</code>，实际代码可把矩阵命名为 <code>M</code> 或 <code>homography</code>。</p>
+<p>这样定出来的尺寸，宽高比并不等于纸的真实宽高比。同一张 A4 纸和相机，让纸的上边向靠近相机的方向倾斜：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>倾斜角</th>
+<th style="text-align: right;">0°</th>
+<th style="text-align: right;">10°</th>
+<th style="text-align: right;">20°</th>
+<th style="text-align: right;">30°</th>
+<th style="text-align: right;">45°</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上边、下边、左右边的长度（px）</td>
+<td style="text-align: right;">240、240、339</td>
+<td style="text-align: right;">249、231、335</td>
+<td style="text-align: right;">259、224、321</td>
+<td style="text-align: right;">268、217、298</td>
+<td style="text-align: right;">282、209、248</td>
+</tr>
+<tr>
+<td>按较大值算出的宽高比（真实值 0.707）</td>
+<td style="text-align: right;">0.707</td>
+<td style="text-align: right;">0.744</td>
+<td style="text-align: right;">0.806</td>
+<td style="text-align: right;">0.9</td>
+<td style="text-align: right;">1.137</td>
+</tr>
+<tr>
+<td>相对真实宽高比的偏差</td>
+<td style="text-align: right;">0%</td>
+<td style="text-align: right;">+5.2%</td>
+<td style="text-align: right;">+14.0%</td>
+<td style="text-align: right;">+27.2%</td>
+<td style="text-align: right;">+60.8%</td>
+</tr>
+</tbody>
+</table></div>
+<p>倾斜 30° 时，矫正出来的“A4 纸”比真实的宽了 27.2%。倾斜让高度方向被压短，离相机近的那条横边又被放大，两个效应叠在一起。知道纸的规格时，直接按规格定输出的宽高比（A4 是 210:297）。不知道规格时，要清楚输出有拉伸，不能在上面量尺寸。</p>
+<h3 id="第三步建立目标矩形并变换">第三步：建立目标矩形并变换</h3>
+<div class="highlight"><pre><span></span><code><span class="n">dst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="n">W</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">H</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">H</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+<span class="p">])</span>
+
+<span class="n">M</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getPerspectiveTransform</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
+<span class="n">scan</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">warpPerspective</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">H</span><span class="p">),</span> <span class="n">flags</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span><span class="p">)</span>
+</code></pre></div>
+<p>输出边界使用 <code>W-1</code>、<code>H-1</code>，因为最后一个合法像素坐标不是 <code>W</code>、<code>H</code>。如果文档是文字，可继续灰度化、轻微去噪，再用 Otsu 或自适应阈值增强，正好连接第 1～3 天的知识。</p>
+<hr />
+<h2 id="47-图像拼接-pipeline每一步都可能失败">4.7 图像拼接 pipeline：每一步都可能失败</h2>
+<p>全景拼接不是一个 API，而是一条流水线：</p>
+<ol>
+<li><strong>检测关键点</strong>：在两张图中找稳定角点或斑点。</li>
+<li><strong>计算描述子</strong>：把关键点邻域编码成可比较向量。</li>
+<li><strong>描述子匹配</strong>：寻找两图中可能对应的位置。</li>
+<li><strong>过滤匹配</strong>：比值测试、交叉验证，去掉明显歧义。</li>
+<li><strong>RANSAC 求单应</strong>：只让几何一致的匹配参与对齐。</li>
+<li><strong>图像扭正</strong>：<code>warpPerspective</code> 将一张图变到另一张坐标系。</li>
+<li><strong>融合接缝</strong>：处理重叠区亮度差和明显边界。</li>
+</ol>
+<p>最小骨架如下，特征细节会在第 5 天展开：</p>
+<div class="highlight"><pre><span></span><code><span class="n">sift</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">SIFT_create</span><span class="p">()</span>
+<span class="n">kp1</span><span class="p">,</span> <span class="n">des1</span> <span class="o">=</span> <span class="n">sift</span><span class="o">.</span><span class="n">detectAndCompute</span><span class="p">(</span><span class="n">gray1</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">kp2</span><span class="p">,</span> <span class="n">des2</span> <span class="o">=</span> <span class="n">sift</span><span class="o">.</span><span class="n">detectAndCompute</span><span class="p">(</span><span class="n">gray2</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<span class="n">matcher</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">BFMatcher</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">NORM_L2</span><span class="p">)</span>
+<span class="n">knn</span> <span class="o">=</span> <span class="n">matcher</span><span class="o">.</span><span class="n">knnMatch</span><span class="p">(</span><span class="n">des1</span><span class="p">,</span> <span class="n">des2</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">good</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">knn</span> <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">distance</span> <span class="o">&lt;</span> <span class="mf">0.75</span> <span class="o">*</span> <span class="n">n</span><span class="o">.</span><span class="n">distance</span><span class="p">]</span>
+
+<span class="n">src_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([</span><span class="n">kp1</span><span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">queryIdx</span><span class="p">]</span><span class="o">.</span><span class="n">pt</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">good</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">dst_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([</span><span class="n">kp2</span><span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">trainIdx</span><span class="p">]</span><span class="o">.</span><span class="n">pt</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">good</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">M</span><span class="p">,</span> <span class="n">inlier_mask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findHomography</span><span class="p">(</span><span class="n">src_pts</span><span class="p">,</span> <span class="n">dst_pts</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RANSAC</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+</code></pre></div>
+<p>仅仅覆盖粘贴会产生硬接缝。简单融合可在重叠区做线性加权，更成熟的方法包括多频段融合、曝光补偿和最佳缝合线。练习 <code>4-2</code> 的重点先放在“匹配是否可靠、几何是否正确”，不要一开始就被融合细节淹没。</p>
+<p>对照本章的实测，第 5、6 两步各有一个要检查的数：</p>
+<ul>
+<li>第 5 步之后先看 <code>inlier_mask.sum()</code>。4.5 节测到全是随机匹配时也能凑出 5 到 6 个内点，内点数和这个水平差不多时不要往下走。</li>
+<li>第 6 步只做一次 <code>warpPerspective</code>。如果还要缩放或平移画布，先把这些矩阵和单应乘在一起（4.1 节），不要对图像连做几次变换。</li>
+</ul>
+<hr />
+<h2 id="48-opencv-api-速查">4.8 OpenCV API 速查</h2>
+<div class="highlight"><pre><span></span><code><span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dsize</span><span class="p">,</span> <span class="n">fx</span><span class="o">=...</span><span class="p">,</span> <span class="n">fy</span><span class="o">=...</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=...</span><span class="p">)</span>
+<span class="n">cv2</span><span class="o">.</span><span class="n">getRotationMatrix2D</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>          <span class="c1"># 返回 2×3</span>
+<span class="n">cv2</span><span class="o">.</span><span class="n">getAffineTransform</span><span class="p">(</span><span class="n">src3</span><span class="p">,</span> <span class="n">dst3</span><span class="p">)</span>                    <span class="c1"># 三对点</span>
+<span class="n">cv2</span><span class="o">.</span><span class="n">warpAffine</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">dsize</span><span class="p">,</span> <span class="n">flags</span><span class="o">=...</span><span class="p">,</span> <span class="n">borderMode</span><span class="o">=...</span><span class="p">)</span>
+<span class="n">cv2</span><span class="o">.</span><span class="n">getPerspectiveTransform</span><span class="p">(</span><span class="n">src4</span><span class="p">,</span> <span class="n">dst4</span><span class="p">)</span>               <span class="c1"># 四对点</span>
+<span class="n">cv2</span><span class="o">.</span><span class="n">findHomography</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">ransacThreshold</span><span class="p">)</span> <span class="c1"># 多点鲁棒估计</span>
+<span class="n">cv2</span><span class="o">.</span><span class="n">warpPerspective</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">dsize</span><span class="p">,</span> <span class="n">flags</span><span class="o">=...</span><span class="p">,</span> <span class="n">borderMode</span><span class="o">=...</span><span class="p">)</span>
+<span class="n">cv2</span><span class="o">.</span><span class="n">perspectiveTransform</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">H</span><span class="p">)</span>                    <span class="c1"># 只变换点，不扭图</span>
+</code></pre></div>
+<p><code>dsize</code> 一律是 <code>(width, height)</code>，而 NumPy 图像 shape 是 <code>(height, width, channels)</code>。边界外区域可用 <code>borderMode=cv2.BORDER_CONSTANT</code> 指定固定颜色，或选 <code>BORDER_REFLECT</code> 等策略。</p>
+<p>三个实测过的细节（OpenCV 5.0.0）：</p>
+<ul>
+<li><code>flags=cv2.INTER_AREA</code> 只在 <code>resize</code> 里起作用。<code>warpAffine</code> 和 <code>warpPerspective</code> 传它，结果和 <code>INTER_LINEAR</code> 逐像素相同（4.1 节）。</li>
+<li><code>resize</code> 和 <code>warpAffine</code> 对“像素在哪里”的约定差半个像素。把一张 256×256 的图放大 2 倍，<code>warpAffine</code> 的矩阵只写缩放 <code>[[2, 0, 0], [0, 2, 0]]</code> 时，和 <code>resize</code> 的结果最大相差 31.5 个灰度级（均方根 4.92）。把矩阵写成 <code>[[2, 0, 0.5], [0, 2, 0.5]]</code> 之后两者一致。<code>resize</code> 把像素看成有面积的小方块，按方块的中心对齐，按这个约定放大 <span class="arithmatex">\(s\)</span> 倍时会多出一个 <span class="arithmatex">\((s - 1)/2\)</span> 的平移（本章只实测了 2 倍）。第 16 章做亚像素对齐时，半个像素是很大的误差。</li>
+<li><code>getRotationMatrix2D</code> 的正角度在屏幕上是逆时针，和教科书公式的符号相反（4.2 节）。旋转后画布大小不变，四角会被裁掉：640×480 的图绕中心转 30°，只有 83.2% 的像素还留在原来的画布里，不裁切需要 794×736 的画布。</li>
+</ul>
+<hr />
+<h2 id="49-常见坑与排查顺序常见错误">4.9 常见坑与排查顺序（常见错误）</h2>
+<ol>
+<li><strong>宽高写反</strong>：输出形状异常，先打印 <code>img.shape</code> 和 <code>dsize</code>。</li>
+<li><strong>点顺序不一致</strong>：四点必须源、目标一一对应，最好画编号检查。</li>
+<li><strong>整数截断过早</strong>：特征点和矩阵计算保留 <code>float32/float64</code>，最后再转整数。</li>
+<li><strong>旋转后被裁切</strong>：原画布大小不一定容纳旋转图，应计算变换后四角包围盒并修正平移。</li>
+<li><strong>误把仿射当透视</strong>：斜拍平面通常需要 <code>warpPerspective</code>。</li>
+<li><strong>匹配数够但分布很差</strong>：所有内点挤在一个小区域，估计出的单应对全图不稳定。</li>
+<li><strong>只看 RANSAC 是否返回矩阵</strong>：还要看内点比例、重投影误差和变换后角点。</li>
+<li><strong>有视差仍强行单应对齐</strong>：近景与远景无法同时重合，应改变拍摄方式或使用更复杂模型。</li>
+<li><strong>掩码使用线性插值</strong>：类别边界会出现非法值，改用最近邻。</li>
+<li><strong>矩阵组合顺序反了</strong>：用一个测试点逐步计算，比盯着矩阵更容易发现问题。</li>
+</ol>
+<p>把上面的条目和本章实测到的情况合起来，按现象查。前五行是做作业 <code>4-1_齐次点变换.py</code> 时最容易遇到的。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作业验收报“输出必须是 (N,2) float64”</td>
+<td>输入是 float32 或整数，没有先转成 float64；或者返回了 (N,3)</td>
+<td>打印返回值的 <code>dtype</code> 和 <code>shape</code></td>
+</tr>
+<tr>
+<td>单位矩阵能过，换一个矩阵结果就不对</td>
+<td>点按行向量排成 (N,3) 时乘的方向不对，相当于用了矩阵的转置</td>
+<td>用一个纯平移的矩阵测试，平移量应该原样出现在结果里</td>
+</tr>
+<tr>
+<td>把矩阵整体乘 7，结果变了</td>
+<td>没有除以第三个分量，或者除错了分量</td>
+<td>对同一个点分别用 <code>H</code> 和 <code>7*H</code> 计算，两个结果应相同</td>
+</tr>
+<tr>
+<td>出现 <code>inf</code> 或除零警告，而不是 NaN</td>
+<td>先做了除法再判断</td>
+<td>先找出 <code>abs(w) &lt;= 1e-12</code> 的点，只对其余的点做除法</td>
+</tr>
+<tr>
+<td>所有点都变成 NaN</td>
+<td>传进来的矩阵数值极小，所有点的 <code>w</code> 都落在 1e-12 以内</td>
+<td>打印 <code>w</code>；把矩阵除以 <code>H[2, 2]</code> 之后再用</td>
+</tr>
+<tr>
+<td>变换后的图全黑或只剩一个角</td>
+<td><code>dsize</code> 写成了 (高, 宽)；或者矩阵方向反了，把“目标到源”的矩阵当成“源到目标”</td>
+<td>把图像四个角代进矩阵，看落点是否在输出画布内</td>
+</tr>
+<tr>
+<td>旋转方向和预想的相反</td>
+<td>自己写的矩阵和 <code>getRotationMatrix2D</code> 的符号约定不同</td>
+<td>用中心正右方的一个点测试（4.2 节）</td>
+</tr>
+<tr>
+<td>旋转后四角缺失</td>
+<td>画布没有放大。转 30° 时只有 83.2% 的像素留在原画布</td>
+<td>算出四角变换后的包围盒，把平移加进矩阵，再放大 <code>dsize</code></td>
+</tr>
+<tr>
+<td>多次变换后图像发糊，或者边缘出现亮边</td>
+<td>每次变换都插值一次。双线性越来越糊，双三次的对比度越来越高（4.1 节）</td>
+<td>把矩阵乘起来，只变换一次</td>
+</tr>
+<tr>
+<td>缩小后出现原图没有的条纹</td>
+<td>混叠。<code>warpAffine</code> 里 <code>INTER_AREA</code> 不起作用</td>
+<td>先用 <code>resize</code> 加 <code>INTER_AREA</code> 缩小，再做 warp</td>
+</tr>
+<tr>
+<td>掩码的类别边界上多出一圈别的类别</td>
+<td>用了双线性或双三次。一部分是不存在的编号，一部分是合法但错误的编号</td>
+<td>掩码一律用 <code>INTER_NEAREST</code>；比较变换前后各类别的像素数</td>
+</tr>
+<tr>
+<td>4 个点求出的单应在这 4 个点上完美，别处差很多</td>
+<td>4 对点残差必然为 0；点挤在一起或接近共线时误差被放大（4.4 节）</td>
+<td>检查四边形是否为凸、面积是否够大；用第 5 个已知点验证</td>
+</tr>
+<tr>
+<td>透视变换的结果被撕开，一部分翻到另一侧</td>
+<td>点序错了；或者 <code>w = 0</code> 的那条线穿过了图像</td>
+<td>把四个角代进去，看 <code>w</code> 的符号是否一致，四边形是否仍是凸的</td>
+</tr>
+<tr>
+<td><code>findHomography</code> 返回了矩阵，结果却是乱的</td>
+<td>内点太少。全是随机匹配时也能凑出 5 到 6 个内点</td>
+<td>看 <code>mask.sum()</code> 和内点在画面里的分布</td>
+</tr>
+<tr>
+<td>RANSAC 时好时坏</td>
+<td>迭代次数只按公式取，或者外点比例超过 80%</td>
+<td>迭代次数取公式值的 2 到 3 倍；回头改进匹配，降低外点比例</td>
+</tr>
+<tr>
+<td>RANSAC 留下的内点很少，结果抖动</td>
+<td>阈值比定位噪声还小</td>
+<td>阈值取定位噪声的 3 倍左右（4.5 节）</td>
+</tr>
+<tr>
+<td>文档矫正后被拉宽或拉长</td>
+<td>输出尺寸按边长的较大值定，宽高比不对。倾斜 30° 时偏 27.2%</td>
+<td>已知纸张规格时按规格定宽高比</td>
+</tr>
+<tr>
+<td>用 <code>warpAffine</code> 缩放的结果和 <code>resize</code> 对不上</td>
+<td>两者的像素中心约定差半个像素（4.8 节）</td>
+<td>在矩阵里补上 <span class="arithmatex">\((s - 1)/2\)</span> 的平移</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="410-怎样评估一次几何估计">4.10 怎样评估一次几何估计</h2>
+<p>前面每个实验都在回答同一个问题：估出来的变换有多准。合成数据有真值，真实数据没有，评估方法要分开说。</p>
+<p><strong>有真值时（合成数据，或者有标定板）</strong>。不直接比较矩阵的元素，9 个数的量纲不同，也不直观。本章的做法是把一组覆盖全画面的网格点分别用估计值和真值映射，报告两组落点的均方根距离。网格要覆盖你关心的区域：4.4 节点集中在中央时，中央准不代表全画面准。</p>
+<p><strong>没有真值时</strong>。</p>
+<ul>
+<li><strong>留出点</strong>：把点对分成两份，一份用来估计，另一份只用来算重投影误差。参与拟合的点上的残差不能用，4 对点时它恒为 0。</li>
+<li><strong>报告内点数和内点比例，同时说明阈值</strong>。只说“内点 40 个”没有意义，阈值 3 px 和阈值 12 px 下的 40 个不是一回事。</li>
+<li><strong>看分布，不只看一个数</strong>。4 对点时误差的中位数是 12 px，90% 分位是 123 px，分布的尾巴很长。报告中位数和一个高分位，或者直接报告成功率（误差小于某个值的比例）。</li>
+<li><strong>重复多次</strong>。RANSAC 是随机算法，一次成功说明不了什么。按 4.5 节的做法，换多组数据或多种点序，统计成功率。</li>
+<li><strong>检查几何是否合理</strong>：四个角变换后是否仍是凸四边形，面积变化是否在预期范围内，<code>w</code> 的符号是否一致。</li>
+</ul>
+<p><strong>图像层面的检查</strong>。把图变换过去再变换回来，和原图的差只反映插值损失（Notebook 里的 MAE 就是这个量），几何错了它也可能很小。要检查几何，把变换后的图和目标图叠在一起，或者相减后看边缘处有没有成对的亮暗条纹，第 16 章第 1 节专门讲这个现象。</p>
+<hr />
+<h2 id="411-破坏实验">4.11 破坏实验</h2>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<ol>
+<li>Notebook 里把 <code>tilt</code> 从 35 提高到 90，预测反变换后的 MAE 会怎样变化。再把两处 <code>flags</code> 都换成 <code>cv2.INTER_NEAREST</code> 和 <code>cv2.INTER_CUBIC</code> 各跑一次，先预测三种插值的排序，再和 4.1 节的两组往返结果对照。</li>
+<li>Notebook 里交换 <code>dst</code> 的两个点，预测图像会翻折还是自交。用你的 <code>transform_points</code> 把四个角代进这个矩阵，看 <code>w</code> 的符号。</li>
+<li>用作业文件里演示的矩阵，把 (-99, 0)、(-100, 0)、(-101, 0) 三个点交给你的 <code>transform_points</code>，先预测三个输出。再把矩阵乘以 -1 和乘以 7，结果变不变？</li>
+<li>自己用两层循环写一个前向映射，把一张图旋转 45°，数一数空洞占多少，和 4.1 节的 16.9% 对照。再换成放大 1.5 倍。</li>
+<li>用 <code>warpAffine</code> 把一张图每次旋转 10°，连转 36 次，分别用双线性和双三次，和原图相减。然后把 36 个矩阵先乘起来，只变换一次，再比较。</li>
+<li>生成 100 对匹配（用一个已知的单应，加 1 px 噪声），把其中一部分换成随机点，调用 <code>cv2.findHomography(..., cv2.RANSAC, 3.0)</code>。外点比例从 50% 加到 90%，记录返回的内点数和结果是否正确。最后把 100 对全部换成随机点，看它返回什么。</li>
+</ol>
+<hr />
+<h2 id="412-扩展深挖档">4.12 扩展（深挖档）</h2>
+<ul>
+<li><strong>文档扫描器</strong>（题目在 <code>视觉算法学习计划.md</code> 的题 4-1）。完成基本流程之后做两处改进：角点排序换成按绕中心的方向角排序，再用轮廓的方向确定起点；输出尺寸按 A4 的比例定。把纸在画面里转到 40° 左右拍一张，对比改进前后的结果。</li>
+<li><strong>图像拼接</strong>（题 4-2）。记录关键点数、通过比值测试的匹配数、RANSAC 内点数这三个数。把 RANSAC 阈值从 1 px 改到 10 px，看内点数和拼接结果怎么变，和图 6 对照。真实匹配里的外点不是均匀随机的，结论可能和 4.5 节不同，这正是值得自己测的地方。</li>
+<li><strong>自己实现 RANSAC</strong>。用第 17 章 3.2 节的 DLT 求单应，按 4.5 节的六步写一个 RANSAC，复现图 5 中间那幅图里的一条曲线。再加上“内点数刷新时按公式重新估计还需要的迭代次数”的提前终止，看平均迭代次数能省多少。</li>
+<li><strong>LMedS</strong>。<code>cv2.findHomography(src, dst, cv2.LMEDS)</code> 不需要阈值，它最小化误差的中位数。在本章的数据上实测，外点 30% 和 45% 时成功率是 100.0% 和 99.5%，外点 55% 和 70% 时是 0。解释为什么分界正好在 50%。</li>
+<li><strong>真实相机下的宽高比</strong>。4.6 节说按边长定的宽高比有偏差。已知相机内参时可以从四个角恢复平面的真实宽高比，查一下做法并用第 17 章标定出的内参试一次。</li>
+</ul>
+<hr />
+<h2 id="413-和后续章节的关系">4.13 和后续章节的关系</h2>
+<ul>
+<li><strong>第 1 章</strong>是前置：<code>(x, y)</code> 和 <code>shape</code> 的顺序、图像的 <code>dtype</code>，本章每个 API 都会碰到。</li>
+<li><strong>第 5 章</strong>提供点对。特征匹配给出的匹配里有外点，比值测试之后还要用本章的 RANSAC 做几何验证。</li>
+<li><strong>第 7 章</strong>的针孔模型说明单应从哪里来：针孔投影加上“点都在同一个平面上”就得到单应（推导在第 17 章 3.1 节）。第 7 章估计本质矩阵时用的也是 RANSAC。</li>
+<li><strong>第 12 章</strong> 12.7 节处理分割掩码时，用的是本章 4.1 节的结论：掩码只能用最近邻。</li>
+<li><strong>第 16 章</strong>做亚像素对齐。它第 2 节的变换模型表就是本章 4.2 节的层次，结论同样是用最简单的模型。本章的插值误差（4.1 节）和半像素约定（4.8 节）在亚像素精度下都不能忽略。</li>
+<li><strong>第 17 章</strong>用 DLT 求标定板到图像的单应，再从多个单应里解出相机内参。DLT 的推导和归一化的实测在那一章的 3.2 节和第 5 节。</li>
+</ul>
+<hr />
+<h2 id="练习连接">练习连接</h2>
+<p>本章有两类练习，编号容易混：自动验收的作业是 <code>4-1_齐次点变换.py</code>；下面两个是 <code>视觉算法学习计划.md</code> 里的扩展练习，目录里没有现成的文件，需要自己新建。</p>
+<h3 id="作业-4-1齐次点变换自动验收">作业 4-1：齐次点变换（自动验收）</h3>
+<p>实现 <code>transform_points</code>：给点补上齐次分量，乘单应矩阵，再除以第三个分量。要点都在函数的文档字符串里，容易错的地方见 4.9 节表格的前五行，第三个分量为 0 的含义见 4.3 节。完成后运行 <code>python tests/check_progress.py</code>。</p>
+<h3 id="练习-4-1文档扫描器">练习 4-1：文档扫描器</h3>
+<p>这道题把前三天串起来：灰度与滤波 → Canny 边缘 → 形态学连接断边 → 轮廓筛选 → 四边形近似 → 透视矫正 → 二值增强。建议每一步都保存中间图，不要只看最终输出。若找不到纸张，优先检查边缘和轮廓，而不是怀疑单应矩阵。</p>
+<h3 id="练习-4-2图像拼接">练习 4-2：图像拼接</h3>
+<p>它会提前用到第 5 天的特征检测与匹配。当前先把关键点与描述子当成“自动提供的对应点”，重点观察：比值阈值改变后匹配数量如何变化；RANSAC 前后匹配线有什么区别；内点少于 4 个时为什么无法估计单应。</p>
+<hr />
+<h2 id="动手前的检查清单">动手前的检查清单</h2>
+<ul>
+<li>[ ] 我能区分前向映射与反向映射，并解释为什么需要插值。</li>
+<li>[ ] 我知道 <code>img.shape</code> 与 OpenCV <code>dsize</code> 的宽高顺序相反。</li>
+<li>[ ] 我能说出欧几里得、相似、仿射、投影变换各自允许什么变化。</li>
+<li>[ ] 我知道仿射至少需要 3 对不共线点，单应至少需要 4 对点。</li>
+<li>[ ] 我能解释齐次坐标如何把平移写成矩阵乘法。</li>
+<li>[ ] 我知道单应矩阵为何有 8 个自由度，以及它适用的平面假设。</li>
+<li>[ ] 我能用“随机采样—建模—统计内点”解释 RANSAC。</li>
+<li>[ ] 我会检查 <code>findHomography</code> 返回的内点掩码，而不只检查矩阵。</li>
+<li>[ ] 我能按固定顺序排列文档四角，并正确设置目标矩形。</li>
+<li>[ ] 我知道图像拼接是检测、匹配、过滤、对齐、融合组成的 pipeline。</li>
+</ul>
+<p>确认完了，打开 <code>04_几何变换/</code>，先完成自动验收的 <code>4-1_齐次点变换.py</code>，再从文档扫描器开始把“坐标搬运”变成可见结果。</p>
+<hr />
+<h2 id="自测问题">自测问题</h2>
+<p>速通档答小测，标准档把下面的问题答一遍。</p>
+<ol>
+<li>OpenCV 的 <code>warpAffine</code> 为什么用反向映射？只旋转、不缩放时，前向映射有没有空洞？</li>
+<li>一条流程里要先旋转、再缩放、再做透视矫正。应该调用几次 warp？为什么？</li>
+<li>掩码用双线性插值做了旋转，<code>np.unique</code> 没有发现新的类别编号。能说明结果没问题吗？</li>
+<li>什么情况下仿射够用，什么情况下必须用单应？反过来，一律用单应有什么代价？</li>
+<li>4 对点求出的单应在这 4 个点上误差为 0。怎样才能知道它准不准？4 个点应该怎么选？</li>
+<li>外点比例 60% 时，公式给出要迭代 178 次。你会设多少次？为什么？</li>
+<li>RANSAC 的内点阈值该怎么定？设得太小和太大，哪一个更危险，各在什么条件下？</li>
+</ol></article><nav class="prev-next"><a href="03.html">← 第 3 章 形态学</a><a href="05.html">第 5 章 特征点与描述子 →</a></nav>
+  </main>
+  <aside class="toc" aria-label="本页目录">
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#41-几何变换到底在变什么">4.1 几何变换到底在变什么</a></li><li class="sub"><a href="#前向映射的空洞有多少">前向映射的空洞有多少</a></li><li class="sub"><a href="#插值误差会累积">插值误差会累积</a></li><li class="sub"><a href="#缩小和掩码两个要单独处理的情况">缩小和掩码：两个要单独处理的情况</a></li><li><a href="#42-变换的层次自由度越多能力越强">4.2 变换的层次：自由度越多，能力越强</a></li><li class="sub"><a href="#欧几里得与相似变换">欧几里得与相似变换</a></li><li class="sub"><a href="#仿射变换">仿射变换</a></li><li class="sub"><a href="#投影变换">投影变换</a></li><li class="sub"><a href="#选哪个模型参数不够和参数太多都有代价">选哪个模型：参数不够和参数太多都有代价</a></li><li><a href="#43-齐次坐标为什么平移也能乘矩阵">4.3 齐次坐标：为什么平移也能乘矩阵</a></li><li class="sub"><a href="#第三个分量过零时会发生什么">第三个分量过零时会发生什么</a></li><li><a href="#44-单应矩阵怎样从点对中求出">4.4 单应矩阵怎样从点对中求出</a></li><li class="sub"><a href="#点数噪声和点的位置">点数、噪声和点的位置</a></li><li class="sub"><a href="#归一化在这里有没有用">归一化在这里有没有用</a></li><li><a href="#45-ransac让错误匹配失去投票权">4.5 RANSAC：让错误匹配失去投票权</a></li><li class="sub"><a href="#最小二乘有多怕外点">最小二乘有多怕外点</a></li><li class="sub"><a href="#要迭代多少次">要迭代多少次</a></li><li class="sub"><a href="#阈值怎么定">阈值怎么定</a></li><li class="sub"><a href="#opencv-的-findhomography-实测">OpenCV 的 findHomography 实测</a></li><li class="sub"><a href="#交互演示亲手跑一遍-ransac">交互演示：亲手跑一遍 RANSAC</a></li><li><a href="#46-逐步例子把斜拍文档拉正">4.6 逐步例子：把斜拍文档拉正</a></li><li class="sub"><a href="#第一步准备四个角点">第一步：准备四个角点</a></li><li class="sub"><a href="#第二步决定输出尺寸">第二步：决定输出尺寸</a></li><li class="sub"><a href="#第三步建立目标矩形并变换">第三步：建立目标矩形并变换</a></li><li><a href="#47-图像拼接-pipeline每一步都可能失败">4.7 图像拼接 pipeline：每一步都可能失败</a></li><li><a href="#48-opencv-api-速查">4.8 OpenCV API 速查</a></li><li><a href="#49-常见坑与排查顺序常见错误">4.9 常见坑与排查顺序（常见错误）</a></li><li><a href="#410-怎样评估一次几何估计">4.10 怎样评估一次几何估计</a></li><li><a href="#411-破坏实验">4.11 破坏实验</a></li><li><a href="#412-扩展深挖档">4.12 扩展（深挖档）</a></li><li><a href="#413-和后续章节的关系">4.13 和后续章节的关系</a></li><li><a href="#练习连接">练习连接</a></li><li class="sub"><a href="#作业-4-1齐次点变换自动验收">作业 4-1：齐次点变换（自动验收）</a></li><li class="sub"><a href="#练习-4-1文档扫描器">练习 4-1：文档扫描器</a></li><li class="sub"><a href="#练习-4-2图像拼接">练习 4-2：图像拼接</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+  </aside>
+</div>
+<div class="mask"></div>
+<div class="lightbox" hidden><img alt=""></div>
+<script>window.COURSE = null;</script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
+<script src="../assets/app.js"></script>
+</body>
+</html>

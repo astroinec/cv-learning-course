@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dice 与 IoU：目标大小、偏移和胖瘦</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; min-width: 0; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); min-width: 0; }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi small { color: var(--muted); font-size: 11.5px; }
+  .two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 12px; align-items: start; }
+  .stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+  .stack .panel { margin-bottom: 0; }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin: 0 4px 0 10px; border-radius: 2px; }
+  figcaption i.ln { width: 18px; height: 3px; vertical-align: middle; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dice 与 IoU：目标大小、偏移和胖瘦（第 12 章）</h1>
+  <div class="sub">96×96 的画布中央放一个真值目标，预测是把它平移、加粗或减细得到的，没有别的误差。Dice、IoU 和像素准确率按像素数出来，和作业里硬掩膜的算法一致。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>目标形状<div class="seg" id="shape"><button data-v="disk" class="on">圆斑</button><button data-v="scratch">划痕（长 40 px）</button></div></label>
+    <label><span id="sizeName">圆斑半径（px）</span><b id="sizeV"></b><input type="range" id="size" min="0.5" max="30" step="0.5" value="20"></label>
+    <label>划痕方向（度，只对划痕有效）<b id="angleV"></b><input type="range" id="angle" min="0" max="90" step="5" value="0"></label>
+    <label>预测向右偏（px）<b id="dxV"></b><input type="range" id="dx" min="-8" max="8" step="1" value="1"></label>
+    <label>预测向下偏（px）<b id="dyV"></b><input type="range" id="dy" min="-8" max="8" step="1" value="0"></label>
+    <label>预测比真值胖或瘦（px，正数是胖）<b id="growV"></b><input type="range" id="grow" min="-3" max="3" step="0.5" value="0"></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>Dice</span><b id="kDice"></b><small id="kCount"></small></div>
+    <div class="kpi"><span>IoU</span><b id="kIou"></b><small id="kGap"></small></div>
+    <div class="kpi"><span>像素准确率</span><b id="kAcc"></b><small>96×96 画布上</small></div>
+    <div class="kpi"><span>真值占画布的比例</span><b id="kShare"></b><small id="kPx"></small></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>逐像素对比（自动放大到目标附近）<i style="background:#1a9c4b"></i>命中<i style="background:#e8710a"></i>多报<i style="background:#2f6fed"></i>漏报</figcaption><canvas id="c1" height="360"></canvas></figure>
+    <div class="stack">
+      <figure class="panel"><figcaption>其余不变，只改向右的偏移<i class="ln" style="background:var(--blue)"></i>Dice<i class="ln" style="background:var(--orange)"></i>IoU，竖线是当前值</figcaption><canvas id="c2" height="150"></canvas></figure>
+      <figure class="panel"><figcaption>其余不变，只改目标大小<i class="ln" style="background:var(--blue)"></i>Dice<i class="ln" style="background:var(--orange)"></i>IoU，竖线是当前值</figcaption><canvas id="c3" height="150"></canvas></figure>
+    </div>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>半径 20 px 的圆斑，预测向右偏 1 px：Dice 0.967。把半径慢慢拖到 2 px，偏移不动，Dice 掉到多少？看下面“只改目标大小”那条曲线。<button data-preset='{"shape":"disk","size":20,"angle":0,"dx":1,"dy":0,"grow":0}'>载入</button></li>
+      <li>半径 2 px，不偏移，预测比真值胖 1 px（相当于标注或预测粗了一圈）。Dice 和 IoU 各是多少？再改成瘦 1 px。<button data-preset='{"shape":"disk","size":2,"angle":0,"dx":0,"dy":0,"grow":1}'>载入</button></li>
+      <li>半径 2 px，预测向右偏 6 px，完全错开。Dice 和 IoU 都是 0，像素准确率是多少？<button data-preset='{"shape":"disk","size":2,"angle":0,"dx":6,"dy":0,"grow":0}'>载入</button></li>
+      <li>换成水平的划痕（半宽 1 px），预测向下偏 1 px。再把向下的偏移改回 0、向右偏 1 px，比较两次的 Dice。<button data-preset='{"shape":"scratch","size":1,"angle":0,"dx":0,"dy":1,"grow":0}'>载入</button></li>
+      <li>半径 5 px 的圆斑向右偏 4 px：这时 Dice 比 IoU 高多少？把偏移从 0 拖到 8，看两条曲线在哪里离得最远、在两端怎样靠拢。<button data-preset='{"shape":"disk","size":5,"angle":0,"dx":4,"dy":0,"grow":0}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ==== 计算部分开始（可以单独拿出来用 node 执行）
+const G = 96;
+// 一个目标的掩膜。圆斑：圆心 (48+dx, 48+dy)，到圆心的距离不超过 size。划痕：到一条 40 px 长线段的距离不超过 size，线段中点 (47.5+dx, 47.5+dy)。
+function raster(shape, size, angle, dx, dy) {
+  const m = new Uint8Array(G * G);
+  if (size <= 0) return m;
+  if (shape === "disk") {
+    const cx = 48 + dx, cy = 48 + dy, r2 = size * size;
+    for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r2) m[y * G + x] = 1;
+    return m;
+  }
+  const c = Math.cos(angle * Math.PI / 180), s = Math.sin(angle * Math.PI / 180), mx = 47.5 + dx, my = 47.5 + dy;
+  for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) {
+    const u = (x - mx) * c + (y - my) * s, v = -(x - mx) * s + (y - my) * c;
+    const du = Math.max(Math.abs(u) - 20, 0);
+    if (Math.hypot(du, v) <= size) m[y * G + x] = 1;
+  }
+  return m;
+}
+function metrics(gt, pred) {
+  let tp = 0, fp = 0, fn = 0;
+  for (let i = 0; i < gt.length; i++) { if (gt[i] && pred[i]) tp++; else if (pred[i]) fp++; else if (gt[i]) fn++; }
+  const sum = 2 * tp + fp + fn, uni = tp + fp + fn;
+  return { tp, fp, fn, dice: sum ? 2 * tp / sum : 1, iou: uni ? tp / uni : 1, acc: (gt.length - fp - fn) / gt.length, share: (tp + fn) / gt.length };
+}
+function evaluate(st) {
+  const gt = raster(st.shape, st.size, st.angle, 0, 0), pred = raster(st.shape, st.size + st.grow, st.angle, st.dx, st.dy);
+  return { gt, pred, m: metrics(gt, pred) };
+}
+function sweepShift(st) { const out = []; for (let d = 0; d <= 8; d++) out.push([d, evaluate({ ...st, dx: d }).m]); return out; }
+function sweepSize(st) { const out = []; for (let v = 0.5; v <= 30; v += 0.5) out.push([v, evaluate({ ...st, size: v }).m]); return out; }
+// ==== 计算部分结束
+
+const state = { shape: "disk", size: 20, angle: 0, dx: 1, dy: 0, grow: 0 };
+const $ = id => document.getElementById(id);
+
+function setup(canvas, square) {
+  const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = square ? Math.min(w, 420) : +canvas.getAttribute("height");
+  canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px";
+  const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h];
+}
+function axes(ctx, w, h, x0, x1, ticks) {
+  const L = 34, R = 8, T = 8, B = 22, sx = v => L + (v - x0) / (x1 - x0) * (w - L - R), sy = v => h - B - v * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  for (const t of ticks) { ctx.beginPath(); ctx.moveTo(sx(t), T); ctx.lineTo(sx(t), h - B); ctx.stroke(); ctx.fillText(t, sx(t), h - 7); }
+  ctx.textAlign = "right";
+  for (let i = 0; i <= 4; i++) { const v = i / 4; ctx.beginPath(); ctx.moveTo(L, sy(v)); ctx.lineTo(w - R, sy(v)); ctx.stroke(); ctx.fillText(v.toFixed(2), L - 5, sy(v) + 4); }
+  return [sx, sy, T, h - B];
+}
+function line(ctx, pts, sx, sy, color) { ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y))); ctx.stroke(); }
+function vline(ctx, x, sx, top, bot) { ctx.strokeStyle = "#646a73"; ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(sx(x), top); ctx.lineTo(sx(x), bot); ctx.stroke(); ctx.setLineDash([]); }
+
+function render() {
+  const { gt, pred, m } = evaluate(state);
+  $("sizeName").textContent = state.shape === "disk" ? "圆斑半径（px）" : "划痕半宽（px）";
+  $("sizeV").textContent = state.size.toFixed(1); $("angleV").textContent = state.angle + "°";
+  $("dxV").textContent = state.dx; $("dyV").textContent = state.dy; $("growV").textContent = (state.grow > 0 ? "+" : "") + state.grow.toFixed(1);
+  $("kDice").textContent = m.dice.toFixed(3); $("kIou").textContent = m.iou.toFixed(3);
+  $("kCount").textContent = `命中 ${m.tp}，多报 ${m.fp}，漏报 ${m.fn}`;
+  $("kGap").textContent = `比 Dice 低 ${(m.dice - m.iou).toFixed(3)}`;
+  $("kAcc").textContent = (100 * m.acc).toFixed(2) + "%"; $("kShare").textContent = (100 * m.share).toFixed(2) + "%"; $("kPx").textContent = `真值 ${m.tp + m.fn} 个像素`;
+
+  let [ctx, w, h] = setup($("c1"), true);
+  const reach = (state.shape === "disk" ? state.size : Math.max(21, state.size + 20)) + Math.max(state.grow, 0) + Math.max(Math.abs(state.dx), Math.abs(state.dy)) + 3;
+  const half = Math.min(48, Math.max(8, Math.ceil(reach))), x0 = 48 - half, n = 2 * half, cell = Math.min(w, h) / n, ox = (w - cell * n) / 2;
+  ctx.fillStyle = "#eef0f3"; ctx.fillRect(ox, 0, cell * n, cell * n);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const i = (y + x0) * G + (x + x0), g = gt[i], p = pred[i];
+    if (!g && !p) continue;
+    ctx.fillStyle = g && p ? "#1a9c4b" : p ? "#e8710a" : "#2f6fed";
+    ctx.fillRect(ox + x * cell, y * cell, cell + 0.5, cell + 0.5);
+  }
+  if (cell >= 6) { ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 1; ctx.beginPath(); for (let k = 0; k <= n; k++) { ctx.moveTo(ox + k * cell, 0); ctx.lineTo(ox + k * cell, cell * n); ctx.moveTo(ox, k * cell); ctx.lineTo(ox + cell * n, k * cell); } ctx.stroke(); }
+
+  [ctx, w, h] = setup($("c2"));
+  let [sx, sy, top, bot] = axes(ctx, w, h, 0, 8, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  const ss = sweepShift(state);
+  line(ctx, ss.map(([d, r]) => [d, r.iou]), sx, sy, "#e8710a"); line(ctx, ss.map(([d, r]) => [d, r.dice]), sx, sy, "#2f6fed");
+  if (state.dx >= 0) vline(ctx, state.dx, sx, top, bot);
+
+  [ctx, w, h] = setup($("c3"));
+  [sx, sy, top, bot] = axes(ctx, w, h, 0, 30, [1, 5, 10, 15, 20, 25, 30]);
+  const sz = sweepSize(state);
+  line(ctx, sz.map(([v, r]) => [v, r.iou]), sx, sy, "#e8710a"); line(ctx, sz.map(([v, r]) => [v, r.dice]), sx, sy, "#2f6fed");
+  vline(ctx, state.size, sx, top, bot);
+}
+
+function syncControls() {
+  $("shape").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state.shape));
+  for (const id of ["size", "angle", "dx", "dy", "grow"]) $(id).value = state[id];
+  $("angle").disabled = state.shape !== "scratch";
+}
+if (typeof document !== "undefined") {
+  $("shape").addEventListener("click", e => { if (e.target.dataset.v) { state.shape = e.target.dataset.v; syncControls(); render(); } });
+  for (const id of ["size", "angle", "dx", "dy", "grow"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+  window.addEventListener("resize", render);
+  syncControls(); render();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>噪声、滤波与小缺陷</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 2px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  .views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  .legend { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .legend i { font-style: normal; display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin: 0 4px 0 12px; border-radius: 2px; }
+  .legend i:first-child { margin-left: 0; }
+  canvas { width: 100%; display: block; image-rendering: pixelated; border: 1px solid var(--line); }
+  .tables { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+  caption { text-align: left; color: var(--muted); font-size: 12.5px; padding-bottom: 4px; }
+  th, td { border-top: 1px solid var(--line); padding: 4px 4px; text-align: center; font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 500; }
+  td.good { color: var(--green); font-weight: 600; } td.bad { color: var(--red); font-weight: 600; } td.mid { color: var(--orange); font-weight: 600; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button, .again { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  .again { margin: 0; padding: 5px 10px; width: 100%; font-size: 12.5px; }
+  @media (max-width: 720px) { .views { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tables { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>噪声、滤波与小缺陷（第 1 章）</h1>
+  <div class="sub">一张 128×96 的合成检测图：左上是 1 到 4 像素宽的四条线，右上是一块亮焊盘，下面是 30 个方形缺陷（边长 1、2、3、4、6 像素，每种 6 个）。椒盐噪声和中值滤波的做法与作业 1-3 相同，边界按复制填充。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>滤波器<div class="seg" id="filter"><button data-v="none">不滤波</button><button data-v="mean">均值</button><button data-v="gauss">高斯</button><button data-v="median" class="on">中值</button><button data-v="bilateral">双边</button></div></label>
+    <label>窗口<div class="seg" id="win"><button data-v="3" class="on">3×3</button><button data-v="5">5×5</button><button data-v="7">7×7</button></div></label>
+    <label>椒盐噪声比例（%）<b id="spV"></b><input type="range" id="sp" min="0" max="40" step="1" value="10"></label>
+    <label>高斯噪声标准差（灰度）<b id="sigmaV"></b><input type="range" id="sigma" min="0" max="20" step="1" value="3"></label>
+    <label>缺陷比背景亮多少（灰度）<b id="ampV"></b><input type="range" id="amp" min="5" max="80" step="5" value="30"></label>
+    <label>阈值 k（背景噪声的倍数）<b id="kV"></b><input type="range" id="k" min="3" max="8" step="0.5" value="4"></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>背景噪声：滤波前 → 滤波后</span><b id="kNoise"></b></div>
+    <div class="kpi"><span>报警阈值（灰度差）</span><b id="kT"></b></div>
+    <div class="kpi" id="kFaBox"><span>误报像素：平坦区 / 图形区</span><b id="kFa"></b></div>
+    <div class="kpi" id="kDetBox"><span>检出的缺陷</span><b id="kDet"></b></div>
+  </div>
+
+  <div class="panel">
+    <div class="views">
+      <figure><figcaption>加噪后的待检图</figcaption><canvas id="c1"></canvas></figure>
+      <figure><figcaption>滤波后</figcaption><canvas id="c2"></canvas></figure>
+      <figure><figcaption>检出图</figcaption><canvas id="c3"></canvas></figure>
+    </div>
+    <div class="legend"><i style="background:var(--red)"></i>红色像素：报警<i style="background:var(--green)"></i>绿框：检出的缺陷<i style="background:var(--orange)"></i>橙框：漏掉的缺陷</div>
+  </div>
+
+  <div class="panel tables">
+    <table>
+      <caption>各种大小的缺陷检出了几个（每种 6 个）</caption>
+      <tr><th>边长</th><th>1</th><th>2</th><th>3</th><th>4</th><th>6</th></tr>
+      <tr id="rowDet"><th>检出</th><td></td><td></td><td></td><td></td><td></td></tr>
+    </table>
+    <table>
+      <caption>四条线滤波后还剩多少对比度</caption>
+      <tr><th>线宽</th><th>1</th><th>2</th><th>3</th><th>4</th></tr>
+      <tr id="rowLine"><th>剩余</th><td></td><td></td><td></td><td></td></tr>
+    </table>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>（报警规则：待检图和无噪声的参考图用同一个滤波器处理后相减，差值超过“k × 背景噪声”的像素报警，画成红色。背景噪声在另一张没有缺陷的加噪图的平坦区里量。结果随噪声变化，每一步多点几次“换一组噪声”再下结论。）
+    <ol>
+      <li>10% 椒盐，3×3 均值。坏点变成了什么样？背景噪声降了多少，缺陷检出几个？再把滤波器换成中值，比较同样三项。<button data-preset='{"filter":"mean","win":3,"sp":10,"sigma":3,"amp":30,"k":4}'>载入</button></li>
+      <li>保持中值，把窗口换成 5×5，再换成 7×7。哪条线先消失，哪种大小的缺陷跟着检不出？上半图形区的误报怎么变？<button data-preset='{"filter":"median","win":5,"sp":10,"sigma":3,"amp":30,"k":4}'>载入</button></li>
+      <li>把椒盐加到 30%，3×3 中值。下半平坦区的误报有多少？换成 5×5 之后哪些数字变好了，又丢了什么？<button data-preset='{"filter":"median","win":3,"sp":30,"sigma":3,"amp":30,"k":4}'>载入</button></li>
+      <li>去掉椒盐，只留标准差 8 的高斯噪声，缺陷比背景亮 25。依次点不滤波、高斯、中值（窗口都用 3×3），比较边长 1、2、3 的缺陷各检出几个。<button data-preset='{"filter":"none","win":3,"sp":0,"sigma":8,"amp":25,"k":4}'>载入</button></li>
+      <li>回到 10% 椒盐，换成双边滤波。背景噪声降了吗？想一想保边的滤波器为什么把坏点也保住了。<button data-preset='{"filter":"bilateral","win":5,"sp":10,"sigma":3,"amp":30,"k":4}'>载入</button></li>
+    </ol>
+    <div style="margin-top:8px"><button class="again" id="again">换一组噪声</button></div>
+  </div>
+</div>
+<script>
+// ---------------------------------------------------------------- 计算部分（不依赖页面，可以用 node 单独执行）
+const CORE = (() => {
+  const W = 128, H = 96, BG = 100, LINE = 160, PAD = 180;
+  const LINES = [[8, 1], [18, 2], [30, 3], [44, 4]];          // 起始列，线宽
+  const TOP0 = 4, TOP1 = 32;                                   // 线和焊盘占的行 [4, 32)
+  const PADX0 = 70, PADX1 = 122;
+  const SIZES = [1, 1, 2, 2, 3, 3, 4, 4, 6, 6];                // 每一列缺陷的边长
+  const DEF_X0 = 6, DEF_PITCH = 12, DEF_YS = [44, 60, 76];
+  const SIGMA_COLOR = 25;
+
+  function baseScene() {
+    const img = new Float64Array(W * H).fill(BG);
+    for (let y = TOP0; y < TOP1; y++) {
+      for (const [x0, w] of LINES) for (let x = x0; x < x0 + w; x++) img[y * W + x] = LINE;
+      for (let x = PADX0; x < PADX1; x++) img[y * W + x] = PAD;
+    }
+    return img;
+  }
+  function defectList() {
+    const out = [];
+    for (const y of DEF_YS) SIZES.forEach((s, i) => out.push({ x: DEF_X0 + i * DEF_PITCH, y, s }));
+    return out;
+  }
+  function addDefects(img, amp) {
+    const out = Float64Array.from(img);
+    for (const d of defectList()) for (let y = d.y; y < d.y + d.s; y++) for (let x = d.x; x < d.x + d.s; x++) out[y * W + x] += amp;
+    return out;
+  }
+  function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+
+  // 先加高斯噪声并量化成 0 到 255 的整数，再按作业 1-3 的做法加椒盐：一半置 0，一半置 255
+  function addNoise(img, sigma, amount, r) {
+    const out = new Float64Array(W * H);
+    for (let i = 0; i < W * H; i++) out[i] = Math.min(255, Math.max(0, Math.round(img[i] + sigma * gauss(r))));
+    for (let i = 0; i < W * H; i++) { const u = r(); if (u < amount / 2) out[i] = 0; else if (u < amount) out[i] = 255; }
+    return out;
+  }
+
+  const cx = x => x < 0 ? 0 : x >= W ? W - 1 : x, cy = y => y < 0 ? 0 : y >= H ? H - 1 : y;   // 边界复制填充
+  function meanFilter(img, k) {
+    const p = k >> 1, out = new Float64Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let s = 0; for (let dy = -p; dy <= p; dy++) for (let dx = -p; dx <= p; dx++) s += img[cy(y + dy) * W + cx(x + dx)]; out[y * W + x] = s / (k * k); }
+    return out;
+  }
+  function gaussKernel(k) {
+    const sigma = 0.3 * ((k - 1) * 0.5 - 1) + 0.8, p = k >> 1, w = [];   // 三种窗口的 sigma 分别是 0.8、1.1、1.4
+    let sum = 0;
+    for (let d = -p; d <= p; d++) { const v = Math.exp(-d * d / (2 * sigma * sigma)); w.push(v); sum += v; }
+    return w.map(v => v / sum);
+  }
+  function gaussFilter(img, k) {
+    const p = k >> 1, w = gaussKernel(k), tmp = new Float64Array(W * H), out = new Float64Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let s = 0; for (let d = -p; d <= p; d++) s += w[d + p] * img[y * W + cx(x + d)]; tmp[y * W + x] = s; }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let s = 0; for (let d = -p; d <= p; d++) s += w[d + p] * tmp[cy(y + d) * W + x]; out[y * W + x] = s; }
+    return out;
+  }
+  function medianFilter(img, k) {
+    const p = k >> 1, out = new Float64Array(W * H), buf = new Float64Array(k * k), mid = (k * k) >> 1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let n = 0; for (let dy = -p; dy <= p; dy++) for (let dx = -p; dx <= p; dx++) buf[n++] = img[cy(y + dy) * W + cx(x + dx)]; buf.sort(); out[y * W + x] = buf[mid]; }
+    return out;
+  }
+  function bilateralFilter(img, k) {
+    const p = k >> 1, sigmaS = k / 3, out = new Float64Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const c = img[y * W + x]; let s = 0, ws = 0;
+      for (let dy = -p; dy <= p; dy++) for (let dx = -p; dx <= p; dx++) {
+        const v = img[cy(y + dy) * W + cx(x + dx)], w = Math.exp(-(dx * dx + dy * dy) / (2 * sigmaS * sigmaS) - (v - c) * (v - c) / (2 * SIGMA_COLOR * SIGMA_COLOR));
+        s += w * v; ws += w;
+      }
+      out[y * W + x] = s / ws;
+    }
+    return out;
+  }
+  const FILTERS = { none: img => Float64Array.from(img), mean: meanFilter, gauss: gaussFilter, median: medianFilter, bilateral: bilateralFilter };
+
+  const flat = (x, y) => y >= 37 && y < H - 4 && x >= 4 && x < W - 4;        // 参考图上远离线和焊盘的平坦区
+  const strip = (x, y) => y >= 36 && y < 41 && x >= 4 && x < W - 4;          // 线和缺陷之间的空白带，用来量背景均值
+  function statsOver(arr, pred) {
+    let n = 0, s = 0, s2 = 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (pred(x, y)) { const v = arr[y * W + x]; n++; s += v; s2 += v * v; }
+    const m = s / n;
+    return { mean: m, std: Math.sqrt(Math.max(0, s2 / n - m * m)) };
+  }
+
+  function simulate(st) {
+    const base = baseScene(), defs = defectList(), r = rng(1000 + st.seed * 7919);
+    const test = addNoise(addDefects(base, st.amp), st.sigma, st.sp / 100, r);
+    const good = addNoise(base, st.sigma, st.sp / 100, r);                    // 另一张没有缺陷的加噪图，只用来量背景噪声
+    const f = FILTERS[st.filter];
+    const fRef = f(base, st.win), fTest = f(test, st.win), fGood = f(good, st.win);
+    const sub = (a, b) => a.map((v, i) => v - b[i]);
+    const noiseBefore = statsOver(sub(good, base), flat).std, noiseAfter = statsOver(sub(fGood, fRef), flat).std;
+    const T = Math.max(st.k * noiseAfter, 2);
+    const alarm = new Uint8Array(W * H), owned = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) alarm[i] = Math.abs(fTest[i] - fRef[i]) > T ? 1 : 0;
+    const bySize = {};
+    for (const d of defs) {
+      d.hit = false;
+      for (let y = d.y - 1; y <= d.y + d.s; y++) for (let x = d.x - 1; x <= d.x + d.s; x++) if (alarm[y * W + x]) d.hit = true;   // 缺陷范围外扩 1 个像素内有报警就算检出
+      for (let y = d.y - 4; y < d.y + d.s + 4; y++) for (let x = Math.max(0, d.x - 4); x < Math.min(W, d.x + d.s + 4); x++) owned[y * W + x] = 1;   // 外扩 4 个像素内的报警不算误报
+      bySize[d.s] = (bySize[d.s] || 0) + (d.hit ? 1 : 0);
+    }
+    let falseAlarms = 0, edgeAlarms = 0;                                       // 分开数：下半平坦区的误报，和上半部分线、焊盘周围的误报
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (alarm[y * W + x] && !owned[y * W + x]) { if (y >= 37) falseAlarms++; else edgeAlarms++; }
+    const bgMean = statsOver(fTest, strip).mean;
+    const lines = LINES.map(([x0, w]) => (statsOver(fTest, (x, y) => y >= 8 && y < 28 && x >= x0 && x < x0 + w).mean - bgMean) / (LINE - BG));
+    return { test, fTest, alarm, defs, noiseBefore, noiseAfter, T, falseAlarms, edgeAlarms, bySize, lines, detected: defs.filter(d => d.hit).length, total: defs.length };
+  }
+  return { W, H, LINES, simulate, baseScene, defectList, medianFilter, meanFilter, gaussFilter, bilateralFilter, addNoise, rng };
+})();
+if (typeof module !== "undefined") module.exports = CORE;
+
+// ---------------------------------------------------------------- 页面部分
+if (typeof document !== "undefined") {
+  const { W, H } = CORE;
+  const state = { filter: "median", win: 3, sp: 10, sigma: 3, amp: 30, k: 4, seed: 1 };
+  const $ = id => document.getElementById(id);
+  const off = document.createElement("canvas"); off.width = W; off.height = H;
+  const octx = off.getContext("2d");
+
+  function show(canvas, pixel, boxes) {
+    const data = octx.createImageData(W, H);
+    for (let i = 0; i < W * H; i++) { const [r, g, b] = pixel(i); data.data[4 * i] = r; data.data[4 * i + 1] = g; data.data[4 * i + 2] = b; data.data[4 * i + 3] = 255; }
+    octx.putImageData(data, 0, 0);
+    const scale = 4;
+    canvas.width = W * scale; canvas.height = H * scale;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(off, 0, 0, W * scale, H * scale);
+    if (boxes) for (const d of boxes) { ctx.strokeStyle = d.hit ? "#1a9c4b" : "#e8710a"; ctx.lineWidth = 2; ctx.strokeRect((d.x - 2) * scale, (d.y - 2) * scale, (d.s + 4) * scale, (d.s + 4) * scale); }
+  }
+  const gray = v => { const g = Math.max(0, Math.min(255, Math.round(v))); return [g, g, g]; };
+
+  function render() {
+    const res = CORE.simulate(state);
+    $("spV").textContent = state.sp + "%"; $("sigmaV").textContent = state.sigma; $("ampV").textContent = state.amp; $("kV").textContent = state.k.toFixed(1);
+    $("kNoise").textContent = res.noiseBefore.toFixed(1) + " → " + res.noiseAfter.toFixed(1);
+    $("kT").textContent = res.T.toFixed(1);
+    $("kFa").textContent = res.falseAlarms + " / " + res.edgeAlarms; $("kFaBox").className = "kpi " + (res.falseAlarms > 5 ? "bad" : "ok");
+    $("kDet").textContent = res.detected + " / " + res.total; $("kDetBox").className = "kpi " + (res.detected >= 18 ? "ok" : "bad");
+    [1, 2, 3, 4, 6].forEach((s, i) => { const td = $("rowDet").children[i + 1], n = res.bySize[s]; td.textContent = n + "/6"; td.className = n >= 5 ? "good" : n <= 1 ? "bad" : "mid"; });
+    res.lines.forEach((v, i) => { const td = $("rowLine").children[i + 1]; td.textContent = Math.round(100 * v) + "%"; td.className = v > 0.8 ? "good" : v < 0.2 ? "bad" : "mid"; });
+    show($("c1"), i => gray(res.test[i]));
+    show($("c2"), i => gray(res.fTest[i]));
+    show($("c3"), i => res.alarm[i] ? [214, 54, 47] : gray(40 + 0.35 * res.fTest[i]), res.defs);
+  }
+
+  function syncControls() {
+    for (const id of ["filter", "win"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(state[id])));
+    for (const id of ["sp", "sigma", "amp", "k"]) $(id).value = state[id];
+  }
+  $("filter").addEventListener("click", e => { if (e.target.dataset.v) { state.filter = e.target.dataset.v; syncControls(); render(); } });
+  $("win").addEventListener("click", e => { if (e.target.dataset.v) { state.win = +e.target.dataset.v; syncControls(); render(); } });
+  for (const id of ["sp", "sigma", "amp", "k"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+  $("again").addEventListener("click", () => { state.seed++; render(); });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+  syncControls(); render();
+}
+</script>
+</body>
+</html>

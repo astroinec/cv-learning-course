@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>核心集与近邻打分：二维演示</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; --purple:#7a4cd6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .plain { font: inherit; font-size: 12.5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); cursor: pointer; width: 100%; margin-top: 4px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); } .kpi.warn b { color: var(--orange); }
+  .two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 50%; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try li { margin-bottom: 4px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  @media (max-width: 720px) { .two { grid-template-columns: minmax(0, 1fr); } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>核心集与近邻打分：二维演示（第 19 章）</h1>
+  <div class="sub">把 patch 特征换成平面上的点，其余和作业里的零件一致：从良品特征里选核心集，待检点到核心集里 k 个最近点的平均距离就是异常分数。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>记忆库怎么选<div class="seg" id="sampler"><button data-v="greedy" class="on">贪心核心集</button><button data-v="random">随机采样</button><button data-v="full">不压缩</button></div></label>
+    <label>核心集大小 m<b id="mV"></b><input type="range" id="m" min="2" max="60" step="1" value="12"></label>
+    <label>近邻个数 k<b id="kV"></b><input type="range" id="k" min="1" max="5" step="1" value="1"></label>
+    <label>良品里混进的缺陷特征个数<b id="cV"></b><input type="range" id="c" min="0" max="6" step="1" value="0"></label>
+    <label>随机采样的种子<b id="seedV"></b><button class="plain" id="reseed">换一组随机采样</button></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>覆盖半径（良品到核心集的最远距离）</span><b id="kCover"></b></div>
+    <div class="kpi" id="kAucBox"><span>AUROC（待检良品对待检缺陷）</span><b id="kAuc"></b></div>
+    <div class="kpi" id="kOvkBox"><span>漏检不超过 5% 时的过检率</span><b id="kOvk"></b></div>
+    <div class="kpi" id="kRareBox"><span>其中：稀有良品被过检的比例</span><b id="kRare"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>特征平面<i style="background:#c3c8d0"></i>良品特征<i style="background:var(--blue)"></i>选进记忆库<i style="background:var(--green)"></i>待检良品<i style="background:var(--red)"></i>待检缺陷<i style="background:var(--purple)"></i>混进良品的缺陷。浅红色区域会被判为异常</figcaption><canvas id="c1" height="330"></canvas></figure>
+    <figure class="panel"><figcaption>待检点的分数分布<i style="background:var(--green)"></i>常见良品<i style="background:var(--orange)"></i>稀有良品<i style="background:var(--red)"></i>缺陷。竖线是阈值</figcaption><canvas id="c2" height="330"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>不压缩、k=1。左边大团是常见的良品特征，右上的小团是稀有但正常的特征（占良品的 9%）。先记下这时的 AUROC 和过检率。<button data-preset='{"sampler":"full","m":12,"k":1,"c":0,"seed":1}'>载入</button></li>
+      <li>随机采样，m=12。这一组采样没有选到小团里的点，稀有良品的分数和缺陷混在一起。点几次“换一组随机采样”，看结果有多不稳定。<button data-preset='{"sampler":"random","m":12,"k":1,"c":0,"seed":1}'>载入</button></li>
+      <li>换成贪心核心集，m 仍是 12。小团被选进去了，覆盖半径比随机采样小。再把 m 从 12 慢慢减到 3，看覆盖半径、良品分数和 AUROC 怎么变。<button data-preset='{"sampler":"greedy","m":12,"k":1,"c":0,"seed":1}'>载入</button></li>
+      <li>在良品里混进 3 个缺陷特征（紫色）。贪心核心集把它们选进去了几个？待检缺陷里离它们近的那些，分数怎么变？再切到随机采样对比。<button data-preset='{"sampler":"greedy","m":12,"k":1,"c":3,"seed":1}'>载入</button></li>
+      <li>保持混进 3 个，改成不压缩。把 k 从 1 调到 3、再调到 5，看 AUROC 怎样恢复；再把混进的个数加到 6，k=3 还够不够？<button data-preset='{"sampler":"full","m":12,"k":1,"c":3,"seed":1}'>载入</button></li>
+    </ol>
+    <div class="note">良品特征 264 个（常见 240 个，稀有 24 个）；待检点 112 个（常见良品 60 个、稀有良品 12 个、缺陷 40 个）。阈值取“漏检不超过 5%”时允许的最大值，做法和作业里的 <code>threshold_at_escape</code> 相同。数据由固定的种子生成，每次打开都一样。</div>
+  </div>
+</div>
+<script>
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+function cloud(r, n, cx, cy, sx, sy) { const out = []; for (let i = 0; i < n; i++) out.push([cx + sx * gauss(r), cy + sy * gauss(r)]); return out; }
+
+const XMAX = 10, YMAX = 7;
+const COMMON = [3.2, 3.6, 0.95, 0.75], RARE = [7.7, 5.5, 0.32, 0.28], DEFECT = [7.9, 1.5, 0.5, 0.4];
+function makeData() {
+  const r = rng(20261119);
+  const bankCommon = cloud(r, 240, ...COMMON), bankRare = cloud(r, 24, ...RARE);
+  const contam = cloud(r, 6, DEFECT[0], DEFECT[1], 0.4, 0.3);
+  const testCommon = cloud(r, 60, ...COMMON), testRare = cloud(r, 12, ...RARE);
+  const testDefect = cloud(r, 30, ...DEFECT).concat(cloud(r, 10, 0.9, 6.4, 0.3, 0.25));
+  return { bankCommon, bankRare, contam, testCommon, testRare, testDefect };
+}
+const DATA = makeData();
+
+function sqDist(a, b) { const dx = a[0] - b[0], dy = a[1] - b[1]; return dx * dx + dy * dy; }
+// k-center greedy：从下标 start 开始，每一步选“到已选集合最近距离最大”的点
+function greedyCoreset(pts, m, start) {
+  const minD = pts.map(p => sqDist(p, pts[start])), chosen = [start];
+  while (chosen.length < m) {
+    let best = 0; for (let i = 1; i < pts.length; i++) if (minD[i] > minD[best]) best = i;
+    chosen.push(best);
+    for (let i = 0; i < pts.length; i++) { const d = sqDist(pts[i], pts[best]); if (d < minD[i]) minD[i] = d; }
+  }
+  return chosen;
+}
+function randomSubset(n, m, seed) { const r = rng(seed * 7919 + 13), idx = [...Array(n).keys()]; for (let i = 0; i < m; i++) { const j = i + Math.floor(r() * (n - i)); [idx[i], idx[j]] = [idx[j], idx[i]]; } return idx.slice(0, m); }
+// 异常分数：到记忆库里 k 个最近点的平均欧氏距离
+function knnScore(memory, q, k) { const d = memory.map(p => Math.sqrt(sqDist(p, q))).sort((a, b) => a - b); let s = 0; for (let i = 0; i < k; i++) s += d[i]; return s / k; }
+function auroc(neg, pos) { let s = 0; for (const p of pos) for (const n of neg) s += p > n ? 1 : p === n ? 0.5 : 0; return s / (pos.length * neg.length); }
+// 在漏检率不超过 maxEscape 的候选阈值里取最大的；判为缺陷的规则是 score >= 阈值
+function thresholdAtEscape(defect, maxEscape) { const d = [...defect].sort((a, b) => a - b); let best = d[0]; for (const t of d) { const esc = d.filter(v => v < t).length / d.length; if (esc <= maxEscape + 1e-12 && t > best) best = t; } return best; }
+
+function compute(state) {
+  const bank = DATA.bankCommon.concat(DATA.bankRare, DATA.contam.slice(0, state.c));
+  const nGood = DATA.bankCommon.length + DATA.bankRare.length;
+  const m = Math.min(state.m, bank.length);
+  const idx = state.sampler === "full" ? [...bank.keys()] : state.sampler === "greedy" ? greedyCoreset(bank, m, 0) : randomSubset(bank.length, m, state.seed);
+  const memory = idx.map(i => bank[i]);
+  const k = Math.min(state.k, memory.length);
+  let cover = 0; for (let i = 0; i < nGood; i++) { let d = Infinity; for (const p of memory) d = Math.min(d, sqDist(bank[i], p)); cover = Math.max(cover, Math.sqrt(d)); }
+  const sc = { common: DATA.testCommon.map(q => knnScore(memory, q, k)), rare: DATA.testRare.map(q => knnScore(memory, q, k)), defect: DATA.testDefect.map(q => knnScore(memory, q, k)) };
+  const neg = sc.common.concat(sc.rare);
+  const thr = thresholdAtEscape(sc.defect, 0.05);
+  const pickedRare = idx.filter(i => i >= DATA.bankCommon.length && i < nGood).length, pickedContam = idx.filter(i => i >= nGood).length;
+  return { bank, idx, memory, k, cover, sc, thr, nGood, pickedRare, pickedContam,
+    auc: auroc(neg, sc.defect), ovk: neg.filter(v => v >= thr).length / neg.length, ovkRare: sc.rare.filter(v => v >= thr).length / sc.rare.length,
+    escape: sc.defect.filter(v => v < thr).length / sc.defect.length };
+}
+
+if (typeof document !== "undefined") {
+const state = { sampler: "greedy", m: 12, k: 1, c: 0, seed: 1 };
+const $ = id => document.getElementById(id);
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function dot(ctx, x, y, r, fill, stroke) { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.4; ctx.stroke(); } }
+
+function render() {
+  const R = compute(state);
+  $("mV").textContent = state.sampler === "full" ? "全部 " + R.bank.length : state.m; $("kV").textContent = state.k; $("cV").textContent = state.c; $("seedV").textContent = state.seed;
+  $("m").disabled = state.sampler === "full"; $("reseed").disabled = state.sampler !== "random";
+  $("kCover").textContent = R.cover.toFixed(2); $("kAuc").textContent = R.auc.toFixed(3);
+  $("kOvk").textContent = (100 * R.ovk).toFixed(0) + "%"; $("kRare").textContent = (100 * R.ovkRare).toFixed(0) + "%";
+  $("kAucBox").className = "kpi " + (R.auc >= 0.97 ? "ok" : R.auc >= 0.9 ? "warn" : "bad");
+  $("kOvkBox").className = "kpi " + (R.ovk <= 0.05 ? "ok" : R.ovk <= 0.2 ? "warn" : "bad");
+  $("kRareBox").className = "kpi " + (R.ovkRare <= 0.1 ? "ok" : R.ovkRare <= 0.5 ? "warn" : "bad");
+
+  let [ctx, w, h] = setup($("c1"));
+  const sx = v => v / XMAX * w, sy = v => h - v / YMAX * h;
+  const gx = 60, gy = 42, cw = w / gx, chh = h / gy;
+  ctx.fillStyle = "rgba(214,54,47,.10)";
+  for (let i = 0; i < gx; i++) for (let j = 0; j < gy; j++) { const q = [(i + 0.5) / gx * XMAX, (j + 0.5) / gy * YMAX]; if (knnScore(R.memory, q, R.k) >= R.thr) ctx.fillRect(i * cw, h - (j + 1) * chh, cw + 0.5, chh + 0.5); }
+  R.bank.forEach((p, i) => dot(ctx, sx(p[0]), sy(p[1]), 2.2, i >= R.nGood ? "#7a4cd6" : "#c3c8d0"));
+  DATA.testCommon.concat(DATA.testRare).forEach(p => dot(ctx, sx(p[0]), sy(p[1]), 3, null, "#1a9c4b"));
+  DATA.testDefect.forEach(p => { const x = sx(p[0]), y = sy(p[1]); ctx.strokeStyle = "#d6362f"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x - 3.5, y - 3.5); ctx.lineTo(x + 3.5, y + 3.5); ctx.moveTo(x - 3.5, y + 3.5); ctx.lineTo(x + 3.5, y - 3.5); ctx.stroke(); });
+  if (state.sampler !== "full") R.idx.forEach(i => { const p = R.bank[i]; dot(ctx, sx(p[0]), sy(p[1]), 5, i >= R.nGood ? "#7a4cd6" : "#2f6fed", "#fff"); });
+  ctx.fillStyle = "#646a73"; ctx.font = "12px sans-serif";
+  ctx.fillText("常见的良品", sx(COMMON[0]) - 30, sy(COMMON[1] + 2.25)); ctx.fillText("稀有但正常", sx(RARE[0]) - 30, sy(RARE[1] + 1.0)); ctx.fillText("缺陷", sx(DEFECT[0]) + 42, sy(DEFECT[1] - 1.1));
+  const info = state.sampler === "full" ? "记忆库 = 全部 " + R.bank.length + " 个" : "选中：稀有 " + R.pickedRare + " 个" + (state.c ? "，混进的缺陷 " + R.pickedContam + " / " + state.c + " 个" : "");
+  ctx.fillStyle = "#1f2329"; ctx.fillText(info, 8, 16);
+
+  [ctx, w, h] = setup($("c2"));
+  const all = R.sc.common.concat(R.sc.rare, R.sc.defect), hi = Math.max(...all, R.thr) * 1.05, nb = 24, L = 8, Rr = 8, T = 10, B = 24;
+  const X = v => L + v / hi * (w - L - Rr);
+  const groups = [[R.sc.common, "#1a9c4b"], [R.sc.rare, "#e8710a"], [R.sc.defect, "#d6362f"]];
+  const counts = groups.map(([arr]) => { const c = new Array(nb).fill(0); arr.forEach(v => c[Math.min(nb - 1, Math.floor(v / hi * nb))]++); return c; });
+  let top = 1; for (let b = 0; b < nb; b++) top = Math.max(top, counts[0][b] + counts[1][b] + counts[2][b]);
+  const bw = (w - L - Rr) / nb;
+  for (let b = 0; b < nb; b++) { let y = h - B; groups.forEach(([, color], g) => { const hh = counts[g][b] / top * (h - T - B); ctx.fillStyle = color; ctx.globalAlpha = 0.8; ctx.fillRect(L + b * bw + 1, y - hh, bw - 2, hh); y -= hh; }); }
+  ctx.globalAlpha = 1; ctx.strokeStyle = "#1f2329"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(R.thr), T); ctx.lineTo(X(R.thr), h - B); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = "#e3e5e8"; ctx.beginPath(); ctx.moveTo(L, h - B); ctx.lineTo(w - Rr, h - B); ctx.stroke();
+  ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "left"; ctx.fillText("0", L, h - 8); ctx.textAlign = "right"; ctx.fillText("异常分数 " + hi.toFixed(1), w - Rr, h - 8);
+  ctx.textAlign = X(R.thr) > w * 0.6 ? "right" : "left"; ctx.fillStyle = "#1f2329"; ctx.fillText("阈值 " + R.thr.toFixed(2), X(R.thr) + (X(R.thr) > w * 0.6 ? -5 : 5), T + 10); ctx.textAlign = "left";
+}
+
+function syncControls() {
+  $("sampler").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state.sampler));
+  for (const id of ["m", "k", "c"]) $(id).value = state[id];
+}
+$("sampler").addEventListener("click", e => { if (e.target.dataset.v) { state.sampler = e.target.dataset.v; syncControls(); render(); } });
+for (const id of ["m", "k", "c"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+$("reseed").addEventListener("click", () => { state.seed += 1; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+}
+if (typeof module !== "undefined") module.exports = { compute, DATA, greedyCoreset, randomSubset, knnScore, auroc, thresholdAtEscape };
+</script>
+</body>
+</html>
