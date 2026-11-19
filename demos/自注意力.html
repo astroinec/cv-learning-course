@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自注意力：二维演示</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .seg button.off { background: #eef0f3; color: var(--muted); text-decoration: line-through; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .two { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 50%; }
+  canvas { width: 100%; display: block; touch-action: none; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>自注意力：二维演示（第 25 章）</h1>
+  <div class="sub">平面上的 6 个点是 6 个标记，点的坐标就是它的向量，同时当查询、键和值用。带黑圈的是查询。分数是查询和键的点积除以根号 d 再除以温度，和作业里的缩放点积注意力相同（温度为 1 时完全一样）。点一下换查询，拖动改向量。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>温度<b id="tauV"></b><input type="range" id="tau" min="-1" max="1" step="0.01" value="0"></label>
+    <label>头数<div class="seg" id="heads"><button data-v="1" class="on">1 个头（2 维）</button><button data-v="2">2 个头（各 1 维）</button></div></label>
+    <label>当作键时屏蔽谁（点一下切换）<div class="seg" id="mask"></div></label>
+    <label>摆法<div class="seg" id="layout"><button data-v="ring">围成一圈</button><button data-v="line">排成一条线</button><button data-v="random">打散</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>查询给自己的权重</span><b id="kSelf"></b></div>
+    <div class="kpi"><span>最大的权重（给谁）</span><b id="kMax"></b></div>
+    <div class="kpi"><span>相当于平均分给几个键</span><b id="kEff"></b></div>
+    <div class="kpi"><span>输出向量</span><b id="kOut"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>标记所在的平面，十字是原点。线越粗表示查询给这个键的权重越大<i style="background:var(--red)"></i>输出（值的加权平均）</figcaption><canvas id="c1" height="320"></canvas></figure>
+    <figure class="panel"><figcaption id="cap2"></figcaption><canvas id="c2" height="320"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>A、B、C 在同一个方向上，一个比一个离原点远，查询是最近的 A。它给谁的权重最大？给自己的排第几？再点 C 当查询看一遍。<button data-preset='{"tau":1,"heads":1,"q":0,"pts":[[0.6,0],[1.2,0],[1.8,0],[-1,0.5],[0,-1.2],[-0.8,-0.9]],"mask":[1,1,1,1,1,1]}'>载入</button></li>
+      <li>查询是 C。把温度从 1 拖到 0.1，再拖到 10，看“相当于平均分给几个键”怎么变。温度不动、把 C 往外拖远，效果和哪个方向的温度变化一样？<button data-preset='{"tau":1,"heads":1,"q":2,"pts":[[0.6,0],[1.2,0],[1.8,0],[-1,0.5],[0,-1.2],[-0.8,-0.9]],"mask":[1,1,1,1,1,1]}'>载入</button></li>
+      <li>查询 A 正好在原点。它给每个键的权重是多少？改温度变不变？输出落在哪里？<button data-preset='{"tau":1,"heads":1,"q":0,"pts":[[0,0],[1.5,0.4],[0.3,1.6],[-1.4,0.8],[-0.6,-1.5],[1.2,-1.1]],"mask":[1,1,1,1,1,1]}'>载入</button></li>
+      <li>查询 A 在右上，B 在右下，C 在左上。一个头时 A 给 B、C 的权重各是多少？切到 2 个头：第 1 个头只看横坐标，第 2 个头只看纵坐标，它们各自最关注谁？<button data-preset='{"tau":1,"heads":1,"q":0,"pts":[[1.5,1.5],[1.6,-1.2],[-1.2,1.6],[-0.3,-0.2],[0.2,-0.4],[-0.4,0.3]],"mask":[1,1,1,1,1,1]}'>载入</button></li>
+      <li>回到第 1 步的摆法，把 C 屏蔽掉，A 的权重怎样重新分配？再把 6 个键全部屏蔽，权重和输出变成什么？<button data-preset='{"tau":1,"heads":1,"q":0,"pts":[[0.6,0],[1.2,0],[1.8,0],[-1,0.5],[0,-1.2],[-0.8,-0.9]],"mask":[1,1,0,1,1,1]}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// == 计算部分开始 ==
+// pts[i] = [x, y] 是第 i 个标记的向量，同时当查询、键、值。mask[j] 为真表示第 j 个标记可以被关注。
+function maskedSoftmax(scores, mask) {
+  // 只在允许的键上做 softmax；全部被屏蔽时规定权重全为 0（和作业的约定相同）
+  const out = new Float64Array(scores.length);
+  let top = -Infinity;
+  for (let j = 0; j < scores.length; j++) if (mask[j] && scores[j] > top) top = scores[j];
+  if (top === -Infinity) return out;
+  let z = 0;
+  for (let j = 0; j < scores.length; j++) if (mask[j]) { out[j] = Math.exp(scores[j] - top); z += out[j]; }
+  for (let j = 0; j < scores.length; j++) out[j] /= z;
+  return out;
+}
+function attention(pts, tau, heads, mask) {
+  // heads = 1：一个头用全部 2 维，分数除以根号 2；heads = 2：第 h 个头只用第 h 个坐标，分数除以根号 1。
+  // 返回 W[h][i][j]（第 h 个头里查询 i 给键 j 的权重）和 out[i]（各个头的输出按坐标拼回 2 维）。
+  const n = pts.length, dh = 2 / heads, W = [], out = pts.map(() => [0, 0]);
+  for (let h = 0; h < heads; h++) {
+    const dims = heads === 1 ? [0, 1] : [h], Wh = [];
+    for (let i = 0; i < n; i++) {
+      const s = new Float64Array(n);
+      for (let j = 0; j < n; j++) { let dot = 0; for (const c of dims) dot += pts[i][c] * pts[j][c]; s[j] = dot / Math.sqrt(dh) / tau; }
+      const w = maskedSoftmax(s, mask);
+      for (const c of dims) { let v = 0; for (let j = 0; j < n; j++) v += w[j] * pts[j][c]; out[i][c] = v; }
+      Wh.push(w);
+    }
+    W.push(Wh);
+  }
+  return { W, out };
+}
+function effective(w) { let s = 0; for (const v of w) s += v * v; return s > 0 ? 1 / s : 0; }   // 权重平方和的倒数：均匀分给 m 个键时等于 m
+function argmax(w) { let b = 0; for (let j = 1; j < w.length; j++) if (w[j] > w[b]) b = j; return b; }
+function layoutPoints(kind, seed) {
+  if (kind === "ring") return Array.from({ length: 6 }, (_, i) => [1.4 * Math.cos(Math.PI / 6 + i * Math.PI / 3), 1.4 * Math.sin(Math.PI / 6 + i * Math.PI / 3)]);
+  if (kind === "line") return Array.from({ length: 6 }, (_, i) => [-1.5 + 0.6 * i, 0.3]);
+  let a = seed >>> 0;
+  const r = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  return Array.from({ length: 6 }, () => [3.6 * r() - 1.8, 3.6 * r() - 1.8]);
+}
+// == 计算部分结束 ==
+
+const COLORS = ["#2f6fed", "#e8710a", "#1a9c4b", "#7a4cd6", "#0b9aa8", "#b5890a"];
+const NAMES = "ABCDEF";
+const RANGE = 2.2;
+const state = { tau: 1, heads: 1, q: 0, pts: layoutPoints("ring", 1), mask: [1, 1, 1, 1, 1, 1], seed: 3 };
+const $ = id => document.getElementById(id);
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function geom(w, h) { const s = (Math.min(w, h) - 24) / (2 * RANGE); return [w / 2, h / 2, s]; }
+function toXY(p, w, h) { const [cx, cy, s] = geom(w, h); return [cx + s * p[0], cy - s * p[1]]; }
+
+function render() {
+  const { pts, tau, heads, q } = state, mask = state.mask.map(Boolean), { W, out } = attention(pts, tau, heads, mask);
+  $("tauV").textContent = tau.toFixed(tau < 1 ? 2 : 1);
+  const w0 = W[0][q], best = argmax(w0), dead = w0.every(v => v === 0);
+  const tag = heads === 2 ? "（第 1 个头）" : "";
+  $("kSelf").textContent = w0[q].toFixed(3);
+  $("kMax").textContent = dead ? "全部被屏蔽" : w0[best].toFixed(3) + "（" + NAMES[best] + "）";
+  $("kEff").textContent = effective(w0).toFixed(2);
+  $("kOut").textContent = "(" + out[q][0].toFixed(2) + ", " + out[q][1].toFixed(2) + ")";
+  $("kSelf").previousElementSibling.textContent = "查询给自己的权重" + tag;
+  $("kMax").previousElementSibling.textContent = "最大的权重（给谁）" + tag;
+  $("kEff").previousElementSibling.textContent = "相当于平均分给几个键" + tag;
+  $("mask").innerHTML = NAMES.split("").map((c, j) => `<button data-j="${j}" class="${state.mask[j] ? "" : "off"}">${c}</button>`).join("");
+  $("heads").querySelectorAll("button").forEach(b => b.classList.toggle("on", +b.dataset.v === heads));
+
+  let [ctx, w, h] = setup($("c1"));
+  const [cx, cy, s] = geom(w, h);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1;
+  for (let g = -2; g <= 2; g++) { ctx.beginPath(); ctx.moveTo(cx + s * g, cy - s * RANGE); ctx.lineTo(cx + s * g, cy + s * RANGE); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx - s * RANGE, cy - s * g); ctx.lineTo(cx + s * RANGE, cy - s * g); ctx.stroke(); }
+  ctx.strokeStyle = "#8f959e"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx - 7, cy); ctx.lineTo(cx + 7, cy); ctx.moveTo(cx, cy - 7); ctx.lineTo(cx, cy + 7); ctx.stroke();
+  const xy = pts.map(p => toXY(p, w, h));
+  const wAvg = pts.map((_, j) => W.reduce((a, Wh) => a + Wh[q][j], 0) / heads);
+  for (let j = 0; j < pts.length; j++) if (j !== q && wAvg[j] > 0) {
+    ctx.strokeStyle = "rgba(47,111,237,.55)"; ctx.lineWidth = 0.5 + 9 * wAvg[j];
+    ctx.beginPath(); ctx.moveTo(xy[q][0], xy[q][1]); ctx.lineTo(xy[j][0], xy[j][1]); ctx.stroke();
+  }
+  for (let j = 0; j < pts.length; j++) {
+    ctx.globalAlpha = state.mask[j] ? 1 : 0.3;
+    ctx.fillStyle = COLORS[j]; ctx.beginPath(); ctx.arc(xy[j][0], xy[j][1], 8, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (j === q) { ctx.strokeStyle = "#1f2329"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(xy[j][0], xy[j][1], 11.5, 0, 2 * Math.PI); ctx.stroke(); }
+    ctx.fillStyle = "#fff"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center"; ctx.fillText(NAMES[j], xy[j][0], xy[j][1] + 3.5);
+  }
+  const o = toXY(out[q], w, h);
+  ctx.fillStyle = "#d6362f"; ctx.beginPath(); ctx.arc(o[0], o[1], 5, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
+
+  $("cap2").textContent = heads === 1
+    ? "查询 " + NAMES[q] + " 对每个键：左边是点积，条的长度是注意力权重。右下的小方格是全部 6 个查询的权重矩阵（行是查询，列是键）"
+    : "查询 " + NAMES[q] + " 对每个键：每行两条，上面是第 1 个头（只看横坐标），下面是第 2 个头（只看纵坐标）。右下的两个小方格是两个头各自的权重矩阵";
+  [ctx, w, h] = setup($("c2"));
+  const n = pts.length, cell = 13, gridW = heads * (n * cell + 14), L = 86, R = 50, barW = Math.max(10, w - L - R - gridW - 16), top = 10, rowH = (h - top - 8) / n;
+  ctx.font = "11.5px sans-serif";
+  for (let j = 0; j < n; j++) {
+    const y = top + j * rowH;
+    ctx.globalAlpha = state.mask[j] ? 1 : 0.3;
+    ctx.fillStyle = COLORS[j]; ctx.beginPath(); ctx.arc(10, y + rowH / 2, 6, 0, 2 * Math.PI); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#1f2329"; ctx.textAlign = "left"; ctx.fillText(NAMES[j] + (j === q ? " 自己" : "") + (state.mask[j] ? "" : " 屏蔽"), 22, y + rowH / 2 + 4);
+    for (let hd = 0; hd < heads; hd++) {
+      const bh = (rowH - 10) / heads, by = y + 5 + hd * bh, val = W[hd][q][j];
+      const dot = heads === 1 ? pts[q][0] * pts[j][0] + pts[q][1] * pts[j][1] : pts[q][hd] * pts[j][hd];
+      ctx.fillStyle = "#646a73"; ctx.textAlign = "right"; ctx.font = (heads === 1 ? 11.5 : 10) + "px sans-serif"; ctx.fillText(dot.toFixed(2), L - 8, by + bh / 2 + 4);
+      ctx.fillStyle = "#eef0f3"; ctx.fillRect(L, by + 1, barW, bh - 2);
+      ctx.fillStyle = hd === 0 ? "#2f6fed" : "#e8710a"; ctx.fillRect(L, by + 1, barW * val, bh - 2);
+      ctx.fillStyle = "#1f2329"; ctx.textAlign = "left"; ctx.fillText(val.toFixed(3), L + barW + 6, by + bh / 2 + 4);
+      ctx.font = "11.5px sans-serif";
+    }
+  }
+  for (let hd = 0; hd < heads; hd++) {
+    const gx = w - gridW + hd * (n * cell + 14) + 6, gy = h - n * cell - 22;
+    ctx.fillStyle = "#646a73"; ctx.textAlign = "left"; ctx.font = "10.5px sans-serif"; ctx.fillText(heads === 1 ? "权重矩阵" : "第 " + (hd + 1) + " 个头", gx, gy - 5);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const v = W[hd][i][j], c = hd === 0 ? [47, 111, 237] : [232, 113, 10];
+      ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${0.06 + 0.94 * v})`; ctx.fillRect(gx + j * cell, gy + i * cell, cell - 1, cell - 1);
+    }
+    ctx.strokeStyle = "#1f2329"; ctx.lineWidth = 1.2; ctx.strokeRect(gx - 0.5, gy + q * cell - 0.5, n * cell, cell);
+  }
+}
+
+$("tau").addEventListener("input", e => { state.tau = Math.pow(10, +e.target.value); render(); });
+$("heads").addEventListener("click", e => { if (!e.target.dataset.v) return; state.heads = +e.target.dataset.v; render(); });
+$("mask").addEventListener("click", e => { const j = e.target.dataset.j; if (j === undefined) return; state.mask[+j] = state.mask[+j] ? 0 : 1; render(); });
+$("layout").addEventListener("click", e => { if (!e.target.dataset.v) return; state.pts = layoutPoints(e.target.dataset.v, state.seed++); render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+  const p = JSON.parse(b.dataset.preset);
+  state.tau = p.tau; state.heads = p.heads; state.q = p.q; state.pts = p.pts.map(v => v.slice()); state.mask = p.mask.slice();
+  $("tau").value = Math.log10(state.tau); render(); window.scrollTo({ top: 0, behavior: "smooth" });
+}));
+
+let drag = -1;
+function pick(ev) { const c = $("c1"), b = c.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top, w = c.clientWidth, h = +c.getAttribute("height"); let best = -1, bd = 18; state.pts.forEach((p, k) => { const [px, py] = toXY(p, w, h), d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = k; } }); return best; }
+$("c1").addEventListener("pointerdown", ev => { const k = pick(ev); if (k >= 0) { state.q = k; drag = k; $("c1").setPointerCapture(ev.pointerId); render(); } });
+$("c1").addEventListener("pointermove", ev => {
+  if (drag < 0) return;
+  const c = $("c1"), b = c.getBoundingClientRect(), [cx, cy, s] = geom(c.clientWidth, +c.getAttribute("height"));
+  const clamp = v => Math.max(-RANGE, Math.min(RANGE, v));
+  state.pts[drag] = [clamp((ev.clientX - b.left - cx) / s), clamp(-(ev.clientY - b.top - cy) / s)]; render();
+});
+$("c1").addEventListener("pointerup", () => { drag = -1; });
+window.addEventListener("resize", render);
+render();
+</script>
+</body>
+</html>

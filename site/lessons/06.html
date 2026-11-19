@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -1162,7 +1162,9 @@ A [u, v]ᵀ ≈ b
 <li><strong>Farneback 对整体加一个偏移没有反应</strong>，表里四行都是 0.0。偏移只改变多项式的常数项，而位移是从一次项里解出来的。乘增益和亮度斜坡会影响它，但比 LK 小得多（乘 1.4 时 0.064 px 对 0.459 px）。这里只测了结果，没有去读 OpenCV 的实现。</li>
 <li><strong>补救办法要看亮度是怎么变的</strong>。整体加 40 之后，把第二帧线性拉伸到和第一帧相同的均值和标准差，LK 和 Farneback 的误差都回到 0.0 px。亮度斜坡用这个办法没有用（LK 窗口 21 仍是 0.223 px），因为每个位置变化的量不一样；两帧都做局部归一化（减去标准差 8 px 的高斯局部均值，再除以局部标准差）之后降到 0.004 px。原文说“可先做轻微平滑或亮度归一化，但无法彻底修复假设失效”，在这两种简单的变化上归一化是能修好的；反光、阴影这类只改变局部内容的情况没有测。</li>
 </ol>
-<p>本章 Notebook 的破坏实验第 2 条是“将后一帧整体变亮后重新计算，观察亮度恒定假设失效”。Notebook 用的是 Farneback，按它的代码生成两帧（160×120，位移 (5, 3)），把第二帧整体加 20，它显示的 EPE 是 0.573，和不加时的 0.573 相同；加 40 时有 6.5% 的像素饱和到 255，EPE 是 0.578。也就是说照着做看不到预期的现象。要看到亮度变化的影响，把方法换成 LK，或者把变亮换成乘一个增益。顺带一提，0.573 这个数本身主要来自图里那个圆和矩形的平坦内部：平坦内部的 EPE 平均值是 3.682，其余纹理区只有 0.004。Notebook 的第 1 条破坏实验“把位移调到最大，比较小窗口和大窗口”，在滑块的最大位移 (18, 12) 下，<code>winsize</code> 取 5、15、31 的 EPE 是 22.563、22.337、22.481，三种窗口都失败，和 6.4 节“加大窗口没有用”一致。</p>
+<p>本章 Notebook 的实验 2 在它自己的两帧上重复了这个对比。Notebook 的互动单元用的是 Farneback，按它的代码生成两帧（160×120，位移 (5, 3)），把第二帧整体加 20，它显示的 EPE 是 0.573，和不加时的 0.573 相同；加 40 时有 6.5% 的像素饱和到 255，EPE 是 0.578。也就是说，只用 Farneback 把后一帧整体变亮，看不到亮度恒定假设失效。实验 2 因此在 Farneback 之外，用稀疏 LK 跟踪同一对帧上的 200 个角点做对照（<code>maxLevel=3</code>）。第二帧整体加 20 时，Farneback 仍是 0.573；LK 窗口 21 的 EPE 中位数从 0.0 升到 0.26 px，窗口 9 有 64.0% 的点误差超过 1 px。整体乘 1.1 时 Farneback 是 0.595，LK 窗口 21 是 0.136 px。这张图上窗口从 21 加到 31 没有再变好（整体加 20 时是 0.26 和 0.272 px），和上表 256×256 纹理上“窗口越大受影响越小”不完全一样，原因没有单独验证。顺带一提，0.573 这个数本身主要来自图里那个圆和矩形的平坦内部：平坦内部的 EPE 平均值是 3.682，其余纹理区只有 0.004。</p>
+<p>Notebook 的实验 1 看窗口和位移。在滑块的最大位移 (18, 12) 下，<code>winsize</code> 取 5、15、31 的 EPE 是 22.563、22.337、22.481，三种窗口都失败，比不出差别，和 6.4 节“加大窗口没有用”一致。所以实验 1 把位移分成四档。位移 (5, 3) 时三种窗口的 EPE 是 2.259、0.573、0.096，位移 (8, 5) 时是 8.129、1.47、0.156，窗口之间的差别在这两档才比得出来，而且主要来自平坦内部：位移 (5, 3) 时平坦内部的 EPE 平均值，窗口 15 是 3.682，窗口 31 是 0.596。位移 (10, 6) 时三种窗口是 11.155、8.191、4.081，已经都跟不上。最大位移下把 <code>levels</code> 取 1、2、4、8，EPE 都是 22.337，在这张 160×120 的小图上改层数没有任何效果；一个可能的原因是图太小，实际建不出更多的层，这一点没有读 OpenCV 的实现确认。把同样的画面放大到 640×480（画布、圆和矩形放大 4 倍，纹理粗细不变），位移仍是 (18, 12)：<code>levels=1</code> 时 EPE 是 21.583，<code>levels=4</code> 时降到 4.609，中位数只有 0.024 px；剩下的平均误差大部分在平坦内部（那里的平均值是 21.866，其余纹理区是 2.267）。所以这个 Notebook 里大位移跟不上，要改的是图像尺寸和层数，不是窗口。</p>
+<p>Notebook 的实验 3 在同一对帧上做往返筛选（<code>winSize=21</code>，位移 (5, 3)），对应 6.3 节的结论。<code>maxLevel=3</code> 时 200 个角点全部跟对，阈值 1 px 全部保留，阈值 0.1 px 只留下 149 个。<code>maxLevel=0</code> 时 <code>status</code> 为 1 的有 199 个，跟对的只有 75 个；按往返误差不超过 1 px 筛选留下 100 个，其中 40 个是错的；收紧到 0.1 px 留下 60 个，其中还有 2 个是错的。也就是说，在这张图上 5.8 px 的位移不用金字塔已经跟不上了。一个解释是它的纹理很细（6.4 节量过，纹理越细单层 LK 能跟的位移越小），这里没有单独验证。</p>
 <p><strong>纹理充足时，稀疏和稠密的精度接近</strong>。384×384 的纹理绕中心旋转，噪声 5，4 个随机种子。这时每个位置的位移都不一样，真值按旋转公式逐点算。LK 跟踪 <code>goodFeaturesToTrack</code> 取的角点，Farneback 统计全部像素，EPE 的中位数（px）：</p>
 <div class="table-wrap"><table>
 <thead>
@@ -1298,7 +1300,7 @@ A [u, v]ᵀ ≈ b
 </tbody>
 </table></div>
 <p>跟踪几百个点的 LK 加上往返检查，仍然比算一次稠密流快几倍。往返检查让 LK 的耗时翻倍。<code>iterations</code> 从 3 加到 10，Farneback 的耗时翻了一倍，上面已经看到精度没有变化。想用 LK 得到稠密流是不划算的，逐像素做一遍比 Farneback 慢几十倍。</p>
-<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>两帧之间画面内容平移了 (3, 2)，同时第二帧整体变亮了 20 个灰度级（纹理自身的标准差是 30 个灰度级）。LK（窗口 21）和 Farneback 的误差会怎样？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>两个都明显变大，因为亮度恒定假设被破坏了</span></button><button type="button" data-k="B"><b>B</b><span>LK 的误差升到 0.28 px 左右，Farneback 不变</span></button><button type="button" data-k="C"><b>C</b><span>两个都基本不变，20 个灰度级太小</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。LK 窗口 21 的 EPE 中位数从 0.0 升到 0.282 px，窗口 9 是 1.072 px。Farneback 仍是 0.0：整体加一个常数只改变局部多项式的常数项，位移是从一次项里解出来的。所以 Notebook 里“整体变亮”那个破坏实验用 Farneback 做，EPE 没有变化（0.573 对 0.573）。乘增益时 Farneback 才受影响，乘 1.2 时是 0.035 px，同时 LK 是 0.267 px。</p></div></div>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>两帧之间画面内容平移了 (3, 2)，同时第二帧整体变亮了 20 个灰度级（纹理自身的标准差是 30 个灰度级）。LK（窗口 21）和 Farneback 的误差会怎样？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>两个都明显变大，因为亮度恒定假设被破坏了</span></button><button type="button" data-k="B"><b>B</b><span>LK 的误差升到 0.28 px 左右，Farneback 不变</span></button><button type="button" data-k="C"><b>C</b><span>两个都基本不变，20 个灰度级太小</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。LK 窗口 21 的 EPE 中位数从 0.0 升到 0.282 px，窗口 9 是 1.072 px。Farneback 仍是 0.0：整体加一个常数只改变局部多项式的常数项，位移是从一次项里解出来的。所以 Notebook 的实验 2 里，Farneback 那一栏在整体变亮之后没有变化（0.573 对 0.573），现象要在 LK 那几栏看。乘增益时 Farneback 才受影响，乘 1.2 时是 0.035 px，同时 LK 是 0.267 px。</p></div></div>
 <hr />
 <h2 id="66-opencv-api-速查">6.6 OpenCV API 速查</h2>
 <h3 id="稀疏金字塔-lk">稀疏金字塔 LK</h3>
@@ -1404,7 +1406,7 @@ A [u, v]ᵀ ≈ b
 <li><strong>可视化归一化抖动</strong>：若每帧都按本帧最大速度归一化，颜色亮度无法跨帧比较。固定速度上限更适合视频展示。</li>
 </ol>
 <p>第 1 条在合成数据上核对过：256×256 的纹理平移 (3, 2)，LK 和 Farneback 的位移中位数都是 (3.0, 2.0)，两帧交换后都是 (-3.0, -2.0)。</p>
-<p>把上面的条目和本章实测到的情况合起来，按现象查。前五行是做作业 <code>6-1_前向反向筛选.py</code> 时最容易遇到的。</p>
+<p>把上面的条目和本章实测到的情况合起来，按现象查。前九行是做作业 <code>6-1_前向反向筛选.py</code> 时最容易遇到的。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1415,7 +1417,7 @@ A [u, v]ᵀ ≈ b
 </thead>
 <tbody>
 <tr>
-<td>作业验收报“输出必须是 (N,) bool 掩码”</td>
+<td>作业验收的“形状与类型”一项不通过，提示输出必须是 (N,) bool</td>
 <td>点集是 <code>(N,1,2)</code> 时算出的误差是 <code>(N,1)</code>；或者 <code>(N,)</code> 的误差和 <code>(N,1)</code> 的 <code>status</code> 做运算，广播成了 <code>(N,N)</code></td>
 <td>打印返回值的 <code>shape</code> 和 <code>dtype</code>；三个点集先统一成 <code>(N,2)</code>，<code>status</code> 先展平</td>
 </tr>
@@ -1438,6 +1440,26 @@ A [u, v]ᵀ ≈ b
 <td><code>status=0</code> 的点被保留</td>
 <td>没有把 <code>status</code> 并进条件里；或者 <code>status</code> 是 uint8，直接按位与出来的不是布尔数组</td>
 <td>把一个点的 <code>status</code> 改成 0，其余条件都满足，看掩码</td>
+</tr>
+<tr>
+<td>只有一条轨迹时报错，或者返回的不是一维数组</td>
+<td>用 <code>np.squeeze</code> 统一形状，把长度为 1 的那一维也去掉了</td>
+<td>只传一条轨迹测试，返回值的形状应是 <code>(1,)</code></td>
+</tr>
+<tr>
+<td><code>status</code> 是 2 或 255 的轨迹被剔除</td>
+<td>条件写成了等于 1。函数的契约是非零</td>
+<td>把一个点的 <code>status</code> 改成 255，其余条件都满足，看掩码</td>
+</tr>
+<tr>
+<td>斜着偏出去的点该剔除的没剔除，或者该保留的被剔除</td>
+<td>往返误差用了两个坐标差的绝对值之和、其中较大的一个，或者忘了开方。契约是两点之间的直线距离</td>
+<td>起点和反向点相差 (3, 4) 时误差应是 5，相差 (4, 4) 时应大于 5</td>
+</tr>
+<tr>
+<td>前向点是 inf 的轨迹被保留</td>
+<td>只用 <code>np.isnan</code> 检查。契约是坐标有限</td>
+<td>把一个前向点改成 inf，看掩码</td>
 </tr>
 <tr>
 <td><code>calcOpticalFlowPyrLK</code> 报断言错误</td>
@@ -1515,7 +1537,7 @@ A [u, v]ᵀ ≈ b
 <h2 id="69-与配套练习的连接">6.9 与配套练习的连接</h2>
 <p>本章有两类练习，编号容易混：自动验收的作业是 <code>6-1_前向反向筛选.py</code>；下面两个扩展练习的题目在 <code>视觉算法学习计划.md</code> 里，目录里没有现成的文件，需要自己新建。</p>
 <h3 id="作业-6-1前向反向筛选自动验收">作业 6-1：前向反向筛选（自动验收）</h3>
-<p>实现 <code>filter_tracks</code>：给定起点、前向跟踪到的点、反向跟踪回来的点和 <code>status</code>，返回一个布尔掩码。条件都写在函数的文档字符串里，容易错的地方见 6.8 节表格的前五行，阈值取多大见 6.3 节。完成后运行 <code>python tests/check_progress.py</code>。这个函数只做筛选，前向和反向两次 <code>calcOpticalFlowPyrLK</code> 要在调用它之前自己做。</p>
+<p>实现 <code>filter_tracks</code>：给定起点、前向跟踪到的点、反向跟踪回来的点和 <code>status</code>，返回一个布尔掩码。条件都写在函数的文档字符串里，容易错的地方见 6.8 节表格的前九行，阈值取多大见 6.3 节。完成后运行 <code>python tests/check_progress.py</code>，验收分五项：形状与类型、往返误差、status、有限值、不改输入。这个函数只做筛选，前向和反向两次 <code>calcOpticalFlowPyrLK</code> 要在调用它之前自己做；<code>status</code> 参数传两次跟踪的 <code>status</code> 逐点相与的结果。Notebook 的实验 3 就是这样调用它的。</p>
 <h3 id="扩展练习-6-1稀疏光流追踪">扩展练习 6-1：稀疏光流追踪</h3>
 <p>对应本章 6.2～6.4 和 6.7。先用角点回答“追谁”，再用 LK 回答“去了哪里”。完成后建议加入前向—反向误差，并尝试修改 <code>winSize、maxLevel、minDistance</code>，观察快速运动、边缘点和遮挡时的差异。</p>
 <h3 id="扩展练习-6-2稠密光流可视化">扩展练习 6-2：稠密光流可视化</h3>
@@ -1537,9 +1559,9 @@ A [u, v]ᵀ ≈ b
 <h2 id="611-破坏实验">6.11 破坏实验</h2>
 <p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
 <ol>
-<li>Notebook 里把位移滑块拉到最大，<code>winsize</code> 分别取最小、中间和最大。先预测哪一种窗口能把 EPE 救回来，再和 6.5 节的数字对照。然后把 Farneback 调用里的 <code>levels</code> 从 4 改大，看有没有变化，想一想 160×120 的图能建几层。</li>
-<li>Notebook 里生成 <code>frame1</code> 之后加一行 <code>frame1 = cv2.add(frame1, 20)</code>，先预测 EPE 会变成多少。再改成 <code>cv2.convertScaleAbs(frame1, alpha=1.3)</code>，哪一种变化的影响大？对照 6.5 节解释原因。</li>
-<li>用 Notebook 的两帧做稀疏跟踪：<code>goodFeaturesToTrack</code> 取角点，前向、反向各跟一次，用你写的 <code>filter_tracks</code> 按阈值 0.1、1、5 筛选。数一数各留下多少个点，留下的点里 EPE 超过 1 px 的有几个。圆和矩形内部有没有点？为什么？</li>
+<li>Notebook 的实验 1。先在互动单元里把位移滑块拉到最大，<code>winsize</code> 分别取最小、中间和最大，预测哪一种窗口能把 EPE 救回来；再预测位移 (5, 3) 和 (8, 5) 下三种窗口谁好谁差。运行后和 6.5 节的数字对照。然后看 <code>levels</code> 从 1 改到 8 有没有变化，想一想 160×120 的图能建几层，同样的画面放大到 640×480 之后又怎样。</li>
+<li>Notebook 的实验 2。第二帧整体加 20（<code>cv2.add(frame1, 20)</code>），先预测 Farneback 和 LK 的 EPE 各会变成多少，再运行。然后把实验里的增益从 1.1 改成 1.3（<code>cv2.convertScaleAbs(frame1, alpha=1.3)</code>），加偏移和乘增益哪一种对 Farneback 的影响大？对照 6.5 节解释原因。</li>
+<li>Notebook 的实验 3。用 Notebook 的两帧做稀疏跟踪：<code>goodFeaturesToTrack</code> 取角点，前向、反向各跟一次，用你写的 <code>filter_tracks</code> 按阈值 0.1、1、5 筛选。数一数各留下多少个点，留下的点里 EPE 超过 1 px 的有几个，<code>maxLevel</code> 取 3 和 0 各做一遍。圆和矩形内部有没有点？为什么？</li>
 <li>自己生成一张只有竖条纹的图（每一行都相同），把它平移 (3, 2) 得到第二帧，两帧各加一点噪声。预测 LK 估出的 <code>u</code> 和 <code>v</code> 哪个准。再把噪声去掉，<code>status</code> 会变成什么？</li>
 <li>生成一对整体平移 32 px 的帧，<code>winSize=21</code>，把 <code>maxLevel</code> 从 0 加到 5，记录跟对的比例。再把窗口改成 41，用 <code>cv2.buildOpticalFlowPyramid</code> 看实际建了几层。</li>
 <li>在纹理背景上贴一个 40×40 的纯色方块，让方块和背景一起平移。看 Farneback 在方块里的输出和 LK 在方块里的 <code>status</code>。再加上往返检查，方块里的点被筛掉了多少？</li>

@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -85,7 +85,7 @@
 <td>标准</td>
 <td style="text-align: right;">8 小时</td>
 <td>读完全章，跑 Notebook，完成 <code>作业_手写两层网络.py</code> 并验收通过，做 8.11 节前三个破坏实验，填实验记录</td>
-<td>两项验收 PASS，实验记录里有一个失败案例（去掉激活、学习率过大或标签错位），自测问题都能答</td>
+<td>验收 5 项全部 PASS，实验记录里有一个失败案例（去掉激活、学习率过大或标签错位），自测问题都能答</td>
 </tr>
 <tr>
 <td>深挖</td>
@@ -494,7 +494,7 @@ CE  = -log(p_y)
 </tbody>
 </table></div>
 <p>表里的 logits 是 <code>[s, 0, -s]</code>。“预测错”指正确类别是 logit 最小的那个，它的概率下溢成 0，取对数得到 <code>inf</code>。“预测对”指正确类别是 logit 最大的那个，<code>exp(s)</code> 上溢，<code>inf / inf</code> 得到 <code>nan</code>，也就是说连预测正确的样本都会让整个 batch 的损失变成 <code>nan</code>。float32 在 s = 50 时还没有断，但结果已经从 100.0 偏到 99.983。</p>
-<p>验收脚本用的例子是 <code>[[1000, 1001], [-1000, -999]]</code>：直接算得到 <code>nan</code>，参考实现得到 0.8133，和理论值一致。</p>
+<p>验收脚本用的例子是 <code>[[1000, 1001], [-1000, -999]]</code>：直接算得到 <code>nan</code>，参考实现得到 0.8133，和理论值一致。验收里还有一个更难的例子 <code>[[0, 800], [-300, 300]]</code>，两个样本的正确类别都是第 0 类，比各自那一行的最大值小 800 和 600，正确结果是两者的平均 700.0。这时“减掉每行最大值、算出概率、再取对数”的写法也不行：正确类别的概率已经下溢成 0，取对数得到 <code>inf</code>；给概率加上 1e-12 再取对数能避开 <code>inf</code>，但得到的是 27.631，把 700 的损失压成了二十几。只有不经过概率、直接算对数概率的 log-sum-exp 写法能得到 700.0。</p>
 <p>这么大的 logits 并不罕见。同一个网络刚初始化时，输入在 0 到 1 之间，logits 的最大绝对值是 2.6；把输入乘 255（忘了归一化），是 656，已经远超 float32 的 88.72。</p>
 <p><code>BCEWithLogitsLoss</code> 是同一个道理。float32 下 logit 取 -800、-200、-100、-50，标签为 1：</p>
 <div class="table-wrap"><table>
@@ -1663,7 +1663,7 @@ L2: L_total = L_data + λΣw²
 <li><strong>Adam 会把错误藏起来</strong>。忘了 <code>zero_grad()</code> 和多做一次 softmax，用 SGD 时一眼就能看出不对（19.7%、15.1%），用 Adam 时还有 58.4% 和 59.8%，很容易被当成“模型能力不够”。忘了 <code>zero_grad()</code> 时 SGD 的损失是 3.02，比初始值还高：梯度越积越多，相当于学习率不断变大。</li>
 <li>最后一行右边那一格看着反常：输入没归一化，Adam 的验证准确率（76.3%）和正常情况一样，训练损失还更低（0.027）。8.5 节换一种初始化就不是这样。不要把它当成“Adam 不需要归一化”的证据。</li>
 </ol>
-<p>按现象查。前七行是做本章作业时最容易犯的实现错误。</p>
+<p>按现象查。前九行是做本章作业时最容易犯的实现错误，验收脚本对每一行都有对应的检查。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1694,6 +1694,11 @@ L2: L_total = L_data + λΣw²
 <td>用 <code>[[1000, 1001], [-1000, -999]]</code> 单独调用，应得到 0.8133</td>
 </tr>
 <tr>
+<td>交叉熵验收在 <code>[[0, 800], [-300, 300]]</code> 上得到 <code>inf</code>，或者得到 27.631</td>
+<td>减了最大值，但先算概率再取对数，正确类别的概率下溢成 0；27.631 是给概率加了 1e-12</td>
+<td>标签取 <code>[0, 0]</code> 单独调用，应得到 700.0。改成直接算对数概率（8.3 节）</td>
+</tr>
+<tr>
 <td>交叉熵验收得到 <code>inf</code></td>
 <td>减的是整个 batch 的最大值而不是每行的最大值；或者取每行最大值时漏了 <code>keepdims=True</code></td>
 <td>打印减完之后每一行的最大值，应全为 0</td>
@@ -1704,9 +1709,14 @@ L2: L_total = L_data + λΣw²
 <td>把同一个样本重复两遍，损失应不变</td>
 </tr>
 <tr>
-<td>验收通过，换一批数据损失就不对</td>
-<td>取正确类别时写成了 <code>log_probs[:, labels]</code>。验收的例子里两行的对数概率正好相同，这样写也得到 0.8133，测不出来</td>
+<td>交叉熵验收的手算例子应得 1.2291，却得到 1.4083</td>
+<td>取正确类别时写成了 <code>log_probs[:, labels]</code>，取出来的是一个 B×B 的矩阵。在两行对数概率正好相同的例子上（上面的 0.8133）这样写碰巧也对，要用各行不同、样本数不等于类别数的例子才看得出来</td>
 <td>用各行不同的 logits，和 <code>torch.nn.functional.cross_entropy</code> 对一下</td>
+</tr>
+<tr>
+<td>验收报原地修改了输入</td>
+<td>减最大值时写成了 <code>logits -= ...</code>，或者前向里用了带 <code>out=</code> 的原地运算</td>
+<td>调用前先 <code>logits.copy()</code> 存一份，调用后比较</td>
 </tr>
 <tr>
 <td>梯度检查的相对误差在 0.1 以上</td>
@@ -1817,7 +1827,8 @@ L2: L_total = L_data + λΣw²
 <h2 id="与练习-dl-1-dl-2-的连接">与练习 DL-1 / DL-2 的连接</h2>
 <p>本章有两类练习：自动验收的作业是 <code>作业_手写两层网络.py</code>；DL-1 和 DL-2 是 <code>视觉算法学习计划.md</code> 里的练习，目录里没有现成的文件，需要自己新建。</p>
 <h3 id="作业手写两层网络自动验收">作业：手写两层网络（自动验收）</h3>
-<p>实现两个函数：<code>two_layer_forward</code> 做一次仿射变换、ReLU、再一次仿射变换，返回隐藏层输出和 logits；<code>cross_entropy_from_logits</code> 用减去每行最大值的写法算平均交叉熵。形状约定见 8.2 节的提示框，为什么要减最大值见 8.3 节，容易写错的地方见 8.8 节“按现象查”那张表的前七行。完成后运行 <code>python tests/check_progress.py</code>。</p>
+<p>实现两个函数：<code>two_layer_forward</code> 做一次仿射变换、ReLU、再一次仿射变换，返回隐藏层输出和 logits；<code>cross_entropy_from_logits</code> 用减去每行最大值的写法算平均交叉熵。两个函数都不能原地修改输入。形状约定见 8.2 节的提示框，为什么要减最大值见 8.3 节，容易写错的地方见 8.8 节“按现象查”那张表的前九行。完成后运行 <code>python tests/check_progress.py</code>。</p>
+<p>验收一共 5 项。前向 2 项：一个 5 个样本的手算例子（期望值是纸笔算出来的）；几条性质，包括同一个样本单独算和放在一批里算结果相同、权重或输入取成全 0 时输出应该是什么、偏置为 0 时输入放大几倍输出也放大几倍。交叉熵 3 项：一个 4 个样本 3 个类别的手算例子；几条性质，包括每行各加一个常数损失不变、同一批样本重复一遍损失不变、只打乱标签损失要变；大 logits 的数值稳定性。验收脚本里没有这两个函数的实现，读它得不到答案，但失败时的提示会告诉你是哪个数对不上、该查哪里。</p>
 <h3 id="dl-1fc-mnist">DL-1：FC + MNIST</h3>
 <p>这份练习把本章串成一条完整链路：图片从 <code>(B,1,28,28)</code> 展平为 <code>(B,784)</code>，经过线性层和 ReLU 得到隐藏表示，再输出 <code>(B,10)</code> logits；交叉熵衡量分类错误；优化器根据反向传播得到的梯度更新参数。</p>
 <p>做练习时不要只追求最终准确率。至少记录训练 loss、验证 loss 和验证 accuracy，并回答：加入隐藏层后为什么比单层线性分类器强？把 ReLU 去掉会发生什么？训练和验证曲线何时开始分叉？</p>

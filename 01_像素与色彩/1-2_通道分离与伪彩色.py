@@ -20,6 +20,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def read_image(path, flags):
+    """读图片文件，文件不存在时返回 None。先读成字节再解码，路径里有中文时在 Windows 上也能读。"""
+    if not path.exists():
+        return None
+    return cv2.imdecode(np.fromfile(str(path), dtype=np.uint8), flags)
+
+
 def create_test_color_image():
     """生成一张彩色测试图：红绿蓝三个色块 + 一个渐变"""
     img = np.zeros((300, 500, 3), dtype=np.uint8)
@@ -60,7 +67,12 @@ def show_channels(img_bgr):
 # ═══════════════════════════════════════════════════════════
 
 def remove_channel_effect(img_bgr, channel='R'):
-    """把指定通道置零，然后合成回去"""
+    """把指定通道置零，然后合成回去。
+
+    输入：img_bgr 为 (H, W, 3) 的 uint8 图，通道顺序是 OpenCV 的 B、G、R；channel 取 'B'、'G' 或 'R'。
+    输出：同 shape 的 uint8 新数组，指定的通道全为 0，另外两个通道和输入相同。
+    约定：不修改传进来的 img_bgr（下面先复制再改，就是为了这一条）。
+    """
     # 复制原图
     modified = img_bgr.copy()
 
@@ -80,7 +92,15 @@ def remove_channel_effect(img_bgr, channel='R'):
 # ═══════════════════════════════════════════════════════════
 
 def enhance_brightness_hsv(img_bgr, v_scale=1.5):
-    """在 HSV 空间拉伸 V 通道（亮度），不改变色调和饱和度"""
+    """在 HSV 空间拉伸 V 通道（亮度），不改变色调和饱和度。
+
+    输入：img_bgr 为 (H, W, 3) 的 uint8 BGR 图；v_scale 是亮度倍数，大于等于 0。
+    输出：同 shape 的 uint8 BGR 图；不修改输入。
+    约定（验收按这几条检查）：
+      1. 输出图的 V 等于输入图的 V 乘 v_scale；乘完超过 255 的截到 255，不能回绕成很小的数。
+      2. H 和 S 不变（允许 HSV 量化带来的一两个单位的误差）。
+         所以直接把 B、G、R 三个通道乘 v_scale 再截断不符合要求：发生截断的像素色调会变。
+    """
     hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV).astype(np.float32)
 
     # 提示：hsv[:,:,2] 就是 V（Value）通道
@@ -95,14 +115,21 @@ def enhance_brightness_hsv(img_bgr, v_scale=1.5):
 # ═══════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
+    # 中文字体：Windows 的两种放在前面，找不到时依次往后试
+    plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "PingFang SC", "Heiti SC", "Noto Sans CJK SC", "DejaVu Sans"]
+    plt.rcParams["axes.unicode_minus"] = False
     img_path = Path(__file__).resolve().parents[1] / "images" / "test_color.jpg"
-    img = cv2.imread(str(img_path))
+    img = read_image(img_path, cv2.IMREAD_COLOR)
     if img is None:
-        print("没有找到测试图，自动生成一张...")
+        print("没有找到 images/test_color.jpg，改用代码生成的测试图（要用文件版本，先运行 scripts/generate_sample_images.py）")
         img = create_test_color_image()
 
     print("=== 1. 三通道分离 ===")
-    show_channels(img)
+    try:
+        show_channels(img)
+    except NotImplementedError as exc:
+        print(f"TODO: {exc}。先完成任务 1，再运行本文件。")
+        raise SystemExit(0)
 
     print("\n=== 2. 去掉 R 通道（变青蓝色调）===")
     modified = remove_channel_effect(img, 'R')
@@ -113,7 +140,11 @@ if __name__ == "__main__":
     # 试试去掉 G 和 B 分别是什么效果？自己改参数运行。
 
     print("\n=== 3. HSV 拉伸亮度 ===")
-    bright = enhance_brightness_hsv(img)
+    try:
+        bright = enhance_brightness_hsv(img)
+    except NotImplementedError as exc:
+        print(f"TODO: {exc}。先完成任务 3，再运行本文件。")
+        raise SystemExit(0)
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
     ax1.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     ax1.set_title('原图')

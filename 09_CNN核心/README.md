@@ -18,7 +18,7 @@
 | `../demos/卷积尺寸与感受野.html` | 交互演示：逐层算输出尺寸、感受野、参数量，浏览器直接打开 |
 | `实验_卷积与感受野.ipynb` | 手工边缘核与特征图可视化 |
 | `作业_卷积shape与残差块.py` | 输出尺寸计算和残差块 shape 契约 |
-| `tests/check_progress.py` | 边界条件、输出 shape 与梯度检查 |
+| `tests/check_progress.py` | 验收 8 项：输出尺寸的取整、边界和拒绝非正输出，并和 PyTorch 的实际输出逐个比；残差块的 shape、梯度、捷径和各层顺序 |
 | `data/README.md` | CIFAR-10 等官方来源与许可提示 |
 
 ## 通过标准
@@ -26,4 +26,4 @@
 - 能从 `NCHW` 输入手算卷积输出 shape。
 - 能解释 padding、stride 与边界响应的影响。
 - 能说明残差相加前为何必须 shape 一致。
-- Notebook 可从头执行，检查器初始安全显示 `TODO`。
+- Notebook 可从头执行，检查器初始安全显示 `TODO`，完成作业后 8 项全部显示 `PASS`。

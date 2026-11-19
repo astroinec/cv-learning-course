@@ -15,7 +15,7 @@
   "parts": [
     {"id": 1, "title": "第一部分 通用计算机视觉", "note": "传统方法加深度学习基础。已有基础的章节走速通档即可。"},
     {"id": 2, "title": "第二部分 工业视觉专项", "note": "围绕半导体检测方向的岗位要求设计，最后用一个晶圆检测项目串起来。"},
-    {"id": 3, "title": "第三部分 前沿方法", "note": "规划中，尚未动工。按 8 GB 显存的笔记本显卡设计实验，时长在写完后给出。"}
+    {"id": 3, "title": "第三部分 前沿方法", "note": "ViT、自监督基础模型、SAM、视觉语言模型、扩散模型、神经渲染、部署与加速。每章有从零实现的小模型和在自己机器上用真模型的一节。"}
   ],
   "chapters": [
     {"n": "01", "part": 1, "dir": "01_像素与色彩", "tutorial": "教程_像素与色彩.md", "title": "像素与色彩", "priority": "P0", "hours": [4, 7, 8], "needs": [], "scene": "所有检测算法的输入预处理：对比度拉伸、去噪、色彩空间转换", "upgraded": true},
@@ -82,6 +82,13 @@
     {"title": "渲染管线：MVP 与 z-buffer", "file": "demos/渲染管线.html", "chapters": "第 21 章"},
     {"title": "成像链路：一个小缺陷怎样变成像素值", "file": "demos/成像链路.html", "chapters": "第 22 章"},
     {"title": "晶圆图：die 数、缺陷分布与良率", "file": "demos/晶圆图.html", "chapters": "第 23 章"},
-    {"title": "流水线消融：一维演示", "file": "demos/流水线消融.html", "chapters": "第 24 章"}
+    {"title": "流水线消融：一维演示", "file": "demos/流水线消融.html", "chapters": "第 24 章"},
+    {"title": "自注意力：二维演示", "file": "demos/自注意力.html", "chapters": "第 25 章"},
+    {"title": "自蒸馏与坍缩：单位圆上的小模型", "file": "demos/自蒸馏与坍缩.html", "chapters": "第 26 章"},
+    {"title": "点提示的歧义：三个候选掩码", "file": "demos/点提示的歧义.html", "chapters": "第 27 章"},
+    {"title": "零样本分类与提示词：二维演示", "file": "demos/零样本分类与提示词.html", "chapters": "第 28 章"},
+    {"title": "采样与引导：二维的几团点", "file": "demos/采样与引导.html", "chapters": "第 29 章"},
+    {"title": "体渲染：一条光线上的透射率、权重和颜色", "file": "demos/体渲染.html", "chapters": "第 30 章"},
+    {"title": "量化误差：位数、对称与否、校准方式", "file": "demos/量化误差.html", "chapters": "第 31 章"}
   ]
 }

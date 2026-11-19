@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -87,7 +87,7 @@
 <td>标准</td>
 <td style="text-align: right;">7 小时</td>
 <td>读完全章，跑 Notebook，过一遍“动手前的检查清单”，完成三个作业并验收通过，做 1.9 节前三个破坏实验，填实验记录</td>
-<td><code>tests/check_progress.py</code> 显示“模块通过：3/3”，实验记录里有一个失败案例，自测问题都能答</td>
+<td><code>tests/check_progress.py</code> 最后一行显示“通过 5/5”，实验记录里有一个失败案例，自测问题都能答</td>
 </tr>
 <tr>
 <td>深挖</td>
@@ -1090,7 +1090,7 @@ P_{\text{残留}} = 2 \sum_{j=(n+1)/2}^{n} \binom{n}{j}\, q^{j} (1-q)^{n-j}, \qq
 </ul>
 <hr />
 <h2 id="18-常见错误">1.8 常见错误</h2>
-<p>前七行是做本章三个作业时最容易犯的，后五行是以后每一章都会再遇到的。</p>
+<p>前九行是做本章三个作业时最容易犯的，后五行是以后每一章都会再遇到的。前九行的错误验收脚本都会报 FAIL，表里写的是报出来之后怎样自己确认原因。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1101,14 +1101,19 @@ P_{\text{残留}} = 2 \sum_{j=(n+1)/2}^{n} \binom{n}{j}\, q^{j} (1-q)^{n-j}, \qq
 </thead>
 <tbody>
 <tr>
-<td>1-1 验收报“与 OpenCV 基线最大误差”很大</td>
+<td>1-1 验收报“结果应覆盖 0 到 255”，或者与 <code>cv2.equalizeHist</code> 的误差很大</td>
 <td>映射时没有减 <code>cdf_min</code></td>
 <td>输入 <code>[50, 50, 200, 200]</code>，应得 <code>[0, 0, 255, 255]</code>，得到 <code>[128, 128, 255, 255]</code> 就是这个错</td>
 </tr>
 <tr>
+<td>1-1 验收报“和手算结果差 1 个灰度”</td>
+<td>查找表是浮点数，没有四舍五入就转成了 <code>uint8</code>，小数被截断</td>
+<td>1.1 节“回写 <code>uint8</code> 的顺序”：先 <code>np.round</code>，再转类型</td>
+</tr>
+<tr>
 <td>1-1 把纯色图整张变成 0，并给出除零警告</td>
-<td>全图只有一个灰度时分母 <code>N - cdf_min</code> 是 0。验收不测这种图，这个错不会被拦下</td>
-<td>用一张常数图测，应原样返回</td>
+<td>全图只有一个灰度时分母 <code>N - cdf_min</code> 是 0。作业的文档字符串规定这时输出和输入相同，验收用一张纯色图查这一条</td>
+<td>用一张常数图测，应原样返回。<code>cv2.equalizeHist</code> 对纯色图也是原样输出</td>
 </tr>
 <tr>
 <td>1-1 验收报输出不是 <code>uint8</code></td>
@@ -1117,8 +1122,13 @@ P_{\text{残留}} = 2 \sum_{j=(n+1)/2}^{n} \binom{n}{j}\, q^{j} (1-q)^{n-j}, \qq
 </tr>
 <tr>
 <td>1-2 提亮之后最亮的地方出现黑斑或杂色</td>
-<td>V 乘完超过 255，没限制范围就转 <code>uint8</code>。验收用的像素不会超过 255，这个错不会被拦下</td>
-<td>找一个 V 大于 170 的像素，乘 1.5 后看它的值</td>
+<td>V 乘完超过 255，没限制范围就转 <code>uint8</code>。验收里有一行 V 大于 170 的像素，专门查这一条</td>
+<td>找一个 V 大于 170 的像素，乘 1.5 后看它的值，应该是 255</td>
+</tr>
+<tr>
+<td>1-2 验收报“色调和饱和度应保持”</td>
+<td>没有进 HSV，直接把 B、G、R 乘了系数；或者把 H、S、V 三个通道都乘了</td>
+<td>用橙色 BGR=(40, 120, 200) 乘 1.5，结果应是 (51, 153, 255)，得到 (60, 180, 255) 就是直接乘了 BGR（1.2 节）</td>
 </tr>
 <tr>
 <td>1-2 的函数把传进来的原图也改了</td>
@@ -1127,13 +1137,13 @@ P_{\text{残留}} = 2 \sum_{j=(n+1)/2}^{n} \binom{n}{j}\, q^{j} (1-q)^{n-j}, \qq
 </tr>
 <tr>
 <td>1-3 的中值滤波结果外面一圈是 0，或者和 <code>cv2.medianBlur</code> 只在最外一圈不同</td>
-<td>跳过了边界，或者边界填充方式不同。验收只比内部，这个错不会被拦下，但作业自带的全图比较会显示差异</td>
+<td>跳过了边界，或者边界填充方式不同。作业的文档字符串规定最外一圈也要算、图像外用复制边缘，验收和 <code>cv2.medianBlur</code> 做全图比较，会说明不同的像素是不是都在最外一圈</td>
 <td>把差值图画出来，看不为 0 的像素是不是都在最外一圈。<code>cv2.medianBlur</code> 用的是边界复制</td>
 </tr>
 <tr>
-<td>1-3 加噪后改变的像素比例不对，或者只有黑点没有白点</td>
-<td>两个掩膜的阈值写错，或者后写的覆盖了先写的</td>
-<td>在一张灰度 120 的常数图上加 10%，统计等于 0 和等于 255 的像素各占多少</td>
+<td>1-3 加噪后改变的像素比例不对，椒和盐不一样多，或者只有黑点没有白点</td>
+<td>两个掩膜的阈值写错；或者给椒和盐各抽了一次随机数，两张掩膜有重叠，后写的覆盖了先写的</td>
+<td>在一张灰度 120 的常数图上统计等于 0 和等于 255 的像素各占多少。比例取大一些才看得出来：取 50% 时，各抽一次的写法合计只有 43.7%，先写的椒 18.8%，后写的盐 25.0%；取 10% 时合计是 9.75%，在小图上和 10% 分不开</td>
 </tr>
 <tr>
 <td>两图相减，差值图一片 250 左右的大数</td>
@@ -1164,7 +1174,7 @@ P_{\text{残留}} = 2 \sum_{j=(n+1)/2}^{n} \binom{n}{j}\, q^{j} (1-q)^{n-j}, \qq
 </table></div>
 <hr />
 <h2 id="19-破坏实验">1.9 破坏实验</h2>
-<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做，Notebook 第 5 节的实验 A、B、C 是它们的现成单元；其中 B、C 要调用你写的作业函数，作业没完成时只会打印提示。</p>
 <ol>
 <li>造两张只有噪声的 <code>uint8</code> 图（同一个底图，各加标准差 3 的噪声）。分别用 <code>np.abs(a - b)</code>、<code>cv2.subtract(a, b)</code>、<code>cv2.absdiff(a, b)</code> 求差，各有多少像素大于 20？再在其中一张上放一个暗 30 的方块，三种写法谁能看见它？</li>
 <li>用你写的 <code>histogram_equalization</code> 处理一张“背景 100、噪声标准差 2、有一小块比背景亮 5”的图。预测三件事再验证：均衡化前后最高的直方图柱一样高吗？灰度级的个数变多还是变少？那一小块的对比噪声比升还是降？</li>

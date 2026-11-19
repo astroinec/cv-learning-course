@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>量化误差：位数、对称与否、校准方式</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; min-width: 0; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); min-width: 0; }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; min-width: 0; font: inherit; font-size: 12.5px; padding: 5px 2px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; }
+  .kpi.ok b { color: var(--green); } .kpi.bad b { color: var(--red); }
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 14px; height: 9px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>量化误差：位数、对称与否、校准方式（第 31 章）</h1>
+  <div class="sub">4000 个数，用和作业相同的公式算缩放系数和零点，量化成整数再反量化回来。主体是标准差为 1 的随机数，可以再加 3 个离群值。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>数据的分布<div class="seg" id="dist"><button data-v="gauss" class="on">有正有负</button><button data-v="relu">非负</button><button data-v="shift">偏一侧</button></div></label>
+    <label>量化方式<div class="seg" id="sym"><button data-v="asym" class="on">非对称</button><button data-v="sym">对称</button></div></label>
+    <label>范围怎么定（校准）<div class="seg" id="calib"><button data-v="minmax" class="on">最小最大值</button><button data-v="pct">99.9% 分位</button><button data-v="mse">均方误差最小</button></div></label>
+    <label>位数<b id="bitsV"></b><input type="range" id="bits" min="2" max="8" step="1" value="8"></label>
+    <label>离群值的大小（0 表示没有）<b id="outV"></b><input type="range" id="out" min="0" max="60" step="1" value="0"></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>缩放系数（一格的宽度）</span><b id="kScale"></b></div>
+    <div class="kpi"><span>零点</span><b id="kZp"></b></div>
+    <div class="kpi"><span>主体用到的整数个数</span><b id="kUsed"></b></div>
+    <div class="kpi" id="kErrBox"><span>主体的相对误差</span><b id="kErr"></b></div>
+    <div class="kpi"><span>被截断的个数</span><b id="kClip"></b></div>
+  </div>
+
+  <figure class="panel"><figcaption>直方图<i style="background:#c9cdd4"></i>量化前<i style="background:var(--blue)"></i>量化再反量化之后（只能落在格点上），浅绿色是能表示的范围，红色竖线是离群值</figcaption><canvas id="c1" height="230"></canvas></figure>
+  <figure class="panel"><figcaption>每个数的误差（反量化之后减去原来的值）<i style="background:var(--orange)"></i>误差，两条虚线是正负半格；范围以外的数被截断，误差沿斜线变大</figcaption><canvas id="c2" height="200"></canvas></figure>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>有正有负的数据（像权重）、对称量化、8 位。把位数从 8 一格一格拖到 2，看“主体的相对误差”每少一位大约变成几倍，直方图里蓝色的格点怎样变稀。<button data-preset='{"dist":"gauss","sym":"sym","calib":"minmax","bits":8,"out":0}'>载入</button></li>
+      <li>非负的数据（像 ReLU 之后的激活值）、4 位。在“非对称”和“对称”之间来回切换：对称量化时“主体用到的整数个数”少了多少，误差是原来的几倍？<button data-preset='{"dist":"relu","sym":"asym","calib":"minmax","bits":4,"out":0}'>载入</button></li>
+      <li>非负的数据、8 位，加上大小为 30 的离群值，范围按最小最大值定。看一格变宽了多少、主体的误差变成多少。再切到“99.9% 分位”：主体的误差回到了哪里，代价是什么？<button data-preset='{"dist":"relu","sym":"asym","calib":"minmax","bits":8,"out":30}'>载入</button></li>
+      <li>保持上一步的数据，位数改成 4，回到最小最大值：主体只剩几个整数可用？再依次切到“均方误差最小”和“99.9% 分位”，看哪一个真的把主体救了回来，另一个把范围定在了哪里。<button data-preset='{"dist":"relu","sym":"asym","calib":"minmax","bits":4,"out":30}'>载入</button></li>
+      <li>偏一侧的数据（中心在 1.5 附近，正的一侧比负的一侧长得多）、4 位、没有离群值。对称量化时零点是 0，负的那一侧整数大半空着；切到非对称，看零点变成多少、多用上了几个整数、误差小了多少。<button data-preset='{"dist":"shift","sym":"sym","calib":"minmax","bits":4,"out":0}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// ==== 计算部分（不碰页面，可以用 node 单独执行）====
+const N = 4000, N_OUT = 3;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const BASE = (() => { const r = rng(31), z = new Float64Array(N); for (let i = 0; i < N; i++) z[i] = Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); return z; })();
+
+// 生成数据：前 N_OUT 个位置放离群值（out 为 0 时不放）
+function makeData(dist, out) {
+  const x = new Float64Array(N);
+  for (let i = 0; i < N; i++) x[i] = dist === "relu" ? Math.abs(BASE[i]) : dist === "shift" ? 1.5 + 0.8 * BASE[i] : BASE[i];
+  if (out > 0) for (let i = 0; i < N_OUT; i++) x[i] = out;
+  return x;
+}
+// 和作业 quant_params 相同的约定：非对称用 0 到 2^b-1 并把范围扩到包含 0；对称用 -(2^(b-1)-1) 到 2^(b-1)-1，零点为 0
+function quantParams(lo, hi, bits, symmetric) {
+  if (symmetric) { const qmax = 2 ** (bits - 1) - 1, bound = Math.max(Math.abs(lo), Math.abs(hi)); return { scale: bound > 0 ? bound / qmax : 1, zp: 0, qmin: -qmax, qmax }; }
+  const qmin = 0, qmax = 2 ** bits - 1; lo = Math.min(lo, 0); hi = Math.max(hi, 0);
+  if (hi === lo) return { scale: 1, zp: 0, qmin, qmax };
+  const scale = (hi - lo) / (qmax - qmin);
+  return { scale, zp: Math.min(qmax, Math.max(qmin, Math.round(qmin - lo / scale))), qmin, qmax };
+}
+function quantize(v, p) { return Math.min(p.qmax, Math.max(p.qmin, Math.round(v / p.scale) + p.zp)); }
+function dequantize(q, p) { return (q - p.zp) * p.scale; }
+function mse(x, p) { let s = 0; for (const v of x) { const e = dequantize(quantize(v, p), p) - v; s += e * e; } return s / x.length; }
+// 三种定范围的办法，返回 [lo, hi]
+function calibrate(x, method, bits, symmetric) {
+  const s = Float64Array.from(x).sort();
+  let lo = s[0], hi = s[N - 1];
+  if (method === "pct") { const pos = 0.999 * (N - 1), i = Math.floor(pos), f = pos - i; hi = s[i] + f * (s[Math.min(i + 1, N - 1)] - s[i]); const pl = 0.001 * (N - 1), j = Math.floor(pl), g = pl - j; lo = s[j] + g * (s[j + 1] - s[j]); }
+  if (method === "mse") { let best = Infinity, bf = 1; for (let k = 0; k < 96; k++) { const f = 0.05 + 0.95 * k / 95, e = mse(x, quantParams(lo * f, hi * f, bits, symmetric)); if (e < best) { best = e; bf = f; } } lo *= bf; hi *= bf; }
+  return [lo, hi];
+}
+function compute(st) {
+  const x = makeData(st.dist, st.out), symmetric = st.sym === "sym";
+  const [lo, hi] = calibrate(x, st.calib, st.bits, symmetric);
+  const p = quantParams(lo, hi, st.bits, symmetric);
+  const q = new Int32Array(N), xh = new Float64Array(N);
+  let se = 0, sx = 0, clipped = 0; const used = new Set();
+  const repLo = dequantize(p.qmin, p), repHi = dequantize(p.qmax, p), first = st.out > 0 ? N_OUT : 0;
+  for (let i = 0; i < N; i++) {
+    q[i] = quantize(x[i], p); xh[i] = dequantize(q[i], p);
+    if (x[i] < repLo - p.scale / 2 || x[i] > repHi + p.scale / 2) clipped++;
+    if (i >= first) { se += (xh[i] - x[i]) ** 2; sx += x[i] * x[i]; used.add(q[i]); }
+  }
+  return { x, xh, q, p, lo, hi, repLo, repHi, relErr: Math.sqrt(se / sx), clipped, used: used.size, levels: p.qmax - p.qmin + 1, outKept: st.out > 0 ? xh[0] / st.out : 1 };
+}
+if (typeof module !== "undefined") module.exports = { compute, quantParams, makeData, calibrate };
+
+// ==== 界面部分 ====
+if (typeof document !== "undefined") {
+const state = { dist: "gauss", sym: "asym", calib: "minmax", bits: 8, out: 0 };
+const $ = id => document.getElementById(id);
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function fmt(v) { const a = Math.abs(v); return a >= 100 ? v.toFixed(0) : a >= 10 ? v.toFixed(1) : a >= 0.1 ? v.toFixed(3) : v.toFixed(4); }
+
+function render() {
+  const r = compute(state), p = r.p;
+  $("bitsV").textContent = state.bits + " 位，" + r.levels + " 个整数"; $("outV").textContent = state.out === 0 ? "没有" : state.out;
+  $("kScale").textContent = fmt(p.scale); $("kZp").textContent = p.zp; $("kUsed").textContent = r.used + " / " + r.levels;
+  $("kErr").textContent = (100 * r.relErr).toFixed(r.relErr < 0.1 ? 2 : 1) + "%"; $("kClip").textContent = r.clipped;
+  $("kErrBox").className = "kpi " + (r.relErr > 0.1 ? "bad" : "ok");
+
+  // 横轴：主体的范围和能表示的范围都要看得见；离群值很远时只在右边缘画一条红线，不把主体挤成一条缝
+  let xmin = Infinity, xmax = -Infinity; const first = state.out > 0 ? N_OUT : 0;
+  for (let i = first; i < N; i++) { xmin = Math.min(xmin, r.x[i]); xmax = Math.max(xmax, r.x[i]); }
+  const span = xmax - xmin; let x0 = Math.min(xmin, 0) - 0.08 * span, x1 = xmax + 0.08 * span;
+  if (r.repHi < x1 + 3 * span) x1 = Math.max(x1, r.repHi + 0.05 * span);
+  if (r.repLo > x0 - 3 * span) x0 = Math.min(x0, r.repLo - 0.05 * span);
+  if (state.out > 0 && state.out < x1 + 2 * span) x1 = Math.max(x1, state.out + 0.05 * span);
+  const L = 40, R = 10, T = 8, B = 22;
+
+  let [ctx, w, h] = setup($("c1"));
+  const sx = v => L + (v - x0) / (x1 - x0) * (w - L - R);
+  const nb = 80, bw = (x1 - x0) / nb, hx = new Float64Array(nb), hq = new Map();
+  for (let i = 0; i < N; i++) { const b = Math.floor((r.x[i] - x0) / bw); if (b >= 0 && b < nb) hx[b]++; hq.set(r.q[i], (hq.get(r.q[i]) || 0) + 1); }
+  const ymax = Math.max(...hx) * 1.15, sy = v => h - B - Math.min(v, ymax) / ymax * (h - T - B);
+  ctx.fillStyle = "rgba(26,156,75,.10)"; const gl = Math.max(sx(r.repLo), L), gr = Math.min(sx(r.repHi), w - R); if (gr > gl) ctx.fillRect(gl, T, gr - gl, h - T - B);
+  ctx.fillStyle = "#c9cdd4"; for (let b = 0; b < nb; b++) if (hx[b]) ctx.fillRect(sx(x0 + b * bw), sy(hx[b]), Math.max(1, sx(x0 + (b + 1) * bw) - sx(x0 + b * bw) - 1), h - B - sy(hx[b]));
+  // 量化后的值只落在格点上：每个格点一根细柱，高度按“这个格点上的个数除以一格里有几个直方图小格”折算，和灰色直方图可比
+  const per = Math.max(p.scale / bw, 1); ctx.fillStyle = "#2f6fed";
+  for (const [qv, cnt] of hq) { const v = dequantize(qv, p); if (v < x0 || v > x1) continue; const bar = Math.max(2, Math.min(6, (sx(p.scale) - sx(0)) * 0.5)); ctx.fillRect(sx(v) - bar / 2, sy(cnt / per), bar, h - B - sy(cnt / per)); }
+  if (state.out > 0) { const ox = Math.min(sx(state.out), w - R - 1); ctx.strokeStyle = "#d6362f"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ox, T); ctx.lineTo(ox, h - B); ctx.stroke(); ctx.fillStyle = "#d6362f"; ctx.font = "11px sans-serif"; ctx.textAlign = "right"; ctx.fillText(sx(state.out) > w - R - 1 ? "离群值 " + state.out + "（在图外）" : "离群值", ox - 4, T + 11); }
+  ctx.strokeStyle = "#b9bec7"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, h - B); ctx.lineTo(w - R, h - B); ctx.stroke();
+  ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  const step = [0.25, 0.5, 1, 2, 5, 10, 20, 50].find(s => (x1 - x0) / s <= 12) || 100;
+  for (let t = Math.ceil(x0 / step) * step; t <= x1; t += step) ctx.fillText(+t.toFixed(2), sx(t), h - 7);
+
+  [ctx, w, h] = setup($("c2"));
+  const emax = Math.max(p.scale * 1.6, 0.02), ey = v => T + (emax - Math.max(-emax, Math.min(emax, v))) / (2 * emax) * (h - T - B);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "right";
+  for (const v of [-emax, -p.scale / 2, 0, p.scale / 2, emax]) { ctx.setLineDash(Math.abs(Math.abs(v) - p.scale / 2) < 1e-12 ? [5, 4] : []); ctx.strokeStyle = Math.abs(Math.abs(v) - p.scale / 2) < 1e-12 ? "#8f959e" : "#e3e5e8"; ctx.beginPath(); ctx.moveTo(L, ey(v)); ctx.lineTo(w - R, ey(v)); ctx.stroke(); ctx.fillText(fmt(v), L - 4, ey(v) + 4); }
+  ctx.setLineDash([]); ctx.fillStyle = "rgba(232,113,10,.55)";
+  for (let i = 0; i < N; i++) { const v = r.x[i]; if (v < x0 || v > x1) continue; ctx.fillRect(sx(v) - 1, ey(r.xh[i] - v) - 1, 2, 2); }
+  ctx.fillStyle = "#646a73"; ctx.textAlign = "center";
+  for (let t = Math.ceil(x0 / step) * step; t <= x1; t += step) ctx.fillText(+t.toFixed(2), sx(t), h - 7);
+}
+
+function syncControls() {
+  for (const id of ["dist", "sym", "calib"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state[id]));
+  for (const id of ["bits", "out"]) $(id).value = state[id];
+}
+for (const id of ["dist", "sym", "calib"]) $(id).addEventListener("click", e => { if (e.target.dataset.v) { state[id] = e.target.dataset.v; syncControls(); render(); } });
+for (const id of ["bits", "out"]) $(id).addEventListener("input", e => { state[id] = +e.target.value; render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { Object.assign(state, JSON.parse(b.dataset.preset)); syncControls(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", render);
+syncControls(); render();
+}
+</script>
+</body>
+</html>

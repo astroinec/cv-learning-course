@@ -1,3 +1,7 @@
+# 课程的 Python 依赖。Windows 上先按 docs/环境安装.md 第 3.3 节装好带 CUDA 的 PyTorch，再运行：
+#     pip install -r requirements.txt
+# 这里的 torch、torchvision 不限定 CUDA 版本，已经装好的不会被替换。
+# 下限是课程用过的写法所需的版本；课程实测用的版本见 docs/环境安装.md 第 8 节。
 numpy>=1.26
 opencv-python>=4.9
 matplotlib>=3.8
@@ -5,8 +9,6 @@ pillow>=10.0
 torch>=2.2
 torchvision>=0.17
 jupyterlab>=4.0
-notebook>=7.0
 ipykernel>=6.0
 ipywidgets>=8.0
 nbformat>=5.9
-nbconvert>=7.0

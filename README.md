@@ -2,8 +2,11 @@
 
 一套中文的视觉算法动手课程，分两部分：
 
-- **第一部分（01–14 章）**：通用计算机视觉，面向“完成过本科基础学习、希望在实践中重新巩固数学与视觉算法”的学习者。
-- **第二部分（15–24 章）**：工业视觉专项，面向半导体检测方向的视觉算法岗，覆盖 C++ 工程、亚像素对齐、相机标定、缺陷检测、异常检测、合成数据、渲染管线、成像仿真和领域知识，最后用一个晶圆 die-to-die 检测项目串起来。
+- **第一部分（01–14 章）**：通用计算机视觉，从像素到检测、分割、生成与部署。
+- **第二部分（15–24 章）**：工业视觉专项，面向半导体检测方向的视觉算法岗，覆盖 C++ 工程、亚像素对齐、相机标定、缺陷检测、异常检测、合成数据、渲染管线、成像仿真和领域知识，用一个晶圆 die-to-die 检测项目串起来。
+- **第三部分（25–31 章）**：前沿方法，ViT、自监督基础模型（MAE/DINOv2）、SAM、视觉语言模型、扩散模型、神经渲染、部署与加速；每章既有从零实现的小模型，也有在自己机器上用真模型的一节。
+
+课程最终在一台 Windows 笔记本（RTX 4060，8 GB 显存）上使用。环境安装（Windows 为主）见 [`docs/环境安装.md`](docs/环境安装.md)；写课程和全部实测在 macOS 上用 CPU 完成，讲义里没有显卡上的数字。
 
 每章采用统一学习闭环：
 
@@ -11,7 +14,7 @@
 
 ## 从哪里开始
 
-**先打开课程网页**：在仓库根目录运行 `python -m http.server`，浏览器访问 `http://localhost:8000/site/index.html`。首页按学习路线列出每章的应用场景、优先级和三档用时，不需要从第 1 章按顺序学。24 章讲义都带实测配图、小测和交互演示。每章的用时和优先级以 `course.json` 为准，下面各文档里的旧用时表仅供参考。
+**先装好环境**（见 [`docs/环境安装.md`](docs/环境安装.md)，Windows 双击 `安装环境.bat`），**再打开课程网页**：双击 `打开课程网页.bat`，或运行 `python -m http.server 8000` 后访问 `http://localhost:8000/site/index.html`；也可直接看在线版 [`astroinec.github.io/cv-learning-course`](https://astroinec.github.io/cv-learning-course/)。首页按学习路线列出 31 章的应用场景、优先级和三档用时，不需要从第 1 章按顺序学。每章的用时和优先级以 `course.json` 为准，下面各文档里的旧用时表仅供参考。
 
 | 你想要 | 打开 |
 |---|---|
@@ -60,38 +63,23 @@
 
 ## 安装
 
-推荐 Python 3.10-3.13，使用独立虚拟环境：
+完整步骤（Windows 为主，含带 CUDA 的 PyTorch、第 15 章编译器、第三部分可选包）见 [`docs/环境安装.md`](docs/环境安装.md)。
+
+Windows：双击 `安装环境.bat`（它会提示先按文档装好带 CUDA 的 PyTorch）。手动或在 macOS/Linux 上：
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 python -m pip install --upgrade pip
+# 想用 NVIDIA 显卡：先按 docs/环境安装.md 第 3.3 节装带 CUDA 的 PyTorch，再装下面这行
 python -m pip install -r requirements.txt
 python -m ipykernel install --user --name cv-learning --display-name "Python 3 (cv-learning)"
-```
-
-Apple Silicon 可通过 PyTorch MPS 后端加速：
-
-```python
-import torch
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+python scripts/check_env.py        # 逐项检查环境
 ```
 
 ## 启动
 
-macOS/Linux：
-
-```bash
-./start_course.sh
-```
-
-或手动运行：
-
-```bash
-python -m jupyter lab .
-```
-
-macOS 也可以双击 `启动课程.command`。
+Windows 双击 `启动课程.bat`，macOS/Linux 运行 `./start_course.sh`，或手动 `python -m jupyter lab .`。内核选 “Python 3 (cv-learning)”。
 
 进入 `01_像素与色彩/`，依次阅读教程和 Notebook。完成作业后运行：
 

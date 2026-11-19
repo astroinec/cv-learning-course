@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -91,7 +91,7 @@
 <td>标准</td>
 <td style="text-align: right;">7 小时</td>
 <td>读完全章，跑 Notebook，完成 <code>作业_冻结策略与热图归一化.py</code> 并验收通过，做 10.11 节前三个破坏实验，填实验记录</td>
-<td>验收两项 PASS，实验记录里有可训练参数的清单、一张按固定范围显示的热图和一个失败案例，自测问题都能答</td>
+<td>验收 6 项全部 PASS，实验记录里有可训练参数的清单、一张按固定范围显示的热图和一个失败案例，自测问题都能答</td>
 </tr>
 <tr>
 <td>深挖</td>
@@ -232,17 +232,20 @@
 </ol>
 <p>所以策略表里“少且差异大”那一格，在这组数据上的实测建议是：<strong>先只训练分类头，把它当基线；微调放在后面，并且要当心下面两节讲的学习率和 BatchNorm</strong>。</p>
 <hr />
-<h2 id="102-在-pytorchmps-上跑通第一个迁移学习模型">10.2 在 PyTorch/MPS 上跑通第一个迁移学习模型</h2>
+<h2 id="102-在-pytorch-上跑通第一个迁移学习模型先-cuda再-mps">10.2 在 PyTorch 上跑通第一个迁移学习模型（先 CUDA，再 MPS）</h2>
 <h3 id="第一步设备和数据变换">第一步：设备和数据变换</h3>
-<p>Apple Silicon 上优先使用 MPS；不支持时回退 CPU。分类模型通常接收 RGB、固定尺寸、浮点张量，并按预训练权重要求归一化。</p>
+<p>这门课默认你用的是 Windows 加 NVIDIA 显卡的机器，所以设备先选 CUDA；Apple Silicon 上优先使用 MPS；不支持时回退 CPU。分类模型通常接收 RGB、固定尺寸、浮点张量，并按预训练权重要求归一化。</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchvision</span><span class="w"> </span><span class="kn">import</span> <span class="n">datasets</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torchvision.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">resnet18</span><span class="p">,</span> <span class="n">ResNet18_Weights</span>
 
-<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>                  <span class="c1"># NVIDIA 显卡</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>        <span class="c1"># Apple Silicon</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mps"</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
 <span class="n">weights</span> <span class="o">=</span> <span class="n">ResNet18_Weights</span><span class="o">.</span><span class="n">DEFAULT</span>
 <span class="n">train_tf</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">transforms</span><span class="p">()</span>   <span class="c1"># 含 resize/crop/to-tensor/normalize</span>
@@ -253,7 +256,7 @@
     <span class="n">root</span><span class="o">=</span><span class="s2">"data"</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">"val"</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">weights</span><span class="o">.</span><span class="n">transforms</span><span class="p">()</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>如果你的机器是带 NVIDIA 显卡的 Windows 或 Linux，把选设备那几行换成下面的写法，先 CUDA、再 MPS、最后 CPU。本节其余代码不用改。怎样确认显卡真的在用、怎样看显存，见本节最后一个小节。</p>
+<p>上面选设备的几行是先 CUDA、再 MPS、最后 CPU，在带 NVIDIA 显卡的 Windows 或 Linux、Apple Silicon 的 Mac 和只有 CPU 的机器上都能用，本节其余代码不用改。它也可以写成一行。怎样确认显卡真的在用、怎样看显存，见本节最后一个小节；原讲义针对 MPS 写的注意事项在“MPS 的实际注意事项”小节。</p>
 <div class="highlight"><pre><span></span><code><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
                       <span class="k">else</span> <span class="s2">"mps"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
 </code></pre></div>
@@ -323,11 +326,12 @@
 <span class="n">model</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="p">,</span> <span class="mi">102</span><span class="p">)</span>  <span class="c1"># 新层默认 requires_grad=True</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
-<span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_set</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">val_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">val_set</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_set</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">val_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">val_set</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">fc</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
 <span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
 </code></pre></div>
+<p><code>num_workers=0</code> 是在 Windows 上最不容易出问题的写法：数据在主进程里读。想加大它，要先把训练脚本的入口写进 <code>if __name__ == "__main__":</code>，否则 Windows 启动读数据的子进程时会报错。</p>
 <p>这里的顺序很重要：先冻结旧参数，再换新头。若反过来把整个模型统一冻结，新建的 <code>fc</code> 也可能被冻住。创建优化器时只传可训练参数，能让“究竟训练了什么”更明确。</p>
 <p>原讲义在这里还说“只传可训练参数能减少状态内存”。在本章用的 PyTorch 版本上实测，这一条不成立：把 62 个参数张量全部传给 AdamW、其中只有分类头可训练，训练 3 步之后优化器里有状态的只有 2 个张量，冻结的参数既不占状态，也没有被改动（相对变化是 0）。真正要小心的是另外两件事，都和“改了 <code>requires_grad</code> 之后没有重建优化器”有关（ResNet-18，AdamW，学习率 1e-4，同一个批连续训练 3 步）：</p>
 <div class="table-wrap"><table>
@@ -391,6 +395,7 @@
 </code></pre></div>
 <p>它必须放在 <code>model.train()</code> 之后，而且每个 epoch 都要调用：<code>model.train()</code> 会把所有子模块重新设回训练模式，实测调用一次之后全部 BatchNorm 层的 <code>training</code> 又变回了 <code>True</code>。在和 ImageNet 更接近的数据上（例如 Flowers102），两种写法差多少本章没有测，按 10.3 节的建议自己比较一次。</p>
 <h3 id="mps-的实际注意事项">MPS 的实际注意事项</h3>
+<p>这一小节是给用 Apple Silicon 的情况准备的。其中第 1、3、4 条用 CUDA 时同样适用，报错信息里的设备名会是 <code>cuda:0</code>。</p>
 <ul>
 <li>张量和模型必须在同一设备；报 device mismatch 时先打印 <code>x.device</code> 与首个参数的 <code>device</code>。</li>
 <li>某些算子或数据类型在特定 PyTorch 版本上不支持 MPS。先升级稳定版 PyTorch；教学代码优先保持 <code>float32</code>，不要一上来混合精度。</li>
@@ -704,9 +709,9 @@ L_GradCAM^c = ReLU(Σ_k α_k^c A^k)
 <span class="n">logits</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">class_id</span><span class="p">]</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
 
 <span class="n">w</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[</span><span class="s2">"value"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">cam</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">acts</span><span class="p">[</span><span class="s2">"value"</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">relu</span><span class="p">()</span>
-<span class="n">cam</span> <span class="o">-=</span> <span class="n">cam</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">cam</span> <span class="o">/=</span> <span class="n">cam</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">)</span>
+<span class="n">cam</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">acts</span><span class="p">[</span><span class="s2">"value"</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">cam</span> <span class="o">=</span> <span class="n">normalize_heatmap</span><span class="p">(</span><span class="n">cam</span><span class="p">)</span>   <span class="c1"># 作业 10 的函数：去掉负值、逐张缩放到 0 到 1，自己实现</span>
+<span class="c1"># 完成作业之后可以在参考答案分支对照完整写法</span>
 <span class="n">cam</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
     <span class="n">cam</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"bilinear"</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">)</span>
@@ -1032,7 +1037,7 @@ L_GradCAM^c = ReLU(Σ_k α_k^c A^k)
 <li><strong>把热图当因果证据</strong>：热图适合发现可疑区域，结论需遮挡、分组测试等实验确认。</li>
 </ol>
 <p>建议排查顺序：先让 16～32 张样本过拟合到接近 100%，验证模型、标签和训练循环能工作；再扩大数据；最后才讨论增强和微调策略。若极小数据都过拟合不了，通常是实现错误、标签错误或学习率问题。</p>
-<p>把上面的条目和本章实测到的情况合起来，按现象查。前六行是做作业 <code>作业_冻结策略与热图归一化.py</code> 时最容易遇到的，其中标了“验收测不出来”的三行要自己另外检查。</p>
+<p>把上面的条目和本章实测到的情况合起来，按现象查。前七行是做作业 <code>作业_冻结策略与热图归一化.py</code> 时最容易遇到的，其中三行标了“早先的验收测不出来”：这三种错误最早的验收都会放过，现在各有一项检查对着它，括号里写了是哪一项。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1048,12 +1053,12 @@ L_GradCAM^c = ReLU(Σ_k α_k^c A^k)
 <td>返回值要和 <code>model.named_parameters()</code> 的顺序一致，按它的顺序遍历</td>
 </tr>
 <tr>
-<td>第一次调用正常，逐块解冻时再调用一次，新加的层没有解冻（验收测不出来）</td>
+<td>第一次调用正常，逐块解冻时再调用一次，新加的层没有解冻（早先的验收测不出来，现在由“在已经部分冻结的模型上重复调用”一项检查）</td>
 <td>只把不匹配的参数设成了 <code>False</code>，没有把匹配的设回 <code>True</code></td>
 <td>对同一个模型先后用 <code>("head",)</code> 和 <code>("backbone.2", "head")</code> 调用两次，打印每个参数的 <code>requires_grad</code></td>
 </tr>
 <tr>
-<td>解冻了不该解冻的层（验收测不出来）</td>
+<td>解冻了不该解冻的层（早先的验收测不出来，现在由“前缀匹配、返回顺序、只含参数”一项检查）</td>
 <td>用了“名字里包含”而不是“以它开头”；或者前缀写得太短，12 层的 <code>nn.Sequential</code> 里前缀 <code>"1"</code> 会同时匹配第 1、10、11 层</td>
 <td>打印返回的名字列表逐个看；前缀写到带点的完整一级，例如 <code>"1."</code></td>
 </tr>
@@ -1068,7 +1073,12 @@ L_GradCAM^c = ReLU(Σ_k α_k^c A^k)
 <td>输入两张强度相差很大的热图，检查每张的最大值</td>
 </tr>
 <tr>
-<td>输入里的负值没有变成 0（验收测不出来）</td>
+<td>验收报原地修改了输入</td>
+<td>用了 <code>relu_</code>、<code>-=</code>、<code>/=</code> 这类原地运算，调用之后传进来的原始热图也被改了</td>
+<td>调用前先 <code>cam.clone()</code> 存一份，调用后比较</td>
+</tr>
+<tr>
+<td>输入里的负值没有变成 0（早先的验收测不出来，现在由“手算例子”一项检查）</td>
 <td>没有先做 ReLU 就归一化，最小值成了负数</td>
 <td>输入带负值的热图，检查输入不大于 0 的位置输出是不是 0</td>
 </tr>
@@ -1184,7 +1194,8 @@ L_GradCAM^c = ReLU(Σ_k α_k^c A^k)
 <p>作业文件里有两个函数，都很短，要点在文档字符串里。</p>
 <p><code>configure_trainable_parameters(model, trainable_prefixes)</code>：让名字以给定前缀开头的参数可训练，其余的冻结，并按 <code>model.named_parameters()</code> 的顺序返回可训练参数的名字。它是 10.3 节“逐块解冻”的工具，会被反复调用，所以每次调用都要把每个参数的 <code>requires_grad</code> 明确地设成该有的值，不能假设模型之前是什么状态。前缀是字符串意义上的前缀，10.9 节表格的第三行是它最容易出的错。这个函数只管参数，管不了 BatchNorm 的模式，也不会替你重建优化器。</p>
 <p><code>normalize_heatmap(cam)</code>：先做 ReLU，再对批里的每一张热图分别做最大最小归一化，常量热图返回全 0。它实现的是 10.5 节的单张归一化。写完之后做一下 10.11 节的第 2 个破坏实验，亲眼看一次它怎样把强度信息丢掉。</p>
-<p>完成后运行 <code>python tests/check_progress.py</code>。验收只有两个算例，10.9 节表格里标了“验收测不出来”的三种错误它都会放过，按“怎么查”那一栏自己各测一次。</p>
+<p>完成后运行 <code>python tests/check_progress.py</code>。验收一共 6 项。冻结策略 3 项：基本用例；在已经部分冻结的模型上连续调用几次；前缀匹配（不是包含）、返回顺序、只含参数不含缓冲区。热图归一化 3 项：两个能手算的例子；常量、全负和很弱的热图；逐样本独立和不改输入。最早的验收只有两个算例，10.9 节表格里那三种错误它都会放过；现在把参考实现改成那三种写法再运行验收，每一种都至少有一项 FAIL。验收通过之后，仍然建议按表里“怎么查”那一栏把这三种情况自己各试一次，逐块解冻时出的问题多半就是它们。</p>
+<p>文档字符串里有两处约定容易看漏。一是前缀按普通的字符串前缀算，<code>"head"</code> 不匹配 <code>prehead.weight</code>，但会匹配 <code>head2.weight</code>，想只要 <code>head</code> 这一层就写 <code>"head."</code>。二是“常量热图”按 ReLU 之后算，所有值都不大于 0 的热图也返回全 0。</p>
 <hr />
 <h2 id="1011-破坏实验">10.11 破坏实验</h2>
 <p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做，只需要 Notebook 和你的作业，不用下载权重。后三个需要 ResNet-18 的 ImageNet 权重（第一次使用时 torchvision 会下载）和一个小数据集，可以用 DL-5 里自己准备的那几类照片。</p>
@@ -1223,7 +1234,7 @@ L_GradCAM^c = ReLU(Σ_k α_k^c A^k)
 <li>[ ] 我知道为什么先训练分类头，再逐块解冻通常更稳。</li>
 <li>[ ] 我能打印所有 <code>requires_grad=True</code> 的参数并确认优化器覆盖它们。</li>
 <li>[ ] 训练增强表达的是合理不变性，验证预处理是确定性的。</li>
-<li>[ ] 模型、输入和标签位于同一个 MPS/CPU 设备。</li>
+<li>[ ] 模型、输入和标签位于同一个设备（CUDA、MPS 或 CPU）。</li>
 <li>[ ] 我能写出 Grad-CAM 的权重 <code>α_k^c</code> 和热图公式。</li>
 <li>[ ] 我不会把 Grad-CAM 热图当作精确分割或因果证明。</li>
 <li>[ ] 我为 DL-5 保留固定数据划分，并比较冻结、部分微调、全量微调。</li>
@@ -1248,7 +1259,7 @@ L_GradCAM^c = ReLU(Σ_k α_k^c A^k)
 </ol></article><nav class="prev-next"><a href="09.html">← 第 9 章 CNN 核心</a><a href="11.html">第 11 章 目标检测 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#101-为什么预训练有效">10.1 为什么预训练有效</a></li><li class="sub"><a href="#先把预训练模型想成一个视觉词典">先把预训练模型想成一个“视觉词典”</a></li><li class="sub"><a href="#什么时候迁移最有效">什么时候迁移最有效</a></li><li class="sub"><a href="#实测每类只有几张到几十张缺陷图时">实测：每类只有几张到几十张缺陷图时</a></li><li><a href="#102-在-pytorchmps-上跑通第一个迁移学习模型">10.2 在 PyTorch/MPS 上跑通第一个迁移学习模型</a></li><li class="sub"><a href="#第一步设备和数据变换">第一步：设备和数据变换</a></li><li class="sub"><a href="#实测预处理和预训练时不一致会掉多少">实测：预处理和预训练时不一致会掉多少</a></li><li class="sub"><a href="#第二步替换分类头并冻结主干">第二步：替换分类头并冻结主干</a></li><li class="sub"><a href="#第三步写完整训练闭环">第三步：写完整训练闭环</a></li><li class="sub"><a href="#mps-的实际注意事项">MPS 的实际注意事项</a></li><li class="sub"><a href="#在自己的显卡上微调确认可用看显存批大小不够怎么办">在自己的显卡上微调：确认可用、看显存、批大小不够怎么办</a></li><li><a href="#103-微调多少层从保守到激进">10.3 微调多少层：从保守到激进</a></li><li class="sub"><a href="#策略-a只训练分类头">策略 A：只训练分类头</a></li><li class="sub"><a href="#策略-b逐块解冻">策略 B：逐块解冻</a></li><li class="sub"><a href="#实测骨干和分类头的学习率">实测：骨干和分类头的学习率</a></li><li class="sub"><a href="#灾难性遗忘与-batchnorm">灾难性遗忘与 BatchNorm</a></li><li class="sub"><a href="#实测冻结骨干时-batchnorm-留在训练模式">实测：冻结骨干时 BatchNorm 留在训练模式</a></li><li><a href="#104-数据增强告诉模型什么不应该影响答案">10.4 数据增强：告诉模型什么“不应该影响答案”</a></li><li class="sub"><a href="#实测合理的增强和制造错误标签的增强">实测：合理的增强和制造错误标签的增强</a></li><li class="sub"><a href="#用学习曲线决定下一步而不是凭感觉调参">用学习曲线决定下一步，而不是凭感觉调参</a></li><li class="sub"><a href="#特征缓存快速验证预训练表示够不够">特征缓存：快速验证“预训练表示够不够”</a></li><li><a href="#105-grad-cam模型究竟在看哪里">10.5 Grad-CAM：模型究竟在看哪里</a></li><li class="sub"><a href="#数学直觉">数学直觉</a></li><li class="sub"><a href="#逐步实现核心">逐步实现核心</a></li><li class="sub"><a href="#热图归一化单张归一化会给良品也画出热点">热图归一化：单张归一化会给良品也画出热点</a></li><li class="sub"><a href="#合理性检查把权重随机化热图变不变">合理性检查：把权重随机化，热图变不变</a></li><li class="sub"><a href="#交互演示热图归一化">交互演示：热图归一化</a></li><li><a href="#106-shortcut-learning高分模型也可能学错">10.6 Shortcut Learning：高分模型也可能学错</a></li><li><a href="#107-不要只看准确率模型分析的基本工具怎样评估">10.7 不要只看准确率：模型分析的基本工具（怎样评估）</a></li><li class="sub"><a href="#混淆矩阵告诉你错在谁和谁">混淆矩阵告诉你“错在谁和谁”</a></li><li class="sub"><a href="#置信度不等于正确概率">置信度不等于正确概率</a></li><li class="sub"><a href="#按切片评估而不是只报一个平均数">按切片评估，而不是只报一个平均数</a></li><li class="sub"><a href="#怎样评估和报告一次迁移学习实验">怎样评估和报告一次迁移学习实验</a></li><li><a href="#108-一个从冻结到解释的完整小实验">10.8 一个从冻结到解释的完整小实验</a></li><li><a href="#109-常见坑与排查顺序常见错误">10.9 常见坑与排查顺序（常见错误）</a></li><li><a href="#1010-与-dl-5dl-6-练习连接">10.10 与 DL-5、DL-6 练习连接</a></li><li class="sub"><a href="#dl-5做一组可解释的对照实验">DL-5：做一组可解释的对照实验</a></li><li class="sub"><a href="#dl-6让-grad-cam-成为模型单元测试">DL-6：让 Grad-CAM 成为模型单元测试</a></li><li class="sub"><a href="#作业冻结策略与热图归一化自动验收">作业：冻结策略与热图归一化（自动验收）</a></li><li><a href="#1011-破坏实验">10.11 破坏实验</a></li><li><a href="#1012-扩展深挖档">10.12 扩展（深挖档）</a></li><li><a href="#1013-和后续章节的关系">10.13 和后续章节的关系</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#101-为什么预训练有效">10.1 为什么预训练有效</a></li><li class="sub"><a href="#先把预训练模型想成一个视觉词典">先把预训练模型想成一个“视觉词典”</a></li><li class="sub"><a href="#什么时候迁移最有效">什么时候迁移最有效</a></li><li class="sub"><a href="#实测每类只有几张到几十张缺陷图时">实测：每类只有几张到几十张缺陷图时</a></li><li><a href="#102-在-pytorch-上跑通第一个迁移学习模型先-cuda再-mps">10.2 在 PyTorch 上跑通第一个迁移学习模型（先 CUDA，再 MPS）</a></li><li class="sub"><a href="#第一步设备和数据变换">第一步：设备和数据变换</a></li><li class="sub"><a href="#实测预处理和预训练时不一致会掉多少">实测：预处理和预训练时不一致会掉多少</a></li><li class="sub"><a href="#第二步替换分类头并冻结主干">第二步：替换分类头并冻结主干</a></li><li class="sub"><a href="#第三步写完整训练闭环">第三步：写完整训练闭环</a></li><li class="sub"><a href="#mps-的实际注意事项">MPS 的实际注意事项</a></li><li class="sub"><a href="#在自己的显卡上微调确认可用看显存批大小不够怎么办">在自己的显卡上微调：确认可用、看显存、批大小不够怎么办</a></li><li><a href="#103-微调多少层从保守到激进">10.3 微调多少层：从保守到激进</a></li><li class="sub"><a href="#策略-a只训练分类头">策略 A：只训练分类头</a></li><li class="sub"><a href="#策略-b逐块解冻">策略 B：逐块解冻</a></li><li class="sub"><a href="#实测骨干和分类头的学习率">实测：骨干和分类头的学习率</a></li><li class="sub"><a href="#灾难性遗忘与-batchnorm">灾难性遗忘与 BatchNorm</a></li><li class="sub"><a href="#实测冻结骨干时-batchnorm-留在训练模式">实测：冻结骨干时 BatchNorm 留在训练模式</a></li><li><a href="#104-数据增强告诉模型什么不应该影响答案">10.4 数据增强：告诉模型什么“不应该影响答案”</a></li><li class="sub"><a href="#实测合理的增强和制造错误标签的增强">实测：合理的增强和制造错误标签的增强</a></li><li class="sub"><a href="#用学习曲线决定下一步而不是凭感觉调参">用学习曲线决定下一步，而不是凭感觉调参</a></li><li class="sub"><a href="#特征缓存快速验证预训练表示够不够">特征缓存：快速验证“预训练表示够不够”</a></li><li><a href="#105-grad-cam模型究竟在看哪里">10.5 Grad-CAM：模型究竟在看哪里</a></li><li class="sub"><a href="#数学直觉">数学直觉</a></li><li class="sub"><a href="#逐步实现核心">逐步实现核心</a></li><li class="sub"><a href="#热图归一化单张归一化会给良品也画出热点">热图归一化：单张归一化会给良品也画出热点</a></li><li class="sub"><a href="#合理性检查把权重随机化热图变不变">合理性检查：把权重随机化，热图变不变</a></li><li class="sub"><a href="#交互演示热图归一化">交互演示：热图归一化</a></li><li><a href="#106-shortcut-learning高分模型也可能学错">10.6 Shortcut Learning：高分模型也可能学错</a></li><li><a href="#107-不要只看准确率模型分析的基本工具怎样评估">10.7 不要只看准确率：模型分析的基本工具（怎样评估）</a></li><li class="sub"><a href="#混淆矩阵告诉你错在谁和谁">混淆矩阵告诉你“错在谁和谁”</a></li><li class="sub"><a href="#置信度不等于正确概率">置信度不等于正确概率</a></li><li class="sub"><a href="#按切片评估而不是只报一个平均数">按切片评估，而不是只报一个平均数</a></li><li class="sub"><a href="#怎样评估和报告一次迁移学习实验">怎样评估和报告一次迁移学习实验</a></li><li><a href="#108-一个从冻结到解释的完整小实验">10.8 一个从冻结到解释的完整小实验</a></li><li><a href="#109-常见坑与排查顺序常见错误">10.9 常见坑与排查顺序（常见错误）</a></li><li><a href="#1010-与-dl-5dl-6-练习连接">10.10 与 DL-5、DL-6 练习连接</a></li><li class="sub"><a href="#dl-5做一组可解释的对照实验">DL-5：做一组可解释的对照实验</a></li><li class="sub"><a href="#dl-6让-grad-cam-成为模型单元测试">DL-6：让 Grad-CAM 成为模型单元测试</a></li><li class="sub"><a href="#作业冻结策略与热图归一化自动验收">作业：冻结策略与热图归一化（自动验收）</a></li><li><a href="#1011-破坏实验">10.11 破坏实验</a></li><li><a href="#1012-扩展深挖档">10.12 扩展（深挖档）</a></li><li><a href="#1013-和后续章节的关系">10.13 和后续章节的关系</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

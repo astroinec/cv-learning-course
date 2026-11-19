@@ -1,6 +1,6 @@
 # 第 1 章数据说明
 
-本章不依赖大型数据集。课程根目录 `../images/` 已提供两张合成测试图：
+本章不依赖大型数据集，也不依赖任何图片文件。作业和 Notebook 默认使用下面两张合成测试图，它们不随仓库提供：在课程根目录运行 `python scripts/generate_sample_images.py` 会把它们生成到课程根目录的 `images/` 下；不生成也可以，作业和 Notebook 找不到文件时会用代码生成内容相同的图。
 
 - `test_underexposed.jpg`：用于直方图、亮度增强和噪声实验。
 - `test_color.jpg`：用于 BGR/RGB/HSV 和通道实验。

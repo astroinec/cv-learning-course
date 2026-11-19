@@ -5,27 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>渲染管线：MVP 与 z-buffer</title>
 <style>
-  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f6f7f9; color: #1f2329; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .sub { color: #646a73; margin-bottom: 16px; }
-  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
-  .panel { background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; padding: 14px; }
-  label { display: block; font-size: 13px; color: #646a73; margin-bottom: 6px; }
-  input[type=range] { width: 100%; }
-  .val { font-weight: 600; color: #1f2329; float: right; }
-  h3 { font-size: 14px; margin: 10px 0 6px; }
-  .views { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  canvas { width: 100%; background: #fff; border: 1px solid #e3e5e8; border-radius: 8px; }
-  .cap { font-size: 12px; color: #646a73; text-align: center; }
-  pre { background: #f6f7f9; padding: 8px; border-radius: 6px; font-size: 12px; overflow-x: auto; }
-  ul { padding-left: 18px; margin: 6px 0; }
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 12px; margin-bottom: 12px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  input[type=range] { width: 100%; margin: 2px 0 0; accent-color: var(--blue); }
+  .val { font-weight: 600; color: var(--ink); float: right; font-variant-numeric: tabular-nums; }
+  h3 { font-size: 13.5px; margin: 8px 0 4px; }
+  h3:first-child { margin-top: 0; }
+  .views { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  canvas { width: 100%; display: block; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+  .cap { font-size: 12px; color: var(--muted); text-align: center; }
+  pre { background: var(--bg); padding: 8px 10px; border-radius: 6px; font-size: 12px; margin: 0; white-space: pre-wrap; word-break: break-all; font-variant-numeric: tabular-nums; }
+  .note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try li { margin-bottom: 2px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .layout { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>渲染管线：MVP 与 z-buffer（第 21 章）</h1>
-  <div class="sub">左图是逐像素软光栅（重心坐标 + 深度测试 + Lambert 光照），右图是对应的深度缓冲。算法和第 21 章作业完全一致，可以拿来和自己的实现对照。</div>
+  <div class="sub">左图是逐像素软光栅（重心坐标 + 深度测试 + 逐面 Lambert 光照），右图是对应的深度缓冲。矩阵、屏幕映射、像素中心采样、“边上算在内”和 z-buffer 的做法与第 21 章作业相同。有两处和作业不同：深度不在 [0, 1] 之间的像素直接丢掉（作业不丢）；深度缓冲是 32 位浮点（作业是 64 位）。所有计算在浏览器里完成，不执行 Python。</div>
   <div class="layout">
     <div class="panel">
       <h3>模型 M</h3>
@@ -48,20 +56,26 @@
       </div>
       <div class="panel" style="margin-top:12px">
         <pre id="info"></pre>
-        <ul>
-          <li>关闭深度测试：后画的面会盖住先画的面，即使它在后面。z-buffer 让结果和绘制顺序无关。</li>
-          <li>把 near 调到 0.05、far 调到 30：深度图大部分区域挤在同一种亮度里，这就是深度的非线性分配。</li>
-          <li>把距离调到 1.5 左右：离相机最近的面有一部分落在近平面（near）以内，被逐像素丢弃，于是能直接看到立方体内壁。</li>
-          <li>继续调到 1 以内：相机进入立方体，有的顶点跑到相机后方，含这些顶点的三角形整个被裁掉（作业里 w ≤ 0 的点输出 NaN）。真正的渲染器会把三角形沿近平面切开，而不是整个丢掉。</li>
-          <li>fovy 调大：透视变形更明显，像广角镜头。</li>
-        </ul>
+        <p class="note">“上色的像素”数的是画面上有颜色的像素，一个像素只数一次；“写入次数”数的是通过深度测试并写进缓冲的次数，同一个像素被几个三角形先后写入就数几次。“整个丢掉的三角形”是有顶点在相机后方（裁剪坐标 w ≤ 0，作业里这样的点输出 NaN）的三角形，它们没有被沿近平面切开，而是一个像素也不画。</p>
       </div>
     </div>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>默认设置。读信息栏的可见深度范围：立方体离相机 6、far 是 20，深度却挤在 0.91 到 0.95 这一小段里，右边的深度图几乎全黑。这是深度非线性分配的结果。<button data-preset='{}'>载入</button></li>
+      <li>near 从 0.5 改成 3。可见深度范围摊开到 0.41 到 0.64，深度图上三个面的深浅分得出来了。再手动把 near 拖到 0.05、far 拖到 30，整个立方体又挤回同一种亮度。near 越小，深度越挤。<button data-preset='{"near":3}'>载入</button></li>
+      <li>关闭深度测试。上色的像素个数不变，但后画的面盖住了先画的面，不管谁在前；写入次数正好变成上色像素数的两倍，因为每个像素被正面和背面各写了一次。<button data-preset='{"nozb":true}'>载入</button></li>
+      <li>相机距离改成 1.5。立方体占满画面，“深度不在 [0, 1] 被丢掉的片元”不再是 0：离相机最近的那部分表面落在近平面以内，被逐像素丢掉，能直接看到内壁。再手动把距离拖到 1：有顶点跑到相机后方，“整个丢掉的三角形”变成 8/12，画面出现露出背景的洞。真正的渲染器会把三角形沿近平面切开，而不是整个丢掉。<button data-preset='{"dist":1.5}'>载入</button></li>
+      <li>fovy 改成 120，相机距离改成 2.5，并叠加线框。上色的像素比默认设置少一些，但离相机近的棱明显比远处的棱长，近大远小比默认设置明显得多，像广角镜头。可以再手动把 fovy 拖回 50、距离拖回 6 对比。<button data-preset='{"fov":120,"dist":2.5,"wire":true}'>载入</button></li>
+    </ol>
   </div>
 </div>
 <script>
 const $ = id => document.getElementById(id);
 const ids = ["spin", "az", "el", "dist", "fov", "near", "far"];
+const DEFAULTS = { spin: 30, az: 35, el: 25, dist: 6, fov: 50, near: 0.5, far: 20, wire: false, nozb: false };
 const V = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
 const F = [[0,2,1],[0,3,2],[4,5,6],[4,6,7],[0,1,5],[0,5,4],[3,6,2],[3,7,6],[0,4,7],[0,7,3],[1,2,6],[1,6,5]];
 const COL = [[214,57,49],[214,57,49],[46,161,33],[46,161,33],[47,122,229],[47,122,229],[222,120,2],[222,120,2],[143,89,214],[143,89,214],[20,160,170],[20,160,170]];
@@ -87,19 +101,24 @@ function draw() {
   const eye = [v.dist * Math.cos(el) * Math.sin(az), v.dist * Math.sin(el), v.dist * Math.cos(el) * Math.cos(az)];
   const Vm = lookAt(eye, [0, 0, 0], [0, 1, 0]), P = persp(v.fov, W / H, v.near, v.far);
   const MVP = mul(P, mul(Vm, M));
+  // 屏幕映射。w <= 0 的顶点在相机后方，作业里输出 NaN，这里记成 null
   const scr = V.map(p => { const c = apply(MVP, [...p, 1]); if (c[3] <= 1e-6) return null;
     const n = c.slice(0, 3).map(x => x / c[3]); return [(n[0] + 1) / 2 * W, (1 - n[1]) / 2 * H, (n[2] + 1) / 2]; });
   const light = norm([0.4, 0.8, 0.6]);
   const zbuf = new Float32Array(W * H).fill(Infinity), cbuf = new Uint8ClampedArray(W * H * 4);
   for (let i = 0; i < W * H; i++) { cbuf[4*i] = 251; cbuf[4*i+1] = 251; cbuf[4*i+2] = 252; cbuf[4*i+3] = 255; }
-  const noZ = $("nozb").checked; let drawn = 0, clipped = 0;
+  const noZ = $("nozb").checked;
+  let writes = 0;      // 通过深度测试并写入缓冲的次数，同一个像素可以被写多次
+  let behind = 0;      // 含相机后方顶点、被整个丢掉的三角形
+  let zdrop = 0;       // 在三角形内、但深度不在 [0, 1] 而被丢掉的片元（作业的 render_depth 没有这一步）
   F.forEach((tri, fi) => {
     const [p0, p1, p2] = tri.map(i => scr[i]);
-    if (!p0 || !p1 || !p2) { clipped++; return; }
+    if (!p0 || !p1 || !p2) { behind++; return; }
     const area = (p1[0]-p0[0])*(p2[1]-p0[1]) - (p2[0]-p0[0])*(p1[1]-p0[1]);
     if (Math.abs(area) < 1e-9) return;
     const wn = apply(M, [...cross(sub(V[tri[1]], V[tri[0]]), sub(V[tri[2]], V[tri[0]])), 0]).slice(0, 3);
     const shade = 0.2 + 0.8 * Math.max(0, dot(norm(wn), light));
+    // 只遍历包围盒里的像素，结果和遍历整幅图相同
     const minx = Math.max(0, Math.floor(Math.min(p0[0], p1[0], p2[0]))), maxx = Math.min(W - 1, Math.ceil(Math.max(p0[0], p1[0], p2[0])));
     const miny = Math.max(0, Math.floor(Math.min(p0[1], p1[1], p2[1]))), maxy = Math.min(H - 1, Math.ceil(Math.max(p0[1], p1[1], p2[1])));
     for (let y = miny; y <= maxy; y++) for (let x = minx; x <= maxx; x++) {
@@ -107,11 +126,11 @@ function draw() {
       const w0 = ((p1[0]-px)*(p2[1]-py) - (p2[0]-px)*(p1[1]-py)) / area;
       const w1 = ((p2[0]-px)*(p0[1]-py) - (p0[0]-px)*(p2[1]-py)) / area;
       const w2 = 1 - w0 - w1;
-      if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+      if (w0 < 0 || w1 < 0 || w2 < 0) continue;            // 三个重心坐标都 >= 0 才算在内，边上的算在内
       const z = w0 * p0[2] + w1 * p1[2] + w2 * p2[2], k = y * W + x;
-      if (z < 0 || z > 1) continue;
+      if (z < 0 || z > 1) { zdrop++; continue; }
       if (!noZ && z >= zbuf[k]) continue;
-      zbuf[k] = z; drawn++;
+      zbuf[k] = z; writes++;
       cbuf[4*k] = COL[fi][0] * shade; cbuf[4*k+1] = COL[fi][1] * shade; cbuf[4*k+2] = COL[fi][2] * shade;
     }
   });
@@ -119,15 +138,25 @@ function draw() {
   if ($("wire").checked) { cc.strokeStyle = "rgba(0,0,0,.6)"; cc.lineWidth = 1;
     for (const tri of F) { const p = tri.map(i => scr[i]); if (p.some(q => !q)) continue; cc.beginPath(); cc.moveTo(p[0][0], p[0][1]); cc.lineTo(p[1][0], p[1][1]); cc.lineTo(p[2][0], p[2][1]); cc.closePath(); cc.stroke(); } }
   const dbuf = new Uint8ClampedArray(W * H * 4);
-  let zmin = 1, zmax = 0; for (const z of zbuf) if (isFinite(z)) { zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); }
+  let colored = 0, zmin = 1, zmax = 0;                      // colored：有颜色的像素，一个像素只数一次
+  for (const z of zbuf) if (isFinite(z)) { colored++; zmin = Math.min(zmin, z); zmax = Math.max(zmax, z); }
   for (let i = 0; i < W * H; i++) { const z = zbuf[i]; const g = isFinite(z) ? 255 * (1 - z) : 20;
     dbuf[4*i] = g; dbuf[4*i+1] = g; dbuf[4*i+2] = isFinite(z) ? g : 40; dbuf[4*i+3] = 255; }
   $("depth").getContext("2d").putImageData(new ImageData(dbuf, W, H), 0, 0);
+  const range = colored ? `[${zmin.toFixed(4)}, ${zmax.toFixed(4)}]` : "没有画出任何像素";
   $("info").textContent = `相机位置 eye = (${eye.map(x => x.toFixed(2)).join(", ")})
-覆盖像素 ${drawn}｜被近平面裁掉的三角形 ${clipped}/12
-可见深度范围 [${zmin.toFixed(4)}, ${zmax.toFixed(4)}]（near=${v.near}, far=${v.far}）`;
+上色的像素 ${colored}/${W * H}｜写入次数 ${writes}
+含相机后方顶点、被整个丢掉的三角形 ${behind}/12｜深度不在 [0, 1] 被丢掉的片元 ${zdrop}
+可见深度范围 ${range}（near=${v.near}, far=${v.far}）`;
+}
+function load(preset) {
+  const p = Object.assign({}, DEFAULTS, preset);
+  for (const k of ids) $(k).value = p[k];
+  $("wire").checked = p.wire; $("nozb").checked = p.nozb;
+  draw();
 }
 for (const k of [...ids, "wire", "nozb"]) $(k).addEventListener("input", draw);
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { load(JSON.parse(b.dataset.preset)); window.scrollTo({ top: 0, behavior: "smooth" }); }));
 draw();
 </script>
 </body>

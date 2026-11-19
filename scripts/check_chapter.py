@@ -154,6 +154,14 @@ def run_tests(ch: dict, solutions: str | None) -> None:
 
     first = run({})
     print("初始作业：", first)
+    try:
+        raw = subprocess.run([sys.executable, str(script)], cwd=ROOT, capture_output=True, text=True, timeout=900,
+                             env={k: v for k, v in os.environ.items() if k != "COURSE_IMPL_DIR"}).stdout
+        bad = [l for l in raw.splitlines() if l.lstrip().startswith(("[PASS", "[FAIL", "[ OK"))]
+        if bad:
+            ERRORS.append(f"初始作业的输出里出现了 PASS 或 FAIL（应全部是 TODO）：{bad[:2]}")
+    except subprocess.TimeoutExpired:
+        pass
     if isinstance(first, tuple) and first[0] != 0:
         ERRORS.append(f"初始作业不应有测试通过（{first[0]}/{first[1]}），检查是否把答案写进了作业文件")
     if solutions:

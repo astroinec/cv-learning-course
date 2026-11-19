@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -92,7 +92,7 @@
 <td>标准</td>
 <td style="text-align: right;">10 小时</td>
 <td>读完全章，跑 Notebook，完成 <code>作业_批量IoU与类别NMS.py</code> 并验收通过，做 11.12 节前三个破坏实验，填实验记录</td>
-<td>验收 2/2 通过，实验记录的五个场景（完全重合、完全分离、边界接触、链式重叠、跨类别重合）都填了，自测问题都能答</td>
+<td>验收 5 项全部通过，实验记录的五个场景（完全重合、完全分离、边界接触、链式重叠、跨类别重合）都填了，自测问题都能答</td>
 </tr>
 <tr>
 <td>深挖</td>
@@ -334,7 +334,7 @@ bh = ah * exp(th)
 </tr>
 </tbody>
 </table></div>
-<p>晶圆图、面板图常常有几千像素宽，同一个框和自己的 IoU 只有 0.9051，后面所有阈值判断都会偏。作业要求的做法是“并集大于 0 才相除，否则返回 0”，不加 eps，同样的 4 px 框在 float32 下也得到 1.0。</p>
+<p>晶圆图、面板图常常有几千像素宽，同一个框和自己的 IoU 只有 0.9051，后面所有阈值判断都会偏。作业要求的做法是“并集大于 0 才相除，否则返回 0”，不加 eps，同样的 4 px 框在 float32 下也得到 1.0。验收脚本里有一项专门用归一化坐标下的小框来查这件事（边长 1/512，相当于 4096 宽图像里的 8 px，上表里是 0.9745），分母加固定 <code>1e-7</code> 的写法过不了。</p>
 <p>IoU 既用于评价，也用于样本匹配和 NMS。但普通 IoU 在两框不相交时恒为 0，无法告诉优化器“应该往哪个方向移动”。因此回归损失常使用 GIoU、DIoU、CIoU：除重叠外，再考虑最小包围框、中心距离和宽高比。</p>
 <h3 id="一个逐步例子">一个逐步例子</h3>
 <p>真实框 <code>G=(10,10,50,50)</code>，预测框 <code>P=(30,20,70,60)</code>：</p>
@@ -886,7 +886,7 @@ Recall    = TP/(TP+FN)   真实目标有多少被找到了
 <li>分数换成 0.8、0.9、0.7（中间的最高）时，只保留第 1 个，它一次把两边都删了。</li>
 <li>如果实现时让“已经被删的框”继续去删别人，第一种分数下只会剩第 0 个。</li>
 </ul>
-<p>同一组框，留下几个取决于分数的顺序，这就是“贪心”。作业的测试只有三个框，测不出第三种错误写法（配图脚本里把这种错误实现交给验收脚本，结果是 2/2 通过），所以链式重叠要自己测。</p>
+<p>同一组框，留下几个取决于分数的顺序，这就是“贪心”。验收脚本里有这一组链式重叠的框，两种分数顺序各测一次。配图脚本里把第三种错误写法交给验收脚本，5 项里通过 4 项，没通过的就是链式重叠那一项。</p>
 <h3 id="阈值和密集目标两种-iou-的分布重叠了">阈值和密集目标：两种 IoU 的分布重叠了</h3>
 <p>一排 6 个同类、40×40 px 的目标，相邻两个真值框的 IoU 分别取 0、0.2、0.4、0.6。每个目标一个主检测（四条边加边长 3% 的噪声），再带平均 3 个重复框（噪声为边长的 8%，分数比主检测低），没有漏检和假框，各 300 组。NMS 之后不做置信度过滤，按 IoU 0.5 匹配。</p>
 <figure><img src="../../11_目标检测/figures/fig05_NMS阈值与密集目标.svg" alt="图 5：上排，相邻目标 IoU 为 0.4 的一组数据，灰底是 6 个真目标，下面的绿点表示这个目标被找到、红叉表示没有；从左到右是 NMS 之前和 NMS 阈值 0.3、0.5、0.8 之后剩下的框。左下，召回率随 NMS 阈值的变化，四条线是四种密度。中下，每个目标多出来的框（没有匹配上真值的框）随 NMS 阈值的变化，四条线几乎重合。右下，两种 IoU 的分布：相邻两个目标的主检测框之间（真值 IoU 0.6 时），以及重复框和自己的主检测框之间" loading="lazy"><figcaption>图 5：上排，相邻目标 IoU 为 0.4 的一组数据，灰底是 6 个真目标，下面的绿点表示这个目标被找到、红叉表示没有；从左到右是 NMS 之前和 NMS 阈值 0.3、0.5、0.8 之后剩下的框。左下，召回率随 NMS 阈值的变化，四条线是四种密度。中下，每个目标多出来的框（没有匹配上真值的框）随 NMS 阈值的变化，四条线几乎重合。右下，两种 IoU 的分布：相邻两个目标的主检测框之间（真值 IoU 0.6 时），以及重复框和自己的主检测框之间</figcaption></figure>
@@ -1200,7 +1200,7 @@ Recall    = TP/(TP+FN)   真实目标有多少被找到了
     <span class="n">imgsz</span><span class="o">=</span><span class="mi">640</span><span class="p">,</span>
     <span class="n">epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
     <span class="n">batch</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
-    <span class="n">device</span><span class="o">=</span><span class="s2">"mps"</span><span class="p">,</span>                  <span class="c1"># Apple Silicon；也可为 0 或 "cpu"</span>
+    <span class="n">device</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>                      <span class="c1"># 第 0 块 NVIDIA 显卡；Apple 芯片写 "mps"，没有显卡写 "cpu"</span>
 <span class="p">)</span>
 <span class="n">metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">val</span><span class="p">()</span>
 <span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="s2">"demo.jpg"</span><span class="p">,</span> <span class="n">conf</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">iou</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
@@ -1218,7 +1218,7 @@ Recall    = TP/(TP+FN)   真实目标有多少被找到了
 </div>
 <p><strong>在自己的笔记本上用显卡训练</strong>（读者的机器是 RTX 4060，8 GB 显存）。下面是通用做法，具体数字要自己测：</p>
 <ul>
-<li><strong>先确认显卡可用</strong>。命令行运行 <code>nvidia-smi</code>，能看到显卡型号和驱动版本；在 Python 里 <code>torch.cuda.is_available()</code> 应该是 <code>True</code>，<code>torch.cuda.get_device_name(0)</code> 应该显示显卡名。是 <code>False</code> 时，多半是装了 CPU 版本的 PyTorch，按 PyTorch 官网的安装命令装带 CUDA 的版本。上面代码里的 <code>device="mps"</code> 是 Apple 芯片用的，在 Windows 上改成 <code>device=0</code>。</li>
+<li><strong>先确认显卡可用</strong>。命令行运行 <code>nvidia-smi</code>，能看到显卡型号和驱动版本；在 Python 里 <code>torch.cuda.is_available()</code> 应该是 <code>True</code>，<code>torch.cuda.get_device_name(0)</code> 应该显示显卡名。是 <code>False</code> 时，多半是装了 CPU 版本的 PyTorch，按 PyTorch 官网的安装命令装带 CUDA 的版本。上面代码里的 <code>device=0</code> 指第 0 块 NVIDIA 显卡；在 Apple 芯片的 Mac 上改成 <code>device="mps"</code>。</li>
 <li><strong>看显存占用</strong>。训练时另开一个终端运行 <code>nvidia-smi -l 1</code>，每秒刷新一次；在代码里可以用 <code>torch.cuda.max_memory_allocated()</code> 看 PyTorch 实际分配的峰值。<code>nvidia-smi</code> 显示的数字会比它大，因为还包括 CUDA 上下文和缓存。</li>
 <li><strong>显存不够（out of memory）时</strong>，按顺序试：减小 <code>batch</code>；减小 <code>imgsz</code>（但小缺陷会变得更小，见 11.10 节）；换更小的模型；打开混合精度（Ultralytics 的 <code>amp</code> 参数，默认值以你安装的版本的文档为准）。批大小小到只有几张时，BatchNorm 的统计会变得不稳（第 9 章 9.5 节），可以用梯度累积凑出等效的大批量。</li>
 </ul>
@@ -1241,7 +1241,7 @@ Recall    = TP/(TP+FN)   真实目标有多少被找到了
 <h3 id="指标不错但业务不可用">指标不错但业务不可用</h3>
 <p>离线数据可能太干净，或指标没有体现关键成本。例如漏掉安全帽比多报一个安全帽严重，应单独设置关键类召回目标，并在真实设备上测端到端延迟。</p>
 <h3 id="按现象查">按现象查</h3>
-<p>前五行是做作业 <code>作业_批量IoU与类别NMS.py</code> 时最容易遇到的。“验收”一栏是把这种写错的实现交给本章验收脚本（共 2 项）的结果，配图脚本里实测过。</p>
+<p>前七行是做作业 <code>作业_批量IoU与类别NMS.py</code> 时最容易遇到的。括号里的“验收”是把这种写错的实现交给本章验收脚本（共 5 项）之后通过的项数，配图脚本里实测过；参考实现是 5/5。这几种写法验收都能查出来，报错信息会指出是哪一组输入不对，“怎么查”一栏是自己定位时可以用的最小例子。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1252,32 +1252,32 @@ Recall    = TP/(TP+FN)   真实目标有多少被找到了
 </thead>
 <tbody>
 <tr>
-<td>不相交的两个框算出正的 IoU，甚至大于 1（验收 1/2）</td>
+<td>不相交的两个框算出正的 IoU，甚至大于 1（验收 3/5）</td>
 <td>交集的宽、高没有截断到 0，两个负数相乘变成正数</td>
 <td>测两个在 x、y 两个方向都分开的框，IoU 必须是 0</td>
 </tr>
 <tr>
-<td>面积为 0 的框和自己的 IoU 是 NaN（验收 2/2，测不出来）</td>
+<td>面积为 0 的框和自己的 IoU 是 NaN（验收 4/5）</td>
 <td>并集为 0 时直接相除</td>
 <td>测 <code>(5,5,5,5)</code> 和它自己，应返回 0 而不是 NaN</td>
 </tr>
 <tr>
-<td>保留的下标对不上原来的框（验收 2/2，测不出来）</td>
+<td>保留的下标对不上原来的框（验收 2/5）</td>
 <td>先排序再做 NMS，返回的是排序后的位置</td>
 <td>输入分数故意不按顺序排；300 组随机输入里 99.3% 的结果和参考实现不同</td>
 </tr>
 <tr>
-<td>链式重叠时留下的框太少（验收 2/2，测不出来）</td>
+<td>链式重叠时留下的框太少（验收 4/5）</td>
 <td>已经被删掉的框还在继续删别人</td>
 <td>用 11.6 节的三个链式框，阈值 0.3，应保留第 0 和第 2 个</td>
 </tr>
 <tr>
-<td>IoU 正好等于阈值的框被删了</td>
+<td>IoU 正好等于阈值的框被删了（验收 4/5）</td>
 <td>写成了大于等于；作业要求“严格大于才抑制”，torchvision 的 <code>nms</code> 也是</td>
 <td>测 IoU 正好 0.5 的两个框、阈值 0.5，两个都应保留</td>
 </tr>
 <tr>
-<td>不同类别的重叠目标被删</td>
+<td>不同类别的重叠目标被删（验收 2/5）</td>
 <td>抑制时没有加同类别的条件</td>
 <td>两个完全重合、类别不同的框，两个都应保留</td>
 </tr>
@@ -1302,7 +1302,7 @@ Recall    = TP/(TP+FN)   真实目标有多少被找到了
 <td>打印坐标的最大值，是否都小于 1</td>
 </tr>
 <tr>
-<td>大图上小框的 IoU 总是达不到 1</td>
+<td>大图上小框的 IoU 总是达不到 1（验收 4/5）</td>
 <td>归一化坐标下分母加了 <code>1e-7</code>（11.4 节，4096 宽图上的 4 px 框只有 0.9051）</td>
 <td>改成“并集大于 0 才相除”</td>
 </tr>
@@ -1343,8 +1343,8 @@ Recall    = TP/(TP+FN)   真实目标有多少被找到了
 <p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
 <ol>
 <li><strong>Notebook 的阈值</strong>。Notebook 里 0 号和 1 号框的 IoU 是多少？先预测阈值取 0.1、0.45、0.9 时各保留哪几个框，再运行最后一个单元对照。1 号框要阈值超过多少才能留下？3 号框为什么在每个阈值下都留着？</li>
-<li><strong>去掉交集的截断</strong>。在你的 <code>pairwise_iou</code> 里临时去掉交集宽高的 <code>clamp(min=0)</code>，先预测验收脚本哪一项会失败，再运行。然后找两个在 x、y 两个方向都分开的框，看算出的 IoU 是多少。（配图脚本里这样改之后验收是 1/2，不相交的框对里算出过 1340.156。）</li>
-<li><strong>链式重叠</strong>。用 11.6 节的三个框 (0,0,10,10)、(4,0,14,10)、(8,0,18,10)，阈值 0.3，分数分别取 0.9、0.8、0.7 和 0.8、0.9、0.7。先预测你的 <code>class_aware_nms</code> 各保留哪些下标，再把结果写进实验记录的“链式重叠”一行。作业的验收测不到这种情况。</li>
+<li><strong>去掉交集的截断</strong>。在你的 <code>pairwise_iou</code> 里临时去掉交集宽高的 <code>clamp(min=0)</code>，先预测验收脚本哪一项会失败，再运行。然后找两个在 x、y 两个方向都分开的框，看算出的 IoU 是多少。（配图脚本里这样改之后验收是 3/5，不相交的框对里算出过 1340.156。）</li>
+<li><strong>链式重叠</strong>。用 11.6 节的三个框 (0,0,10,10)、(4,0,14,10)、(8,0,18,10)，阈值 0.3，分数分别取 0.9、0.8、0.7 和 0.8、0.9、0.7。先预测你的 <code>class_aware_nms</code> 各保留哪些下标，再把结果写进实验记录的“链式重叠”一行。验收脚本里也有这一组框；这里要的是你先自己说出答案和理由，再去对照。</li>
 <li><strong>端点约定</strong>。一个 10 px 的框和它沿 x 偏 2 px 的框，分别按“不加 1”和“加 1”算 IoU，和 11.4 节的表对照。再把两个只有一条边相接的框按两种约定各算一次。</li>
 <li><strong>坐标格式</strong>。随机生成一批 xyxy 的框，先转成左上宽高，再故意当成中心宽高交给你的 <code>pairwise_iou</code> 和原来的框比。预测 IoU 的分布，再看是不是每个都是 0.143。</li>
 <li><strong>按类别与不分类别</strong>。两个完全重合的框、分数 0.9 和 0.8、类别不同，阈值 0.5，用你的 <code>class_aware_nms</code> 跑一次，再把 <code>labels</code> 全部设成 0 跑一次。然后把两个框错开到 IoU 约 0.6，重复一遍。对照图 6 中间那幅，说出每种情况下哪个框被删、该不该删。</li>

@@ -13,10 +13,14 @@ def project_points(
 ) -> np.ndarray:
     """把世界点投影到像素平面。
 
-    输入契约：points_3d 为 (N,3)；camera_matrix/rotation 为 (3,3)；
-    translation 可为 (3,) 或 (3,1)。输入均可转为 float64。
-    输出契约：(N,2) float64。先计算 Pc = R @ Pw + t，再做透视除法并乘 K。
-    对相机坐标深度 Z <= 1e-12 的点，输出 [nan, nan]。
+    输入契约：points_3d 为 (N,3)，N >= 1；camera_matrix/rotation 为 (3,3)；
+    translation 可为 (3,) 或 (3,1)。输入可能是整数数组，均可转为 float64。
+    camera_matrix 形如 [[fx, 0, cx], [0, fy, cy], [0, 0, 1]]，没有倾斜项。
+    rotation 和 translation 是世界到相机的变换。
+    输出契约：(N,2) float64。输入先转成 float64 再计算：Pc = R @ Pw + t，
+    再做透视除法并乘 K。
+    对相机坐标深度 Z <= 1e-12 的点（看 Pc 的 Z，不是世界坐标的 Z），输出 [nan, nan]，
+    同一批里其余的点照常计算。不修改传进来的数组。
 
     本题忽略镜头畸变。不得调用 cv2.projectPoints 完成核心实现。
     """

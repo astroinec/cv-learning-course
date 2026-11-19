@@ -2,6 +2,8 @@
 
 只允许使用 NumPy。可以在 Notebook 里用 cv2.matchTemplate 或
 cv2.phaseCorrelate 对照结果，但这里的核心实现不能调用它们。
+
+三个函数都不能修改传入的数组（需要改动时先复制一份）。
 """
 
 from __future__ import annotations
@@ -16,9 +18,10 @@ def parabola_peak_offset(left: float, center: float, right: float) -> float:
     返回 delta，真实峰值位置约为 center_index + delta。
     契约：
     - 公式 delta = (left - right) / (2 * (left - 2 * center + right))
-    - 分母绝对值小于 1e-12 时返回 0.0（三点共线，没有曲率信息）
-    - 结果裁剪到 [-0.5, 0.5]
-    - 返回 Python float
+    - left - 2 * center + right 的绝对值小于 1e-12 时返回 0.0
+      （三点共线，没有曲率信息；三点相等只是其中一种情况）
+    - 结果裁剪到 [-0.5, 0.5]（center 不是三点里最大的那个时，顶点会落在半个像素之外）
+    - 任何情况下都返回 Python float
     """
     raise NotImplementedError("TODO: 实现三点抛物线亚像素插值")
 
@@ -29,7 +32,8 @@ def ncc_map(image: np.ndarray, template: np.ndarray) -> np.ndarray:
     输入：image 为 (H, W)，template 为 (h, w)，h <= H 且 w <= W，任意数值类型。
     输出：(H - h + 1, W - w + 1) 的 float64 数组，取值在 [-1, 1]。
     对每个窗口：先减去窗口均值和模板均值，再算点积 / (两者 L2 范数之积)。
-    窗口或模板方差为 0（完全平坦）时，该位置输出 0.0。
+    窗口或模板方差为 0（完全平坦）时，该位置输出 0.0，输出里不能有 nan。
+    模板平坦时整张响应图都是 0.0。h == H 且 w == W 时输出形状是 (1, 1)。
 
     先写最直白的双重循环版本保证正确，再思考如何用积分图加速分母。
     """
@@ -43,6 +47,8 @@ def phase_correlation(
 ) -> tuple[float, float]:
     """用相位相关估计 moving 相对 reference 的平移 (dy, dx)，带亚像素。
 
+    输入：reference 和 moving 是形状相同的 (H, W) 数组，H 和 W 不一定相等。
+
     约定：如果 moving[y, x] == reference[y - dy, x - dx]（循环意义下），
     函数返回 (dy, dx)。也就是说 np.roll(reference, (dy, dx), axis=(0, 1))
     得到的 moving 应返回 (dy, dx)。
@@ -53,8 +59,9 @@ def phase_correlation(
     3. 互功率谱 R = F_mov * conj(F_ref) / (|F_mov * conj(F_ref)| + 1e-12)。
     4. r = real(ifft2(R))，找最大值的整数位置 (py, px)。
     5. 分别沿 y 和 x 方向取峰值两侧邻点（循环取下标），用 parabola_peak_offset 求亚像素偏移。
-    6. 大于 N/2 的位移换算成负数（循环卷绕）。
-    返回两个 Python float。
+    6. 大于 N/2 的位移换算成负数（循环卷绕）。y 方向的 N 是 H，x 方向的 N 是 W。
+    返回两个 Python float。第 3 步分母里的 1e-12 保证常数图这类
+    大部分频率为 0 的输入也返回有限的数，不出现 nan。
     """
     raise NotImplementedError("TODO: 实现带亚像素的相位相关")
 

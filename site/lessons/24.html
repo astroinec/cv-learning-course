@@ -48,17 +48,17 @@
 <li class="current" data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 24 章 <span class="tag P1">P1</span> <span class="badge ok">已升级</span></div><h1>综合项目：晶圆检测流水线</h1><p class="scene"><b>用在哪：</b>把对齐、归一化、金模板、阈值串成一条完整流水线，可以作为作品讲</p><div class="meta-row"><span class="chip"><b>速通</b> 4 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 24 小时</span><span class="chip">前置：<a href="../lessons/16.html">第 16 章 图像对齐与亚像素</a>、<a href="../lessons/18.html">第 18 章 传统缺陷检测</a>、<a href="../lessons/23.html">第 23 章 半导体检测领域知识</a></span></div><div class="meta-row"><span class="chip mono">验收：python 24_综合项目_晶圆检测流水线/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="24"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自合成数据上的实测，记录在 <a href="../../24_综合项目_晶圆检测流水线/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch24.py</code> 生成。它用本章的 <code>数据生成.py</code> 造数据，用参考实现当“完整流水线”，再逐项拆掉。有两点是故意的：实验全部用种子 100 起的数据，不用验收种子；参考实现调好的参数（k、min_area、sigma 下限、搜索范围）不出现在讲义和 JSON 里，扫描类实验用“参考配置的几倍”来描述。那些是你在项目报告里要自己量、自己定的东西。换成你自己的实现或者真实图像，数值会变，结论的方向要自己再测一遍。</p>
+<div class="lesson-head"><div class="crumbs">第 24 章 <span class="tag P1">P1</span> <span class="badge ok">已升级</span></div><h1>综合项目：晶圆检测流水线</h1><p class="scene"><b>用在哪：</b>把对齐、归一化、金模板、阈值串成一条完整流水线，可以作为作品讲</p><div class="meta-row"><span class="chip"><b>速通</b> 4 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 24 小时</span><span class="chip">前置：<a href="../lessons/16.html">第 16 章 图像对齐与亚像素</a>、<a href="../lessons/18.html">第 18 章 传统缺陷检测</a>、<a href="../lessons/23.html">第 23 章 半导体检测领域知识</a></span></div><div class="meta-row"><span class="chip mono">验收：python 24_综合项目_晶圆检测流水线/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="24"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都来自合成数据上的实测，记录在 <a href="../../24_综合项目_晶圆检测流水线/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch24.py</code> 生成。它用本章的 <code>数据生成.py</code> 造数据，用参考实现当“完整流水线”，再逐项拆掉。有两点是故意的：实验全部用种子 100 起的数据，不用验收种子（只有第 4.1 节为了说明验收判据，列了参考实现和几种改动在验收种子上达标的个数）；参考实现调好的参数（k、min_area、sigma 下限、搜索范围）不出现在讲义和 JSON 里，扫描类实验用“参考配置的几倍”来描述。那些是你在项目报告里要自己量、自己定的东西。换成你自己的实现或者真实图像，数值会变，结论的方向要自己再测一遍。</p>
 </div>
 <h2 id="0-本章怎么学">0. 本章怎么学</h2>
 <p><strong>应用场景</strong>：把对齐、亮度归一化、金模板、阈值和连通域串成一条完整的 die-to-die 检测流水线，在带真值的数据上验收，再写成一份可以拿出来讲的项目报告。入职后接手一条现成的检测流水线，或者要回答“这一步能不能去掉”，用的是同一套做法。</p>
@@ -83,7 +83,7 @@
 <td>标准</td>
 <td style="text-align: right;">15 小时</td>
 <td>读完全章，跑 <code>数据生成.py</code> 和 Notebook，实现 <code>run_pipeline</code> 并验收通过，按 <code>项目报告模板.md</code> 写完 <code>项目报告.md</code>，做第 13 节前三个破坏实验</td>
-<td>两个验收种子 PASS，报告里有消融表、阈值曲线和逐个分析过的漏检样本</td>
+<td>验收通过（8 个验收种子里至少 6 个达标，合计也达标），报告里有消融表、阈值曲线和逐个分析过的漏检样本</td>
 </tr>
 <tr>
 <td>深挖</td>
@@ -202,8 +202,9 @@
 <li><strong>噪声随亮度变化，但变化不大</strong>。按成像模型算，暗区（灰度 0.15）的噪声标准差是 0.0092，竖线上（灰度 0.70）是 0.0189，最亮的对位标记上是 0.022，前后相差约 2.4 倍。</li>
 <li><strong>版图是周期的，只有一个对位标记不是</strong>。竖线在 x 方向的周期是 8 px，接触孔在两个方向的周期都是 12 px，合起来 x 方向每 24 px 重复一次。唯一的非周期结构是左上角的十字标记，中心在第 18 行第 18 列。</li>
 </ol>
-<p><strong>验收怎么算</strong>。<code>tests/check_progress.py</code> 用种子 11 和 23 各生成一份数据，调用你的 <code>run_pipeline</code>，再用真值独立算指标：预测和真值按距离从小到大做一对一匹配，4 px 以内算命中。要求检出率不低于 85%，每 die 误报不超过 0.3，单次运行不超过 30 秒。流水线只能读 <code>golden</code> 和 <code>test</code>。</p>
-<div class="callout callout-key"><div class="callout-title">要点</div><p>调参和做消融时用验收种子以外的数据，<code>data/README.md</code> 里也是这样要求的。第 4 节会看到，同一条流水线在不同种子上的检出率能差十几个百分点，对着两个种子调出来的参数很可能只是碰巧。</p>
+<p><strong>验收怎么算</strong>。<code>tests/check_progress.py</code> 用 8 个固定的种子各生成一份数据，调用你的 <code>run_pipeline</code>，再用真值独立算指标：预测和真值按距离从小到大做一对一匹配，4 px 以内算命中。一个种子“达标”，指检出率不低于 85%，每 die 误报不超过 0.3，单次运行不超过 30 秒。8 个种子里至少 6 个达标，并且 8 个种子合计的检出率和每 die 误报也满足这两条线，才算通过。流水线只能读 <code>golden</code> 和 <code>test</code>。为什么不要求每个种子都达标，第 4.1 节用数字说明。</p>
+<p>验收还会检查返回值的形式：长度等于待检 die 张数的列表，每一项是若干个 (y, x)，没有缺陷的 die 是空列表，坐标里不能有 nan。</p>
+<div class="callout callout-key"><div class="callout-title">要点</div><p>调参和做消融时用验收种子以外的数据，<code>data/README.md</code> 里也是这样要求的。第 4 节会看到，同一条流水线在不同种子上的检出率能差十几个百分点，对着几个固定的种子调出来的参数很可能只是碰巧。</p>
 </div>
 <h2 id="3-流水线的六步">3. 流水线的六步</h2>
 <p>作业文件的说明里已经给了建议流程，这里把每一步和前面章节对上，并指出出问题时最先会看到什么。</p>
@@ -308,7 +309,71 @@
 <li><strong>实际的波动比二项分布估的还大</strong>。假设每个缺陷独立、被检出的概率都是 93.8%，一个种子（按 36 个缺陷算）低于 85% 的概率只有 2.3%，实测 100 个种子里是 8 个。这组实验没有去拆分原因；第 9 节会看到不同缺陷被检出的难度差得很远，每个种子抽到的难例个数不一样，是一个可能的来源。</li>
 </ol>
 <p><strong>小改动要成对地比</strong>。图 2 右栏把三项小改动和完整流水线放在同一份数据上逐个种子相减。以“均值加标准差代替中位数加 MAD”为例，20 个种子里有 15 个一个缺陷都不差，其余多检出 1 到 2 个，合计多 6 个，折合 0.8 个百分点。如果两种配置各用各的种子去测，这样大小的差别会完全淹没在 4.8 个百分点的种子波动里。</p>
-<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>参考实现在两个验收种子上都通过了。换 100 个没见过的种子，其他条件不变，检出率低于 85% 验收线的种子大约有几个？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>0 个，参考实现的参数是调好的</span></button><button type="button" data-k="B"><b>B</b><span>8 个左右</span></button><button type="button" data-k="C"><b>C</b><span>一半左右</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测种子 100 到 199 里有 8 个低于 85%，最低 80.5%。合计检出率是 92.7%，离验收线有距离，但每个种子只有 30 多个缺陷，单个种子的结果上下浮动好几个百分点是正常的。所以调参要用验收种子以外的多份数据，报告里要写 x/n 和区间。</p></div></div>
+<div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>参考实现通过了验收。换 100 个没见过的种子，其他条件不变，检出率低于 85% 验收线的种子大约有几个？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>0 个，参考实现的参数是调好的</span></button><button type="button" data-k="B"><b>B</b><span>8 个左右</span></button><button type="button" data-k="C"><b>C</b><span>一半左右</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测种子 100 到 199 里有 8 个低于 85%，最低 80.5%。合计检出率是 92.7%，离验收线有距离，但每个种子只有 30 多个缺陷，单个种子的结果上下浮动好几个百分点是正常的。所以调参要用验收种子以外的多份数据，报告里要写 x/n 和区间。</p></div></div>
+<h3 id="41-验收判据为什么是多数种子达标">4.1 验收判据为什么是“多数种子达标”</h3>
+<p>最直接的判据是挑两个种子，两个都达标才算通过。按上面的数字，它有两个毛病，方向相反。</p>
+<p>下面的实验把每个配置在种子 100 到 199 上各跑一遍，记下每个种子是否达标（检出率不低于 85%，每 die 误报不超过 0.3）。再从这 100 个种子里随机抽 20000 组，看两种判据各有多大比例判“通过”。配置的名字和第 5.2 节的消融表相同，阈值不重调。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>配置</th>
+<th style="text-align: right;">100 个种子里达标的个数</th>
+<th style="text-align: right;">抽 2 个种子，两个都达标</th>
+<th style="text-align: right;">抽 8 个种子，至少 6 个达标并且合计达标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>完整流水线</td>
+<td style="text-align: right;">92</td>
+<td style="text-align: right;">84.8%</td>
+<td style="text-align: right;">98.4%</td>
+</tr>
+<tr>
+<td>亚像素对齐不做细化</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">86.7%</td>
+<td style="text-align: right;">99.0%</td>
+</tr>
+<tr>
+<td>面积门槛加倍</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">59.3%</td>
+<td style="text-align: right;">73.6%</td>
+</tr>
+<tr>
+<td>sigma 下限降到四分之一</td>
+<td style="text-align: right;">88</td>
+<td style="text-align: right;">77.5%</td>
+<td style="text-align: right;">82.4%</td>
+</tr>
+<tr>
+<td>只对齐到整数像素</td>
+<td style="text-align: right;">43</td>
+<td style="text-align: right;">18.2%</td>
+<td style="text-align: right;">5.6%</td>
+</tr>
+<tr>
+<td>对齐前加 Hanning 窗</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">12.2%</td>
+<td style="text-align: right;">1.2%</td>
+</tr>
+<tr>
+<td>搜索范围只取 ±4 px</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">22.3%</td>
+<td style="text-align: right;">0.8%</td>
+</tr>
+</tbody>
+</table></div>
+<ol>
+<li><strong>两个种子会冤枉正确的流水线</strong>。参考实现有 92 个种子达标，随机换两个种子，两个都达标的比例只有 84.8%。换成“8 个里至少 6 个达标并且合计达标”，是 98.4%。</li>
+<li><strong>两个种子也会放过有问题的流水线</strong>。对齐前加 Hanning 窗的版本只有 35 个种子达标，却正好在种子 11 和 23 上都达标：如果验收只看这两个种子，它是通过的。按现在的判据，它在 8 个验收种子上有 5 个达标，合计每 die 误报 1.15，不通过。表里三种对齐有问题的版本，通过的比例从 12% 到 22% 降到了 6% 以下。</li>
+<li><strong>“合计也达标”挡的是另一种情况</strong>：多数种子正常，个别种子上整片误报。搜索范围只取 ±4 px 就是这样，8 个验收种子里有 4 个达标，合计每 die 误报是 2.74。</li>
+<li><strong>中间两行不是实现错误，是工作点选得偏</strong>。面积门槛加倍时合计检出率是 90.3%，sigma 下限降到四分之一时合计每 die 误报是 0.32，都贴着验收线。用有限个种子去判这样的配置，结果只能是有时通过有时不通过，两种判据都一样。验收通过说明实现大体正确、工作点没有离谱，不说明参数已经调到最好。</li>
+</ol>
+<p>验收用的 8 个种子是固定的（<code>tests/check_progress.py</code> 里的 <code>SEEDS</code>）。参考实现在这 8 个种子上全部达标，合计检出率 92.6%（287/310），各种子在 89.4% 到 97.7% 之间。你的流水线如果只差一两个种子，先在验收种子以外的数据上多跑一些种子看合计，再决定要不要改。</p>
 <h2 id="5-逐项消融每一步值多少">5. 逐项消融：每一步值多少</h2>
 <h3 id="51-做法">5.1 做法</h3>
 <p>消融（ablation）是每次只去掉或者换掉流水线里的一样东西，其余不动，看指标怎么变。几条规则：</p>
@@ -550,7 +615,7 @@
 <p>只有待检图不归一化时，模板和 sigma 都是好的，检出率还有 88.1%，但每张 die 报 10.80 个：待检图比模板整体亮或暗一些，整张图的 z 都被抬高（图 4 第四栏），4.8% 的像素超过阈值。这是第 18 章第 4 节讲的现象。</p>
 <p>只有良品不归一化时正好相反：误报 0.01，检出率 44.5%。8 张良品的增益各不相同，同一个像素在 8 张图上的取值散得很开，估出的 sigma 中位数从 0.0152 涨到 0.0495，是原来的 3.3 倍。缺陷除以这样的 sigma，z 值过不了阈值。</p>
 <p>两遍都去掉，结果接近第二种：检出率 46.3%，误报 0.37。也就是说，去掉亮度归一化之后首先看到的是检出率减半，不是误报暴涨。被撑大的 sigma 把本该出现的成片误报压了下去。各个种子之间差别很大，检出率从 0% 到 90.6%，误报的中位数只有 0.03，最大的一个种子是 4.97。是什么让个别种子特别好或者特别差，这组实验没有去拆分。</p>
-<p>本章 <code>README.md</code> 的“参考水平”里给了不做亮度归一化时的检出率和误报，那是两个验收种子上的结果。换到种子 100 到 119 上，检出率从 0% 到 90.6% 都有。所以去掉归一化“掉多少”不是一个稳定的数，报告里要给范围。</p>
+<p>本章 <code>README.md</code> 的“已知的坑”第 3 条和“参考水平”里引用的就是这一节的数字。去掉归一化“掉多少”不是一个稳定的数：种子 100 到 119 上，检出率从 0% 到 90.6% 都有，报告里要给范围。</p>
 <h2 id="7-对齐细看">7. 对齐细看</h2>
 <p>对齐是整条流水线里最要紧的一步，值得单独量一遍。这一节的误差都用数据生成器记录的真实错位来算，只用于分析；你的流水线不能读它，第 7.4 节讲不读真值时怎么办。</p>
 <figure><img src="../../24_综合项目_晶圆检测流水线/figures/fig05_对齐误差.svg" alt="图 5：左，四种对齐做法的二维误差累积分布，各 740 次。中，加 Hanning 窗时把对位标记从角落移向中心，红柱是 740 次里误差超过 1 px 的次数，蓝线是误差中位数，虚线是不加窗时的中位数。右，闭环误差的均方根除以 1.73 对真实误差，四个点对应四种做法，虚线表示两者相等" loading="lazy"><figcaption>图 5：左，四种对齐做法的二维误差累积分布，各 740 次。中，加 Hanning 窗时把对位标记从角落移向中心，红柱是 740 次里误差超过 1 px 的次数，蓝线是误差中位数，虚线是不加窗时的中位数。右，闭环误差的均方根除以 1.73 对真实误差，四个点对应四种做法，虚线表示两者相等</figcaption></figure>
@@ -646,7 +711,7 @@
 </tbody>
 </table></div>
 <p>标记移到中心之后，加窗的误差中位数是 0.165 px，和不加窗的 0.166 px 一样，也不再有对错周期的情况。所以结论要说得更准确：<strong>加不加窗，除了看数据是不是循环的，还要看图里用来定位的结构在哪里</strong>。真实图像的边界不连续，通常需要加窗，这时对位标记或者其他非周期结构靠近视场边缘就是一个风险。</p>
-<p>本章 <code>README.md</code> 的“已知的坑”第 2 条说加窗会让残差变大，原因归于数据是循环平移的。方向和这里一致：按这一节的实验，单轴均方根误差从 0.150 px 变成 0.466 px。但主要原因是标记被压在窗的边缘。</p>
+<p>本章 <code>README.md</code> 的“已知的坑”第 2 条说的就是这件事：按这一节的实验，加窗让单轴均方根误差从 0.150 px 变成 0.466 px，主要原因是标记被压在窗的边缘，不是数据循环平移。</p>
 <div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>这份数据上，对齐前加 Hanning 窗让误差中位数从 0.166 px 变成 0.405 px，还出现了差一个周期的错误。把参考图和待检图一起循环滚动 30 px 之后再加窗，误差中位数回到 0.165 px。这说明主要原因是什么？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>数据是循环平移生成的，加窗破坏了循环关系</span></button><button type="button" data-k="B"><b>B</b><span>对位标记原来在角落，被窗压到了原来的十分之一</span></button><button type="button" data-k="C"><b>C</b><span>Hanning 窗让图像变模糊了</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。滚动前后数据同样是循环平移的，窗也是同一个，唯一变了的是标记的位置：窗在标记中心的权重从 0.099 变成 0.999。A 是第 16 章随机纹理实验里的原因，在这份带噪声的数据上它的影响小到看不出来。C 不对，乘窗函数不改变图像的清晰程度。</p></div></div>
 <h3 id="73-搜索范围这份数据上量不出差别原因是有标记">7.3 搜索范围：这份数据上量不出差别，原因是有标记</h3>
 <p>消融表里“对齐不限制搜索范围”一行和完整流水线完全相同。不只是指标相同：740 次对齐的估计值逐张相同，没有一次对到别的周期上。</p>
@@ -688,7 +753,7 @@
 </tbody>
 </table></div>
 <p>没有标记时，限制搜索范围把误差中位数从 36.1 px 压到 6.1 px，但绝大多数仍然是错的。这正是第 16 章第 8 节讲的两种失败：周期图案有多个等高的峰，限制范围能排除远处的；白化把只有噪声的频率拉到同样的权重，相关面被淹没，限制范围救不了。标记的频谱是宽带的，两种失败它都能解决，所以有了标记之后搜索范围就量不出贡献。</p>
-<p>本章 <code>README.md</code> 的“已知的坑”第 1 条说，相位相关不加约束时可能对到整周期之外，误差接近一个 x 方向的整周期。在这份带标记的数据上，按参考实现的对齐方式（不加窗、细化一轮）这一条没有复现，740 次里一次都没有对错周期。它在去掉标记、或者加窗把标记压掉时才出现（上一节最大的一次差了约 12 px）。所以写报告时，“限制搜索范围”这一行的意义要用无标记的实验来说明，不能用这份数据的消融。</p>
+<p>本章 <code>README.md</code> 的“已知的坑”第 1 条讲的是周期图案的假峰：相位相关可能对到差一个整周期的位置上。在这份带标记的数据上，按参考实现的对齐方式（不加窗、细化一轮），740 次里一次都没有对错周期。假峰在去掉标记、或者加窗把标记压掉时才出现（上一节最大的一次差了约 12 px）。所以写报告时，“限制搜索范围”这一行的意义要用无标记的实验来说明，不能用这份数据的消融。</p>
 <p>搜索范围取得太小则是实打实的错误。把它设成 ±4 px（比单张图的错位上限 3.5 px 大，看起来够了），每张 die 的误报升到 2.23。原因是第 2 节说的：两张图之间的相对错位可以到 7 px。</p>
 <h3 id="74-不读真值怎么评估对齐闭环误差">7.4 不读真值怎么评估对齐：闭环误差</h3>
 <p>流水线拿不到真实错位，项目报告里又要求给出对齐精度。可以用的是良品之间的一致性。任取三张良品 A、B、C，分别估计 A 到 B、B 到 C、A 到 C 的错位，理想情况下</p>
@@ -1125,7 +1190,7 @@
 <p><strong>消融表</strong>：</p>
 <ol>
 <li>第一行是完整流水线，之后每行只改一处，行名写清“去掉”还是“换成什么”。</li>
-<li>两个指标、每个种子分开列，给 x/n。缺陷只有三十几个时，一个缺陷就是约 2.8 个百分点，只列百分比会让人高估差别。</li>
+<li>两个指标都列，给合计的 x/n，再给各种子的范围（种子不多时逐个种子列出来）。一个种子只有三十几个缺陷，一个缺陷就是约 2.8 个百分点，只列百分比会让人高估差别。</li>
 <li>注明阈值有没有重调。最好两种都给：一列“直接去掉”，一列“重调之后”。</li>
 <li>代码里的常数也占一行。第 5.2 节里影响最大的几行里就有它们。</li>
 <li>没有差别的行留着，并写一句原因：是这一步多余，还是数据里没有它要防的情况。能构造出那个情况就补一个实验（第 8.2 节）。</li>
@@ -1244,6 +1309,21 @@
 <td>对着验收种子调参</td>
 <td>换 10 个以上的种子重测，报范围</td>
 </tr>
+<tr>
+<td>8 个验收种子里有一两个不达标</td>
+<td>多半是这几个种子上难检的缺陷多，不一定是实现有错</td>
+<td>验收只要求至少 6 个达标并且合计达标。先在验收种子以外多跑一些种子看合计（第 4.1 节）</td>
+</tr>
+<tr>
+<td>验收报“第几张 die 的结果是 None”或者“不是 (y, x)”</td>
+<td>没有缺陷的 die 返回了 None，或者缺陷中心不是两个数</td>
+<td>每张 die 返回一个列表，没有缺陷就是空列表，每个中心是 (y, x)</td>
+</tr>
+<tr>
+<td>验收报结果里有 nan</td>
+<td>连通域的加权中心除以了 0，或者对齐估计出了 nan</td>
+<td>从后往前打印中间量，找到第一个出现 nan 的地方</td>
+</tr>
 </tbody>
 </table></div>
 <h2 id="13-破坏实验">13. 破坏实验</h2>
@@ -1281,10 +1361,10 @@
 <li>参考实现在验收种子上通过了，为什么不能说它的参数对任何种子都够用？</li>
 <li>没有真值时怎样估计对齐误差？这个办法查不出哪种错误？</li>
 <li>用 5 分钟把这条流水线讲给别人听：每一步为什么需要，最有信息量的一个消融，一个说得清原因的失败案例。</li>
-</ol></article><nav class="prev-next"><a href="23.html">← 第 23 章 半导体检测领域知识</a><span></span></nav>
+</ol></article><nav class="prev-next"><a href="23.html">← 第 23 章 半导体检测领域知识</a><a href="25.html">第 25 章 Transformer 与 ViT →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#1-为什么要把流水线从头到尾做一遍">1. 为什么要把流水线从头到尾做一遍</a></li><li><a href="#2-任务数据和验收">2. 任务、数据和验收</a></li><li><a href="#3-流水线的六步">3. 流水线的六步</a></li><li><a href="#4-先量尺子一次验收的数字能信到几位">4. 先量尺子：一次验收的数字能信到几位</a></li><li><a href="#5-逐项消融每一步值多少">5. 逐项消融：每一步值多少</a></li><li class="sub"><a href="#51-做法">5.1 做法</a></li><li class="sub"><a href="#52-一组参考结果">5.2 一组参考结果</a></li><li><a href="#6-同一步对良品做和对待检图做管的不是一件事">6. 同一步，对良品做和对待检图做，管的不是一件事</a></li><li class="sub"><a href="#61-不对齐大家以为的样子和实际的样子">6.1 不对齐：大家以为的样子和实际的样子</a></li><li class="sub"><a href="#62-亮度归一化良品那一遍保检出待检图那一遍保误报">6.2 亮度归一化：良品那一遍保检出，待检图那一遍保误报</a></li><li><a href="#7-对齐细看">7. 对齐细看</a></li><li class="sub"><a href="#71-残差有多大">7.1 残差有多大</a></li><li class="sub"><a href="#72-加窗为什么反而变差">7.2 加窗为什么反而变差</a></li><li class="sub"><a href="#73-搜索范围这份数据上量不出差别原因是有标记">7.3 搜索范围：这份数据上量不出差别，原因是有标记</a></li><li class="sub"><a href="#74-不读真值怎么评估对齐闭环误差">7.4 不读真值怎么评估对齐：闭环误差</a></li><li><a href="#8-工作点重调阈值之后再比">8. 工作点：重调阈值之后再比</a></li><li class="sub"><a href="#81-哪些改动能靠调阈值补回来">8.1 哪些改动能靠调阈值补回来</a></li><li class="sub"><a href="#82-值-0的步骤在防什么">8.2 “值 0”的步骤在防什么</a></li><li class="sub"><a href="#83-阈值和面积门槛">8.3 阈值和面积门槛</a></li><li><a href="#9-漏检分析">9. 漏检分析</a></li><li><a href="#10-交互演示">10. 交互演示</a></li><li><a href="#11-怎样评估怎样把项目讲成作品">11. 怎样评估，怎样把项目讲成作品</a></li><li class="sub"><a href="#111-评估">11.1 评估</a></li><li class="sub"><a href="#112-报告的结构">11.2 报告的结构</a></li><li class="sub"><a href="#113-消融表怎么列失败案例怎么写">11.3 消融表怎么列，失败案例怎么写</a></li><li class="sub"><a href="#114-五分钟怎么讲">11.4 五分钟怎么讲</a></li><li><a href="#12-常见错误">12. 常见错误</a></li><li><a href="#13-破坏实验">13. 破坏实验</a></li><li><a href="#14-扩展深挖档">14. 扩展（深挖档）</a></li><li><a href="#15-和后续章节的关系">15. 和后续章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#1-为什么要把流水线从头到尾做一遍">1. 为什么要把流水线从头到尾做一遍</a></li><li><a href="#2-任务数据和验收">2. 任务、数据和验收</a></li><li><a href="#3-流水线的六步">3. 流水线的六步</a></li><li><a href="#4-先量尺子一次验收的数字能信到几位">4. 先量尺子：一次验收的数字能信到几位</a></li><li class="sub"><a href="#41-验收判据为什么是多数种子达标">4.1 验收判据为什么是“多数种子达标”</a></li><li><a href="#5-逐项消融每一步值多少">5. 逐项消融：每一步值多少</a></li><li class="sub"><a href="#51-做法">5.1 做法</a></li><li class="sub"><a href="#52-一组参考结果">5.2 一组参考结果</a></li><li><a href="#6-同一步对良品做和对待检图做管的不是一件事">6. 同一步，对良品做和对待检图做，管的不是一件事</a></li><li class="sub"><a href="#61-不对齐大家以为的样子和实际的样子">6.1 不对齐：大家以为的样子和实际的样子</a></li><li class="sub"><a href="#62-亮度归一化良品那一遍保检出待检图那一遍保误报">6.2 亮度归一化：良品那一遍保检出，待检图那一遍保误报</a></li><li><a href="#7-对齐细看">7. 对齐细看</a></li><li class="sub"><a href="#71-残差有多大">7.1 残差有多大</a></li><li class="sub"><a href="#72-加窗为什么反而变差">7.2 加窗为什么反而变差</a></li><li class="sub"><a href="#73-搜索范围这份数据上量不出差别原因是有标记">7.3 搜索范围：这份数据上量不出差别，原因是有标记</a></li><li class="sub"><a href="#74-不读真值怎么评估对齐闭环误差">7.4 不读真值怎么评估对齐：闭环误差</a></li><li><a href="#8-工作点重调阈值之后再比">8. 工作点：重调阈值之后再比</a></li><li class="sub"><a href="#81-哪些改动能靠调阈值补回来">8.1 哪些改动能靠调阈值补回来</a></li><li class="sub"><a href="#82-值-0的步骤在防什么">8.2 “值 0”的步骤在防什么</a></li><li class="sub"><a href="#83-阈值和面积门槛">8.3 阈值和面积门槛</a></li><li><a href="#9-漏检分析">9. 漏检分析</a></li><li><a href="#10-交互演示">10. 交互演示</a></li><li><a href="#11-怎样评估怎样把项目讲成作品">11. 怎样评估，怎样把项目讲成作品</a></li><li class="sub"><a href="#111-评估">11.1 评估</a></li><li class="sub"><a href="#112-报告的结构">11.2 报告的结构</a></li><li class="sub"><a href="#113-消融表怎么列失败案例怎么写">11.3 消融表怎么列，失败案例怎么写</a></li><li class="sub"><a href="#114-五分钟怎么讲">11.4 五分钟怎么讲</a></li><li><a href="#12-常见错误">12. 常见错误</a></li><li><a href="#13-破坏实验">13. 破坏实验</a></li><li><a href="#14-扩展深挖档">14. 扩展（深挖档）</a></li><li><a href="#15-和后续章节的关系">15. 和后续章节的关系</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

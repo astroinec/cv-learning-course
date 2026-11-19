@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -322,6 +322,7 @@ r_1 = s\,K^{-1}h_1, \quad r_2 = s\,K^{-1}h_2, \quad r_3 = r_1 \times r_2, \quad 
 <li><strong>数值很大又用法方程时，不归一化会彻底失效</strong>（1540 px）。方程矩阵最大奇异值和第二小奇异值之比，归一化后是 3.5，不归一化在大数值坐标下是 1.2e9。法方程把这个比值平方，超过了 float64 能分辨的范围（约 1e16）。直接对 <span class="arithmatex">\(A\)</span> 做 SVD 不平方，所以没事。</li>
 </ol>
 <p>所以归一化的价值有两条，一条是统计上的，一条是数值上的。用 SVD 求解时，单纯换成 float32 在这组实验里没有造成差别。检测设备上，平台坐标常用微米甚至纳米，数值很大；对位标记通常只占视场的一小块。这两种情况都落在表的后两行，所以归一化值得作为默认步骤。</p>
+<p>表里的三种条件下，用 SVD 时不归一化最多差 13%。坐标再极端一些，SVD 也顶不住。把板坐标和像素坐标都加上 1000000 的整体偏移（无噪声，100 个随机视图，float64，SVD），每个视图最大映射误差的中位数：归一化后是 2.4e-07 px，不归一化是 5 px。作业的验收里有一组这样的数据，跳过归一化的 <code>homography_dlt</code> 通不过。</p>
 <div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>用 float64 和 SVD 解 DLT，角点在画面里分布得比较开。归一化和不归一化的结果差多少？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>差一个数量级</span></button><button type="button" data-k="B"><b>B</b><span>几乎没有差别</span></button><button type="button" data-k="C"><b>C</b><span>不归一化会解不出来</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测都是 0.185 px。归一化起作用的条件是角点只占很小的范围（差 13%），或者坐标数值很大并且用法方程求解（不归一化直接失效）。</p></div></div>
 <h2 id="6-标定质量怎么判断">6. 标定质量怎么判断</h2>
 <p><strong>重投影误差（RMS）</strong>是标定程序自己报告的数字，好的标定通常在 0.1 到 0.5 px。但它只说明模型在参与标定的那些点上自洽。下面三个实验各展示一种“RMS 很好看，标定却不对”的情况。</p>
@@ -477,7 +478,7 @@ r_1 = s\,K^{-1}h_1, \quad r_2 = s\,K^{-1}h_2, \quad r_3 = r_1 \times r_2, \quad 
 </tbody>
 </table></div>
 <p>两种拍法自己报告的 RMS 几乎相同。但只拍中央时，四角的实际误差是 1.85 px，是中央的 7 倍，估出的 <span class="arithmatex">\(k_1\)</span> 在 -0.16 到 -0.05 之间乱跳。畸变在中央本来就很小，那里的点对畸变参数几乎没有约束，优化器给出什么值都能拟合好。</p>
-<p>留出验证的总 RMS 只从 0.28 涨到 0.35，也不算显眼。<strong>按位置看</strong>才看得出问题集中在四角。</p>
+<p>留出验证的总 RMS 只从 0.28 涨到 0.35，也不算显眼。<strong>按位置看</strong>才看得出问题集中在四角。Notebook 实验 6 用你的线性解和 OpenCV 各做一次留出验证，把画面中央和四角分开统计。</p>
 <div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>标定板只出现在画面中央，标定程序报告 RMS 0.28 px。这台相机在画面四角的实际误差大约是多少？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>也是 0.28 px 左右</span></button><button type="button" data-k="B"><b>B</b><span>接近 2 px</span></button><button type="button" data-k="C"><b>C</b><span>一定比 0.28 px 小</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 1.85 px。中央的点约束不了畸变参数，估出来的畸变系数不准，外推到四角误差就放大了。标定自己报告的 RMS 只统计参与标定的点，这些点都在中央。</p></div></div>
 <h3 id="64-检查清单">6.4 检查清单</h3>
 <ul>
@@ -536,14 +537,59 @@ r_1 = s\,K^{-1}h_1, \quad r_2 = s\,K^{-1}h_2, \quad r_3 = r_1 \times r_2, \quad 
 <td>每台单独标定</td>
 </tr>
 <tr>
+<td>归一化后的平均距离不是 <span class="arithmatex">\(\sqrt{2}\)</span></td>
+<td>算成了均方根距离，或者把尺度定成了 1</td>
+<td>打印归一化后各点到原点距离的算术平均</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(T\)</span> 对角线上的两个缩放系数不相等</td>
+<td>x、y 两个方向分开缩放，不是相似变换</td>
+<td>用一组 x 方向铺得开、y 方向很窄的点测</td>
+</tr>
+<tr>
+<td>无噪声时单应的映射误差就有几百像素</td>
+<td>没有去归一化，或者去归一化的顺序、方向写反</td>
+<td>把 <code>src</code> 用 <span class="arithmatex">\(H\)</span> 映射过去，和 <code>dst</code> 比</td>
+</tr>
+<tr>
 <td>估出的单应差一个整体倍数</td>
 <td>没有缩放到 <span class="arithmatex">\(H_{33} = 1\)</span></td>
 <td>比较前先归一化</td>
 </tr>
 <tr>
-<td>外参里的 t_z 是负的</td>
-<td>没处理符号，板子被算到了相机后方</td>
-<td>检查 <span class="arithmatex">\(t_z &lt; 0\)</span> 时是否整体取负</td>
+<td>坐标带很大的整体偏移时单应不准</td>
+<td>跳过了归一化</td>
+<td>两组坐标都加上很大的偏移再测（第 5 节）</td>
+</tr>
+<tr>
+<td>带噪声时单应比预期差好几倍</td>
+<td>只用了 4 个点，没有让全部点参与最小二乘</td>
+<td>数一数方程矩阵的行数，应是点数的两倍</td>
+</tr>
+<tr>
+<td>无噪声时内参就不对</td>
+<td><span class="arithmatex">\(v_{ij}\)</span> 的下标写错，或者把 <span class="arithmatex">\(h_i\)</span> 取成了 <span class="arithmatex">\(H\)</span> 的行</td>
+<td>用 <span class="arithmatex">\(K\,[r_1\; r_2\; t]\)</span> 构造精确的单应测</td>
+</tr>
+<tr>
+<td>相机没有 skew 时都对，有 skew 时主点和 skew 对不上</td>
+<td>从 <span class="arithmatex">\(b\)</span> 解内参的公式按 <span class="arithmatex">\(\gamma = 0\)</span> 化简了</td>
+<td>用带 skew 的 <span class="arithmatex">\(K\)</span> 构造单应测</td>
+</tr>
+<tr>
+<td>闭式公式开方时出现 nan</td>
+<td>两个约束或 <span class="arithmatex">\(v_{ij}\)</span> 写错（例如 <span class="arithmatex">\(v_{11} - v_{22}\)</span> 写成了加号），或者姿态退化</td>
+<td>先用无噪声的精确单应测；再检查倾斜角</td>
+</tr>
+<tr>
+<td>用 Cholesky 分解时报“不是正定矩阵”</td>
+<td>SVD 给出的 <span class="arithmatex">\(b\)</span> 整体符号是任意的，<span class="arithmatex">\(B\)</span> 可能整体为负</td>
+<td>检查 <span class="arithmatex">\(B_{11}\)</span> 的符号，为负时整体取负</td>
+</tr>
+<tr>
+<td>外参里的 t_z 是负的，或者 R 差了半圈</td>
+<td>没处理符号；或者只把 <span class="arithmatex">\(t\)</span> 取负，<span class="arithmatex">\(r_1\)</span>、<span class="arithmatex">\(r_2\)</span> 没有一起取负</td>
+<td>把单应整体乘以 -1 再求外参，结果应该不变</td>
 </tr>
 <tr>
 <td>R 的行列式是 -1</td>
@@ -551,21 +597,26 @@ r_1 = s\,K^{-1}h_1, \quad r_2 = s\,K^{-1}h_2, \quad r_3 = r_1 \times r_2, \quad 
 <td>打印 <code>np.linalg.det(R)</code></td>
 </tr>
 <tr>
-<td>闭式解开方时出现 nan</td>
-<td><span class="arithmatex">\(B\)</span> 整体符号为负，或者姿态退化</td>
-<td>检查 <span class="arithmatex">\(B_{11}\)</span> 的符号；检查倾斜角</td>
+<td>单应带噪声时 R 不是正交矩阵</td>
+<td>没有做 SVD 投影</td>
+<td>打印 <span class="arithmatex">\(R R^\top\)</span>，应是单位阵</td>
+</tr>
+<tr>
+<td>重投影误差比别人算的小</td>
+<td>算成了距离的算术平均，或者对 2N 个坐标分量取平均</td>
+<td>只让 4 个点里的 1 个偏开 5 px，结果应是 5 px 的一半</td>
 </tr>
 </tbody>
 </table></div>
 <h2 id="10-破坏实验">10. 破坏实验</h2>
 <p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
 <ol>
-<li>把倾斜角限制在 ±3° 左右（Notebook 实验 2），焦距和主点各变成什么样？重投影误差变了吗？</li>
+<li>把倾斜角限制在 ±3° 左右（Notebook 实验 2 和实验 4），焦距和主点各变成什么样？重投影误差变了吗？</li>
 <li>把棋盘格边长写错（15 写成 10），哪些参数受影响，哪些不受影响？</li>
 <li>把某张视图的角点顺序打乱，结果怎样？</li>
 <li>只用 3 张视图，重复 20 次不同的随机种子，fx 的波动范围有多大？</li>
-<li>在 <code>homography_dlt</code> 里跳过归一化，把板坐标乘以 1000、像素坐标加 4000，结果变了吗？再把求解方式从 SVD 改成对 <span class="arithmatex">\(A^\top A\)</span> 做特征分解试试。</li>
-<li>给合成数据加上 <span class="arithmatex">\(k_1 = -0.1\)</span> 的畸变，仍用线性解，内参偏了多少？把残差按位置画出来。</li>
+<li>在 <code>homography_dlt</code> 里跳过归一化，把板坐标乘以 1000、像素坐标加 4000，结果变了吗？再把求解方式从 SVD 改成对 <span class="arithmatex">\(A^\top A\)</span> 做特征分解试试。做完把归一化改回来：验收里有一组整体偏移更大的数据，跳过归一化通不过（第 5 节末尾）。</li>
+<li>给合成数据加上 <span class="arithmatex">\(k_1 = -0.1\)</span> 的畸变，仍用线性解，内参偏了多少？把残差按位置画出来（Notebook 实验 5 画的是按半径分组的平均）。</li>
 </ol>
 <h2 id="11-扩展深挖档">11. 扩展（深挖档）</h2>
 <ul>

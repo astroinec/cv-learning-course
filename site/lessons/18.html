@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -83,7 +83,7 @@
 <td>标准</td>
 <td style="text-align: right;">12 小时</td>
 <td>读完全章，跑 Notebook，完成作业并验收通过，填实验记录</td>
-<td>四项测试 PASS，实验记录里有一条 k 曲线、你选的工作点和一个失败案例</td>
+<td>五项测试 PASS，实验记录里有一条 k 曲线、你选的工作点和一个失败案例</td>
 </tr>
 <tr>
 <td>深挖</td>
@@ -376,7 +376,7 @@ sigma  ≈ 1.4826 × MAD
 <li><strong>鲁棒是有代价的</strong>。同样的 <span class="arithmatex">\(N\)</span>，MAD 法的误报概率是标准差法的 4 到 13 倍，因为 MAD 估计 sigma 的效率更低。上一节看到的抗污染能力，是用这个代价换来的。</li>
 <li><strong>不要把 k 当成概率来报告</strong>。<span class="arithmatex">\(k\)</span> 是一个需要在自己的数据上标定的旋钮。汇报时给实测的误报数，不要给“5 sigma 对应百万分之一”这种理论换算。</li>
 </ol>
-<div class="callout callout-key"><div class="callout-title">要点</div><p>本章作业用 12 到 15 张良品，测试用 <span class="arithmatex">\(k = 6\)</span> 加面积过滤，在小图上是够的。到了真实尺寸的图像，要么增加良品张数，要么把相邻像素或同类区域的统计合并起来估 sigma（第 3.5 节的分区就是一种合并），要么靠面积过滤兜底（第 5 节）。</p>
+<div class="callout callout-key"><div class="callout-title">要点</div><p>本章作业用 12 到 15 张良品，验收里带噪声的场景用 <span class="arithmatex">\(k = 6\)</span> 加面积过滤，在小图上是够的。到了真实尺寸的图像，要么增加良品张数，要么把相邻像素或同类区域的统计合并起来估 sigma（第 3.5 节的分区就是一种合并），要么靠面积过滤兜底（第 5 节）。</p>
 </div>
 <div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>用 9 张良品、中位数加 MAD 建模板，k 取 5。在没有任何缺陷的良品图上，单个像素被判为异常的概率实测大约是多少？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>约 6e-7，和高斯理论一致</span></button><button type="button" data-k="B"><b>B</b><span>约 1%</span></button><button type="button" data-k="C"><b>C</b><span>0，因为没有缺陷</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 1.1e-2。每个像素只有 9 个样本，MAD 估出的 sigma 有一部分低于真值的一半，这些像素上普通的噪声就能超过 5 倍的“sigma”。理论值 6e-7 只在 sigma 准确已知时成立。</p></div></div>
 <h3 id="34-sigma-的下限">3.4 sigma 的下限</h3>
@@ -498,6 +498,7 @@ g &gt; \frac{k\,\sigma}{L} = \frac{k}{\text{信噪比}}
 <li><strong>两遍扫描加并查集</strong>：第一遍给每个像素临时编号并记录哪些编号相通，第二遍把相通的编号合并。</li>
 </ul>
 <p>不要用递归的深度优先搜索。一个大连通域可能有几十万像素，递归深度会超过语言的栈上限（第 15 章第 4 节专门讲了这个问题）。</p>
+<p>编号有两条约定，验收都会检查。第一，编号连续，从 1 到 n 不跳号。第二，按每个连通域第一个像素的光栅顺序（先行后列）编号。广度优先搜索天然满足这两条。两遍扫描要小心：一个 U 形区域的两条竖线在第一遍里会拿到两个临时编号，到底部才发现它们相通，合并之后必须重新编号。</p>
 <h3 id="53-缺陷特征">5.3 缺陷特征</h3>
 <p>每个缺陷提取特征，供后续过滤和分类：</p>
 <div class="table-wrap"><table>
@@ -513,7 +514,7 @@ g &gt; \frac{k\,\sigma}{L} = \frac{k}{\text{信噪比}}
 <td>尺寸分级，按尺寸设报警门槛</td>
 </tr>
 <tr>
-<td>质心（可以按 z 加权）</td>
+<td>质心（可以按 z 加权；本章作业约定不加权，取像素坐标的算术平均）</td>
 <td>定位、和复查结果匹配</td>
 </tr>
 <tr>
@@ -680,9 +681,29 @@ g &gt; \frac{k\,\sigma}{L} = \frac{k}{\text{信噪比}}
 <td>先转成 <code>float64</code></td>
 </tr>
 <tr>
+<td>sigma 在坏图污染的地方被撑大</td>
+<td>MAD 的偏差以均值为中心，或者取了平均值而不是中位数</td>
+<td>手算一组带离群值的数，例如 0、1、2、3、100</td>
+</tr>
+<tr>
+<td>调用之后良品图的内容变了</td>
+<td>对输入原地排序</td>
+<td>调用前后比较输入数组</td>
+</tr>
+<tr>
 <td>对角相连的缺陷被拆成两个</td>
 <td>用了 4 连通</td>
 <td>测两个对角相邻的像素</td>
+</tr>
+<tr>
+<td>图像左右两边的区域被连成一个</td>
+<td>邻点下标只检查了上界，负下标绕到了另一侧</td>
+<td>在四条边上各放一个孤立像素，应是 4 个区域</td>
+</tr>
+<tr>
+<td>编号跳号，或者顺序和预期不同</td>
+<td>两遍扫描合并之后没有按光栅顺序重新编号</td>
+<td>测一个 U 形区域，两条竖线之间再放一个孤立点</td>
 </tr>
 <tr>
 <td>大连通域上程序崩溃</td>
@@ -695,26 +716,51 @@ g &gt; \frac{k\,\sigma}{L} = \frac{k}{\text{信噪比}}
 <td>测一个 3×3 的方块，bbox 的高和宽应为 3</td>
 </tr>
 <tr>
-<td>一个真值被两个预测同时命中，tp 大于真值个数</td>
-<td>匹配没做一对一</td>
-<td>在同一个真值附近放两个预测测</td>
+<td>面积恰好等于 <code>min_area</code> 的缺陷丢了</td>
+<td>过滤条件写成了面积大于 <code>min_area</code></td>
+<td>测一个面积正好等于 <code>min_area</code> 的缺陷</td>
 </tr>
 <tr>
 <td>质心坐标顺序反了</td>
 <td>把 (x, y) 当成了 (行, 列)</td>
 <td>测一个不在对角线上的缺陷</td>
 </tr>
+<tr>
+<td>质心和预期差不到半个像素</td>
+<td>用了外接框的中心，或者按 z 加权</td>
+<td>测一个 L 形的缺陷，它的质心不在外接框中心</td>
+</tr>
+<tr>
+<td><code>max_z</code> 每个缺陷都一样，或者大得离谱</td>
+<td>取了全图的最大值，或者填的是灰度差</td>
+<td>在 sigma 不同的两个区域各放一个缺陷测</td>
+</tr>
+<tr>
+<td>一个真值被两个预测同时命中，tp 大于真值个数</td>
+<td>匹配没做一对一</td>
+<td>在同一个真值附近放两个预测测；再反过来，一个预测夹在两个真值中间</td>
+</tr>
+<tr>
+<td>明明两对都能配上，只配上了一对</td>
+<td>没有按距离从小到大取，按输入顺序先到先得</td>
+<td>构造一个预测离两个真值都近、但另一个预测只够得着其中一个的例子</td>
+</tr>
+<tr>
+<td>没有真值时检出率是 0，或者程序报错</td>
+<td><code>truth</code> 为空时没有单独处理</td>
+<td>传空的真值列表，再传空的预测列表</td>
+</tr>
 </tbody>
 </table></div>
 <h2 id="10-破坏实验">10. 破坏实验</h2>
 <p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
 <ol>
-<li>把良品张数从 12 减到 5，k 保持 6 不变。良品图上的误报数怎么变？对照图 4 解释。</li>
-<li>让待检图整体亮 10%，不做归一化。误报出现在哪些区域？按第 4 节的公式，你的数据里整片报警的门槛是百分之几？</li>
+<li>把良品张数从 12 减到 5，k 保持 6 不变。良品图上的误报数怎么变？对照图 4 和 Notebook 实验 3 解释。</li>
+<li>让待检图整体亮 10%，不做归一化（Notebook 实验 4）。误报出现在哪些区域？按第 4 节的公式，你的数据里整片报警的门槛是百分之几？</li>
 <li>把 <code>min_area</code> 设为 1 和 9，各丢掉了什么？</li>
 <li>把 3 张良品换成同一位置带大缺陷的图，比较中位数加 MAD 和均值加标准差（Notebook 实验 2）。再换成 5 张试试。</li>
 <li>图 2 最右一栏里，固定阈值从 12 降到 8，检出率反而从 97% 降到 91%。先猜原因，再画出阈值为 8 时的候选掩膜验证。</li>
-<li>把匹配半径从 3 改成 1 和 10，同一份检测结果的检出率各是多少？</li>
+<li>把匹配半径从 3 改成 1 和 10，同一份检测结果的检出率各是多少？（Notebook 实验 5）</li>
 </ol>
 <h2 id="11-扩展深挖档">11. 扩展（深挖档）</h2>
 <ul>
