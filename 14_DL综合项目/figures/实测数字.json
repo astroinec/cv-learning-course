@@ -1390,8 +1390,8 @@
       "logits 最大差": 19.743
     },
     "调用 quantize_dynamic 时的提示（每条的第一行）": [
-      "torch.ao.quantization is deprecated and will be removed in 2.10. ",
-      "torch.quantize_per_tensor, torch.quantize_per_channel and other quantized tensor creation functions that produce tensors with dtype torch.quint8, torch.qint8, and torch.qint32 are deprecated and will be removed in a future PyTorch release. Please see https://github.com/pytorch/pytorch/issues/184982 for more information. (Triggered internally at /Users/runner/work/pytorch/pytorch/aten/src/ATen/quantized/Quantizer.cpp:116.)"
+      "torch.ao.quantization is deprecated and will be removed in 2.10.",
+      "torch.quantize_per_tensor, torch.quantize_per_channel and other quantized tensor creation functions that produce tensors with dtype torch.quint8, torch.qint8, and torch.qint32 are deprecated and will be removed in a future PyTorch release. Please see https://github.com/pytorch/pytorch/issues/184982 for more information."
     ],
     "全连接层占全部参数的比例": 0.044,
     "动态量化后文件小了多少（比例）": 0.033,
