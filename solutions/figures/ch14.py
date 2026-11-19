@@ -1592,9 +1592,18 @@ def numbers_misc():
         "部署时类别表错一位的精度": r3(float(((pred + 1) == c["yte"]).float().mean())),
     }
     meta = mod.letterbox_metadata((100, 200), (320, 320))
+    def meta_of(src, dst):
+        m = mod.letterbox_metadata(src, dst)
+        return {"scale": r4(m["scale"]), "resized_hw": list(m["resized_hw"]), "pad_xy": list(m["pad_xy"])}
+
     NUM["作业自检用例"] = {
-        "说明": "tests/check_progress.py 里的两个用例，用参考实现算出来的结果",
+        "说明": "tests/check_progress.py 里的几个用例，用参考实现算出来的结果。作业的文档字符串规定取整用 Python 内置的 round（正好落在 .5 时取偶数），"
+                "多出来的 1 个像素放右侧或下侧；后四个用例分别是缩放后带小数并且加边为奇数、缩放后的高正好是 360.5、361.5、缩放后的宽正好是 362.5",
         "letterbox_metadata((100, 200), (320, 320))": {"scale": meta["scale"], "resized_hw": list(meta["resized_hw"]), "pad_xy": list(meta["pad_xy"])},
+        "letterbox_metadata((100, 300), (326, 320))": meta_of((100, 300), (326, 320)),
+        "letterbox_metadata((721, 1280), (640, 640))": meta_of((721, 1280), (640, 640)),
+        "letterbox_metadata((723, 1280), (640, 640))": meta_of((723, 1280), (640, 640)),
+        "letterbox_metadata((1280, 725), (640, 640))": meta_of((1280, 725), (640, 640)),
         "boxes_to_original 用例的输出": mod.boxes_to_original(np.array([[10.0, 20.0, 310.0, 220.0], [-5.0, 0.0, 400.0, 300.0]]),
                                                     {"scale": 2.0, "resized_hw": (200, 300), "pad_xy": (10, 20)}, (100, 150)).tolist(),
     }

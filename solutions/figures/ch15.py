@@ -19,7 +19,14 @@
 图里和耗时有关的内容只用写进 JSON 的值来画，图的标题里依赖耗时的结论由 claim() 对着这些值检查。
 深度、阈值、误差、测试结果这些不是耗时的数字每次运行都重新计算。
 
+和验收有关的三组：
+- “验收的计时检查”和“测试能抓住什么”用现在的 tests/ 实际跑出来（后者直接运行 tests/check_progress.py，和读者看到的输出相同）。
+  其中取决于耗时的几项、以及会让测试程序崩溃的“连通域用递归”钉住；判据（tests/test_main.cpp 里的常数）变了会自动重测。
+- “加固前的计时检查”是 2026-11 加固验收之前那一版测试的做法，由本脚本内嵌的小程序照原样重现，和别的耗时一样钉住。
+- “测试能抓住什么”里“加固前”一栏来自已经不在仓库里的旧测试，是抄录的记录（OLD_RESULT），不随重跑变化。
+
 故意触发的栈溢出都由程序自己的信号处理函数接住后正常退出，不会在系统里留下崩溃报告。
+唯一的例外是拿“连通域用递归”的写法过验收：测试程序会真的崩溃一次（这正是要验证的行为），只在第一次运行和重测时发生。
 """
 
 from __future__ import annotations
@@ -45,6 +52,8 @@ CH = "15_C++视觉工程"
 REF = S.SOLUTIONS / CH / "15-1_图像基础.cpp"
 INC = S.MAIN / CH / "cpp"
 TEST_MAIN = S.MAIN / CH / "tests" / "test_main.cpp"
+CHECK = S.MAIN / CH / "tests" / "check_progress.py"
+HOMEWORK = "15-1_图像基础.cpp"
 BUILD = Path("/tmp/ch15_build")
 CXX = "g++"
 NUM: dict = {}
@@ -70,6 +79,39 @@ def pin(key: str, measure) -> dict:
     """
     PINNED_KEYS.append(key)
     NUM[key] = S.pinned(CH, key, measure, RETIME)
+    return NUM[key]
+
+
+def previous(key: str):
+    """实测数字.json 里上次记下的某一组；没有就是 None。"""
+    old = S.MAIN / CH / "figures" / "实测数字.json"
+    return json.loads(old.read_text(encoding="utf-8")).get(key) if old.exists() else None
+
+
+def pin_moved(key: str, old_key: str, measure) -> dict:
+    """分组改了名字：新名字下还没有值时沿用旧名字下钉住的值，之后和 pin 一样。只在改名后的第一次运行走到旧名字。"""
+    PINNED_KEYS.append(key)
+    prev = previous(key)
+    if prev is None:
+        prev = previous(old_key)
+    if os.environ.get(RETIME) != "1" and prev is not None:
+        print(f"{key}：沿用上次的测量（设置 {RETIME}=1 重测）", flush=True)
+        NUM[key] = prev
+    else:
+        NUM[key] = measure()
+    return NUM[key]
+
+
+def pin_checked(key: str, measure, valid) -> dict:
+    """和 pin 一样钉住，但上次的值要先过 valid 这一关（例如记下的判据和现在测试里的相同），过不了就重测。"""
+    PINNED_KEYS.append(key)
+    prev = previous(key)
+    if os.environ.get(RETIME) != "1" and prev is not None and valid(prev):
+        print(f"{key}：沿用上次的测量（设置 {RETIME}=1 重测）", flush=True)
+        NUM[key] = prev
+    else:
+        print(f"{key}：重新测量", flush=True)
+        NUM[key] = measure()
     return NUM[key]
 
 
@@ -103,13 +145,13 @@ SECOND_RUN = {
     "和 OpenCV 对照": {"积分图 2000x2000（cv2.integral，输出 64 位浮点）": {"参考实现慢的倍数": 1.2}, "盒式均值 2000x2000，r=7（cv2.boxFilter，输出 64 位浮点）": {"参考实现慢的倍数": 1.7},
                    "NCC 320x240，模板 24x24（cv2.matchTemplate）": {"参考实现慢的倍数": 50.0}, "连通域 2000x2000（cv2.connectedComponents，同时输出标签图）": {"参考实现慢的倍数": 4.8}},
     "Python 和 C++ 的积分图": {"纯 Python 双重循环": 39, "numpy 两次 cumsum（uint64）": 5.7, "C++ 参考实现": 0.36, "纯 Python 比 C++ 慢的倍数": 107},
-    "测试的计时检查": {
+    "加固前的计时检查": {
         "积分图 O(1)（参考实现）": {"r=1 的耗时": 8.36, "r=30 的耗时": 4.29, "r=30 是 r=1 的几倍": 0.5, "判据允许的 r=30 耗时上限": 83.4, "5 次里按判据算通过的次数": 5},
         "可分离 O(r)": {"r=1 的耗时": 14.7, "r=30 的耗时": 93.1, "r=30 是 r=1 的几倍": 6.3, "判据允许的 r=30 耗时上限": 109.0, "5 次里按判据算通过的次数": 5},
         "朴素 O(r^2)": {"r=1 的耗时": 19.9, "r=30 的耗时": 2840.0, "r=30 是 r=1 的几倍": 142.4, "判据允许的 r=30 耗时上限": 130.0, "3 次里按判据算通过的次数": 0},
     },
-    "测试能抓住什么": {"盒式均值写成可分离的 O(r)": "四项全部 PASS", "盒式均值写成 O(r^2)": "盒式均值 FAIL：r 增大时耗时明显增长，没有做到 O(1) 每像素",
-                  "可分离的 O(r) 实现再连跑 5 次，“盒式均值”一项通过的次数": 5},
+    "加固前的验收": {"盒式均值写成可分离的 O(r)": "四项全部 PASS", "盒式均值写成 O(r^2)": "盒式均值 FAIL：r 增大时耗时明显增长，没有做到 O(1) 每像素",
+                 "可分离的 O(r) 实现再连跑 5 次，“盒式均值”一项通过的次数": 5},
 }
 
 
@@ -657,6 +699,31 @@ int argmax_init_first(It b, It e) {  // 写法二：用第一个元素初始化
     return best;
 }
 
+// cpp/image.hpp 的构造函数在 2026-11 之前的写法：先在初始化列表里分配，再在函数体里检查负数。留在这里做对照。
+struct AllocThenCheck {
+    int rows, cols;
+    std::vector<std::uint8_t> data;
+    AllocThenCheck(int r, int c) : rows(r), cols(c), data(static_cast<std::size_t>(r) * c, 0) {
+        if (r < 0 || c < 0) throw std::invalid_argument("rows/cols 不能为负");
+    }
+};
+
+template <typename F>
+const char* thrown_kind(F&& make) {
+    try {
+        make();
+    } catch (const std::invalid_argument&) {
+        return "invalid_argument";
+    } catch (const std::length_error&) {
+        return "length_error";
+    } catch (const std::bad_alloc&) {
+        return "bad_alloc";
+    } catch (const std::exception&) {
+        return "other";
+    }
+    return "none";
+}
+
 int main(int argc, char**) {
     std::vector<int> v(10, 1);
     int total = 0;
@@ -685,10 +752,10 @@ int main(int argc, char**) {
     std::vector<double> mid = {0.2, nan, 0.9, 0.5}, head = {nan, 0.2, 0.9, 0.5}, all = {nan, nan, nan};
     const double half[] = {0.5, 1.5, 2.5, 254.5};
 
-    const char* neg_one = "none";
-    try { course::ImageU8 img(-1, 5); } catch (const std::invalid_argument&) { neg_one = "invalid_argument"; } catch (const std::length_error&) { neg_one = "length_error"; } catch (const std::exception&) { neg_one = "other"; }
-    const char* neg_two = "none";
-    try { course::ImageU8 img(-2, -3); } catch (const std::invalid_argument&) { neg_two = "invalid_argument"; } catch (const std::length_error&) { neg_two = "length_error"; } catch (const std::exception&) { neg_two = "other"; }
+    const char* neg_one = thrown_kind([] { course::ImageU8 img(-1, 5); });
+    const char* neg_two = thrown_kind([] { course::ImageU8 img(-2, -3); });
+    const char* old_one = thrown_kind([] { AllocThenCheck img(-1, 5); });
+    const char* old_two = thrown_kind([] { AllocThenCheck img(-2, -3); });
 
     std::printf("{\"u8_255_plus_1\": %d, ", wrap255);
     std::printf("\"u8_200_plus_100\": %d, \"int_200_plus_100\": %d, \"u8_100_minus_200\": %d, \"size_t_0_minus_1\": \"%zu\", \"u32_4e9_plus_3e8\": %u, "
@@ -703,13 +770,14 @@ int main(int argc, char**) {
                 argmax_init_low(mid.begin(), mid.end()), argmax_init_first(mid.begin(), mid.end()), static_cast<int>(std::max_element(mid.begin(), mid.end()) - mid.begin()),
                 argmax_init_low(head.begin(), head.end()), argmax_init_first(head.begin(), head.end()), static_cast<int>(std::max_element(head.begin(), head.end()) - head.begin()),
                 argmax_init_low(all.begin(), all.end()));
-    std::printf("\"image_neg1_5\": \"%s\", \"image_neg2_neg3\": \"%s\"}\n", neg_one, neg_two);
+    std::printf("\"image_neg1_5\": \"%s\", \"image_neg2_neg3\": \"%s\", \"old_neg1_5\": \"%s\", \"old_neg2_neg3\": \"%s\"}\n", neg_one, neg_two, old_one, old_two);
     return 0;
 }
 '''
 
 TESTTIME_CPP = r'''
-// 和 tests/test_main.cpp 里盒式均值的计时检查完全相同的步骤：同一张图，r=1 和 r=30 各调用一次，不重复、不预热。
+// 2026-11 加固验收之前，tests/test_main.cpp 里盒式均值计时检查的步骤，照原样重现：同一张图，r=1 和 r=30 各调用一次，不重复、不预热。
+// 现在的测试改成了预热后交替多次计时，见 tests/test_main.cpp。
 #include "image.hpp"
 
 #include <chrono>
@@ -807,14 +875,59 @@ def timed(jobs: list, rounds: int = 3) -> list:
     return [_TIMED[j] for j in jobs]
 
 
-def run_tests(exe: str) -> dict:
-    res = run(exe, env={"ASAN_OPTIONS": "abort_on_error=0"})
+def test_constants() -> dict:
+    """验收用到的几个常数，直接从 tests/test_main.cpp 里读出来，保证 JSON 和讲义里写的就是测试实际用的。"""
+    src = TEST_MAIN.read_text(encoding="utf-8")
+
+    def one(pattern: str) -> str:
+        m = re.search(pattern, src)
+        assert m, f"tests/test_main.cpp 里找不到 {pattern}"
+        return m.group(1)
+
+    def number(text: str):
+        v = float(text)
+        return int(v) if v == int(v) else v
+
+    return {
+        "计时用的图像边长": int(one(r"const int kTimingSize = (\d+);")),
+        "和 r=1 比较的半径": [int(v) for v in one(r"const int kTimingRadii\[\] = \{([\d, ]+)\};").split(",")],
+        "倍数上限": number(one(r"const double kTimingRatio = ([\d.]+);")),
+        "余量（毫秒）": number(f"{float(one(r'const double kTimingSlack = ([0-9.]+);')) * 1e3:.6g}"),
+        "每个半径最多交替计时的轮数": int(one(r"const int kTimingMaxReps = (\d+);")),
+        "积分图大图测试的边长": int(one(r"const int n = (\d+);\n    ImageU64 big")),
+    }
+
+
+def impl_root(exe: str) -> Path:
+    """一种写法对应的实现目录，结构和 solutions/ 相同，可以直接交给 COURSE_IMPL_DIR。"""
+    return BUILD / "impl" / exe
+
+
+def acceptance(root: Path | None) -> dict:
+    """运行 tests/check_progress.py（和读者运行的是同一个脚本），返回 {测试名: (状态, 说明)}。root 为 None 时跑参考实现。"""
+    env = dict(os.environ, CXX=CXX, COURSE_IMPL_DIR=str(root if root is not None else S.SOLUTIONS))
+    res = subprocess.run([sys.executable, str(CHECK)], capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, timeout=600)
     out = {}
     for line in res.stdout.splitlines():
-        parts = line.split("|", 2)
-        if len(parts) == 3:
-            out[parts[1]] = f"{parts[0]}：{parts[2]}" if parts[0] != "PASS" else "PASS"
+        m = re.match(r"\[(PASS|FAIL|TODO)\s*\] (.+?) — (.*)$", line)
+        if m:
+            out[m.group(2)] = (m.group(1), m.group(3))
     return out
+
+
+SLOW_MARK = "耗时随半径增长"
+TEST_NAMES = ("积分图", "盒式均值", "NCC 模板匹配", "连通域计数")
+
+
+def summarize(res: dict) -> str:
+    """一次验收的结果写成一句话。计时没过的说明里带着每次都不一样的耗时，只留冒号前面的结论。"""
+    if len(res) == 4 and all(status == "PASS" for status, _ in res.values()):
+        return "四项全部 PASS"
+    parts = []
+    for name, (status, text) in res.items():
+        if status != "PASS":
+            parts.append(f"{name} {status}：{text.split('：')[0] if SLOW_MARK in text else text}")
+    return "；".join(parts) if parts else "没有输出"
 
 
 SEPARABLE_BOX = '''ImageF box_mean(const ImageU8& img, int r) {
@@ -856,19 +969,422 @@ NAIVE_BOX = '''ImageF box_mean(const ImageU8& img, int r) {
     return out;
 }
 '''
+SEPARABLE_VEC_BOX = '''ImageF box_mean(const ImageU8& img, int r) {
+    if (r < 0) throw std::invalid_argument("r 不能为负");
+    const int H = img.rows, W = img.cols;
+    Image<std::uint32_t> tmp(H, W, 0);
+    for (int y = 0; y < H; ++y) {
+        const std::uint8_t* row = img.data.data() + static_cast<size_t>(y) * W;
+        std::uint32_t* dst = tmp.data.data() + static_cast<size_t>(y) * W;
+        for (int x = 0; x < W; ++x) {
+            const int a = std::max(0, x - r), b = std::min(W - 1, x + r);
+            std::uint32_t s = 0;
+            for (int xx = a; xx <= b; ++xx) s += row[xx];
+            dst[x] = s;
+        }
+    }
+    ImageF out(H, W, 0.0);
+    std::vector<std::uint32_t> acc(static_cast<size_t>(W));
+    for (int y = 0; y < H; ++y) {
+        const int y0 = std::max(0, y - r), y1 = std::min(H - 1, y + r);
+        std::fill(acc.begin(), acc.end(), 0u);
+        std::uint32_t* a = acc.data();
+        for (int yy = y0; yy <= y1; ++yy) {
+            const std::uint32_t* src = tmp.data.data() + static_cast<size_t>(yy) * W;
+            for (int x = 0; x < W; ++x) a[x] += src[x];
+        }
+        double* o = out.data.data() + static_cast<size_t>(y) * W;
+        for (int x = 0; x < W; ++x) {
+            const int n = (y1 - y0 + 1) * (std::min(W - 1, x + r) - std::max(0, x - r) + 1);
+            o[x] = static_cast<double>(a[x]) / n;
+        }
+    }
+    return out;
+}
+'''
+
+BORDER_BRUTE_BOX = '''ImageF box_mean(const ImageU8& img, int r) {
+    if (r < 0) throw std::invalid_argument("r 不能为负");
+    ImageU64 ii = integral_image(img);
+    ImageF out(img.rows, img.cols, 0.0);
+    for (int y = 0; y < img.rows; ++y)
+        for (int x = 0; x < img.cols; ++x) {
+            if (y - r >= 0 && y + r < img.rows && x - r >= 0 && x + r < img.cols) {
+                const double n = static_cast<double>((2 * r + 1) * (2 * r + 1));
+                out(y, x) = static_cast<double>(ii(y + r + 1, x + r + 1) - ii(y - r, x + r + 1) - ii(y + r + 1, x - r) + ii(y - r, x - r)) / n;
+            } else {
+                std::uint64_t s = 0;
+                int n = 0;
+                for (int yy = std::max(0, y - r); yy <= std::min(img.rows - 1, y + r); ++yy)
+                    for (int xx = std::max(0, x - r); xx <= std::min(img.cols - 1, x + r); ++xx) {
+                        s += img(yy, xx);
+                        ++n;
+                    }
+                out(y, x) = static_cast<double>(s) / n;
+            }
+        }
+    return out;
+}
+'''
+
+SLIDING_BOX = '''ImageF box_mean(const ImageU8& img, int r) {
+    if (r < 0) throw std::invalid_argument("r 不能为负");
+    const int H = img.rows, W = img.cols;
+    Image<std::uint32_t> tmp(H, W, 0);
+    for (int y = 0; y < H; ++y) {
+        std::uint32_t s = 0;
+        for (int x = 0; x <= std::min(W - 1, r); ++x) s += img(y, x);
+        for (int x = 0; x < W; ++x) {
+            tmp(y, x) = s;
+            if (x + r + 1 < W) s += img(y, x + r + 1);
+            if (x - r >= 0) s -= img(y, x - r);
+        }
+    }
+    ImageF out(H, W, 0.0);
+    std::vector<std::uint64_t> col(static_cast<size_t>(W), 0);
+    for (int y = 0; y <= std::min(H - 1, r); ++y)
+        for (int x = 0; x < W; ++x) col[static_cast<size_t>(x)] += tmp(y, x);
+    for (int y = 0; y < H; ++y) {
+        const int y0 = std::max(0, y - r), y1 = std::min(H - 1, y + r);
+        for (int x = 0; x < W; ++x) {
+            const int n = (y1 - y0 + 1) * (std::min(W - 1, x + r) - std::max(0, x - r) + 1);
+            out(y, x) = static_cast<double>(col[static_cast<size_t>(x)]) / n;
+        }
+        if (y + r + 1 < H)
+            for (int x = 0; x < W; ++x) col[static_cast<size_t>(x)] += tmp(y + r + 1, x);
+        if (y - r >= 0)
+            for (int x = 0; x < W; ++x) col[static_cast<size_t>(x)] -= tmp(y - r, x);
+    }
+    return out;
+}
+'''
+
+FLOAT_II_BOX = '''ImageF box_mean(const ImageU8& img, int r) {
+    if (r < 0) throw std::invalid_argument("r 不能为负");
+    Image<float> ii(img.rows + 1, img.cols + 1, 0.0f);
+    for (int y = 0; y < img.rows; ++y) {
+        float row = 0;
+        for (int x = 0; x < img.cols; ++x) {
+            row += img(y, x);
+            ii(y + 1, x + 1) = ii(y, x + 1) + row;
+        }
+    }
+    ImageF out(img.rows, img.cols, 0.0);
+    for (int y = 0; y < img.rows; ++y) {
+        int y0 = std::max(0, y - r), y1 = std::min(img.rows, y + r + 1);
+        for (int x = 0; x < img.cols; ++x) {
+            int x0 = std::max(0, x - r), x1 = std::min(img.cols, x + r + 1);
+            double n = static_cast<double>((y1 - y0) * (x1 - x0));
+            out(y, x) = static_cast<double>(ii(y1, x1) - ii(y0, x1) - ii(y1, x0) + ii(y0, x0)) / n;
+        }
+    }
+    return out;
+}
+'''
+
+NOMEAN_NCC = '''MatchResult ncc_best_match(const ImageU8& img, const ImageU8& tpl) {
+    if (tpl.rows > img.rows || tpl.cols > img.cols || tpl.empty())
+        throw std::invalid_argument("模板必须非空且不大于图像");
+    const int h = tpl.rows, w = tpl.cols;
+    double tt = 0;
+    bool tflat = true;
+    for (auto v : tpl.data) {
+        tt += static_cast<double>(v) * v;
+        tflat = tflat && v == tpl.data[0];
+    }
+    MatchResult best;
+    best.score = -2.0;
+    for (int y = 0; y + h <= img.rows; ++y) {
+        for (int x = 0; x + w <= img.cols; ++x) {
+            double cross = 0, ww = 0;
+            bool wflat = true;
+            for (int dy = 0; dy < h; ++dy)
+                for (int dx = 0; dx < w; ++dx) {
+                    const double a = img(y + dy, x + dx), b = tpl(dy, dx);
+                    cross += a * b;
+                    ww += a * a;
+                    wflat = wflat && img(y + dy, x + dx) == img(y, x);
+                }
+            double s = (wflat || tflat || ww <= 0 || tt <= 0) ? 0.0 : cross / std::sqrt(ww * tt);
+            if (s > best.score) best = {y, x, s};
+        }
+    }
+    return best;
+}
+'''
+
+COLMAJOR_NCC = '''MatchResult ncc_best_match(const ImageU8& img, const ImageU8& tpl) {
+    if (tpl.rows > img.rows || tpl.cols > img.cols || tpl.empty())
+        throw std::invalid_argument("模板必须非空且不大于图像");
+    const int h = tpl.rows, w = tpl.cols;
+    const double n = static_cast<double>(h) * w;
+    double tmean = 0;
+    for (auto v : tpl.data) tmean += v;
+    tmean /= n;
+    double tvar = 0;
+    for (auto v : tpl.data) tvar += (v - tmean) * (v - tmean);
+    MatchResult best;
+    best.score = -2.0;
+    for (int x = 0; x + w <= img.cols; ++x) {
+        for (int y = 0; y + h <= img.rows; ++y) {
+            double wmean = 0;
+            for (int dy = 0; dy < h; ++dy)
+                for (int dx = 0; dx < w; ++dx) wmean += img(y + dy, x + dx);
+            wmean /= n;
+            double cov = 0, wvar = 0;
+            for (int dy = 0; dy < h; ++dy)
+                for (int dx = 0; dx < w; ++dx) {
+                    double a = img(y + dy, x + dx) - wmean;
+                    double b = tpl(dy, dx) - tmean;
+                    cov += a * b;
+                    wvar += a * a;
+                }
+            double s = (wvar < 1e-12 || tvar < 1e-12) ? 0.0 : cov / std::sqrt(wvar * tvar);
+            if (s > best.score) best = {y, x, s};
+        }
+    }
+    return best;
+}
+'''
+
+INTEGRAL_NCC = '''MatchResult ncc_best_match(const ImageU8& img, const ImageU8& tpl) {
+    if (tpl.rows > img.rows || tpl.cols > img.cols || tpl.empty())
+        throw std::invalid_argument("模板必须非空且不大于图像");
+    const int h = tpl.rows, w = tpl.cols;
+    const std::int64_t n = static_cast<std::int64_t>(h) * w;
+    Image<std::int64_t> s1(img.rows + 1, img.cols + 1, 0), s2(img.rows + 1, img.cols + 1, 0);
+    for (int y = 0; y < img.rows; ++y) {
+        std::int64_t a = 0, b = 0;
+        for (int x = 0; x < img.cols; ++x) {
+            const std::int64_t v = img(y, x);
+            a += v;
+            b += v * v;
+            s1(y + 1, x + 1) = s1(y, x + 1) + a;
+            s2(y + 1, x + 1) = s2(y, x + 1) + b;
+        }
+    }
+    std::int64_t t1 = 0, t2 = 0;
+    for (auto v : tpl.data) {
+        t1 += v;
+        t2 += static_cast<std::int64_t>(v) * v;
+    }
+    const std::int64_t tvar = n * t2 - t1 * t1;
+    MatchResult best;
+    best.score = -2.0;
+    for (int y = 0; y + h <= img.rows; ++y)
+        for (int x = 0; x + w <= img.cols; ++x) {
+            const std::int64_t w1 = s1(y + h, x + w) - s1(y, x + w) - s1(y + h, x) + s1(y, x);
+            const std::int64_t w2 = s2(y + h, x + w) - s2(y, x + w) - s2(y + h, x) + s2(y, x);
+            const std::int64_t wvar = n * w2 - w1 * w1;
+            double s = 0.0;
+            if (wvar > 0 && tvar > 0) {
+                std::int64_t cross = 0;
+                for (int dy = 0; dy < h; ++dy)
+                    for (int dx = 0; dx < w; ++dx) cross += static_cast<std::int64_t>(img(y + dy, x + dx)) * tpl(dy, dx);
+                s = static_cast<double>(n * cross - w1 * t1) / std::sqrt(static_cast<double>(wvar) * static_cast<double>(tvar));
+            }
+            if (s > best.score) best = {y, x, s};
+        }
+    return best;
+}
+'''
+
+RECURSIVE_BLOBS = '''namespace {
+void fill(const ImageU8& b, Image<std::uint8_t>& seen, int y, int x, const std::vector<std::pair<int, int>>& offs) {
+    seen(y, x) = 1;
+    for (auto [dy, dx] : offs) {
+        int ny = y + dy, nx = x + dx;
+        if (ny < 0 || ny >= b.rows || nx < 0 || nx >= b.cols) continue;
+        if (b(ny, nx) && !seen(ny, nx)) fill(b, seen, ny, nx, offs);
+    }
+}
+}  // namespace
+
+int count_blobs(const ImageU8& binary, int connectivity) {
+    if (connectivity != 4 && connectivity != 8) throw std::invalid_argument("connectivity 只能是 4 或 8");
+    std::vector<std::pair<int, int>> offs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    if (connectivity == 8) offs.insert(offs.end(), {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}});
+    Image<std::uint8_t> seen(binary.rows, binary.cols, 0);
+    int count = 0;
+    for (int y = 0; y < binary.rows; ++y)
+        for (int x = 0; x < binary.cols; ++x) {
+            if (!binary(y, x) || seen(y, x)) continue;
+            ++count;
+            fill(binary, seen, y, x, offs);
+        }
+    return count;
+}
+'''
+
+WRAP_BLOBS = '''int count_blobs(const ImageU8& binary, int connectivity) {
+    if (connectivity != 4 && connectivity != 8) throw std::invalid_argument("connectivity 只能是 4 或 8");
+    const long W = binary.cols, total = static_cast<long>(binary.data.size());
+    std::vector<long> offs = {-W, W, -1, 1};
+    if (connectivity == 8) offs.insert(offs.end(), {-W - 1, -W + 1, W - 1, W + 1});
+    std::vector<std::uint8_t> seen(binary.data.size(), 0);
+    int count = 0;
+    std::queue<long> q;
+    for (long i = 0; i < total; ++i) {
+        if (!binary.data[static_cast<size_t>(i)] || seen[static_cast<size_t>(i)]) continue;
+        ++count;
+        seen[static_cast<size_t>(i)] = 1;
+        q.push(i);
+        while (!q.empty()) {
+            const long c = q.front();
+            q.pop();
+            for (long d : offs) {
+                const long j = c + d;
+                if (j < 0 || j >= total) continue;
+                if (binary.data[static_cast<size_t>(j)] && !seen[static_cast<size_t>(j)]) {
+                    seen[static_cast<size_t>(j)] = 1;
+                    q.push(j);
+                }
+            }
+        }
+    }
+    return count;
+}
+'''
+
+STACK_BLOBS = '''int count_blobs(const ImageU8& binary, int connectivity) {
+    if (connectivity != 4 && connectivity != 8) throw std::invalid_argument("connectivity 只能是 4 或 8");
+    Image<std::uint8_t> seen(binary.rows, binary.cols, 0);
+    std::vector<std::pair<int, int>> stack;
+    int count = 0;
+    for (int y = 0; y < binary.rows; ++y)
+        for (int x = 0; x < binary.cols; ++x) {
+            if (!binary(y, x) || seen(y, x)) continue;
+            ++count;
+            seen(y, x) = 1;
+            stack.push_back({y, x});
+            while (!stack.empty()) {
+                const auto [cy, cx] = stack.back();
+                stack.pop_back();
+                for (int dy = -1; dy <= 1; ++dy)
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        if ((dy == 0 && dx == 0) || (connectivity == 4 && dy != 0 && dx != 0)) continue;
+                        const int ny = cy + dy, nx = cx + dx;
+                        if (ny < 0 || ny >= binary.rows || nx < 0 || nx >= binary.cols) continue;
+                        if (binary(ny, nx) && !seen(ny, nx)) {
+                            seen(ny, nx) = 1;
+                            stack.push_back({ny, nx});
+                        }
+                    }
+            }
+        }
+    return count;
+}
+'''
+
 SAN = ["-O1", "-g", "-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
 CONFIGS = {"O0": ["-O0"], "O1": ["-O1"], "O2": ["-O2"], "O3": ["-O3"], "san": SAN, "novec": ["-O2", "-fno-vectorize", "-fno-slp-vectorize"]}
+
+_ROW = "std::uint64_t row = 0;"
+_REC = "ii(y + 1, x + 1) = ii(y, x + 1) + row;"
+_BOX = r"re:ImageF box_mean\(.*?\n}\n"
+_NCC = r"re:MatchResult ncc_best_match\(.*?\n}\n"
+_BLOBS = r"re:int count_blobs\(.*?\n}\n"
+_N = "double n = static_cast<double>((y1 - y0) * (x1 - x0));"
+_SCORE = "double s = (wvar < 1e-12 || tvar < 1e-12) ? 0.0 : cov / std::sqrt(wvar * tvar);"
+_R_CHECK = 'if (r < 0) throw std::invalid_argument("r 不能为负");'
+_ALL_PASS = "四项全部 PASS"
+
+# 把参考实现改一处得到的各种写法。键是 JSON 和讲义里用的名字，值是（文件名，改法）。
+# 前一半是错误写法，“正确的另一种写法”是为了确认验收不会把合理的实现判错。
 VARIANTS = {
-    "累加用 uint32": ("v_u32", [("std::uint64_t row = 0;", "std::uint32_t row = 0;"),
-                               ("ii(y + 1, x + 1) = ii(y, x + 1) + row;", "ii(y + 1, x + 1) = static_cast<std::uint32_t>(static_cast<std::uint32_t>(ii(y, x + 1)) + row);")]),
-    "累加用 int": ("v_i32", [("std::uint64_t row = 0;", "std::uint32_t row = 0;"),
-                            ("ii(y + 1, x + 1) = ii(y, x + 1) + row;",
-                             "ii(y + 1, x + 1) = static_cast<std::uint64_t>(static_cast<std::int32_t>(static_cast<std::uint32_t>(ii(y, x + 1)) + row));")]),
-    "盒式均值写成可分离的 O(r)": ("v_sep", [(r"re:ImageF box_mean\(.*?\n}\n", SEPARABLE_BOX)]),
-    "盒式均值写成 O(r^2)": ("v_naive", [(r"re:ImageF box_mean\(.*?\n}\n", NAIVE_BOX)]),
-    "盒式均值边界按补零算": ("v_zero", [("double n = static_cast<double>((y1 - y0) * (x1 - x0));", "double n = static_cast<double>((2 * r + 1) * (2 * r + 1));")]),
-    "NCC 不特判平坦窗口": ("v_nan", [("double s = (wvar < 1e-12 || tvar < 1e-12) ? 0.0 : cov / std::sqrt(wvar * tvar);", "double s = cov / std::sqrt(wvar * tvar);")]),
-    "盒式均值的 y1 不裁剪（越界读）": ("v_oob", [("y1 = std::min(img.rows, y + r + 1);", "y1 = y + r + 2;")]),
+    "积分图：累加用 uint32": ("v_u32", [(_ROW, "std::uint32_t row = 0;"),
+                                    (_REC, "ii(y + 1, x + 1) = static_cast<std::uint32_t>(static_cast<std::uint32_t>(ii(y, x + 1)) + row);")]),
+    "积分图：累加用 int": ("v_i32", [(_ROW, "std::uint32_t row = 0;"),
+                                 (_REC, "ii(y + 1, x + 1) = static_cast<std::uint64_t>(static_cast<std::int32_t>(static_cast<std::uint32_t>(ii(y, x + 1)) + row));")]),
+    "积分图：累加用 float": ("v_float", [(_ROW, "float row = 0;"), (_REC, "ii(y + 1, x + 1) = static_cast<std::uint64_t>(static_cast<float>(ii(y, x + 1)) + row);")]),
+    "积分图：遇到空图抛异常": ("v_empty", [("ImageU64 ii(img.rows + 1, img.cols + 1, 0);",
+                                    'if (img.empty()) throw std::invalid_argument("空图");\n    ImageU64 ii(img.rows + 1, img.cols + 1, 0);')]),
+    "盒式均值：可分离的 O(r)，每个像素把窗口加一遍": ("v_sep", [(_BOX, SEPARABLE_BOX)]),
+    "盒式均值：可分离的 O(r)，按行累加（编译器能向量化）": ("v_sepvec", [(_BOX, SEPARABLE_VEC_BOX)]),
+    "盒式均值：朴素的 O(r^2)": ("v_naive", [(_BOX, NAIVE_BOX)]),
+    "盒式均值：内部用积分图，离边不到 r 的像素逐个暴力求和": ("v_border", [(_BOX, BORDER_BRUTE_BOX)]),
+    "盒式均值：边界按补零算": ("v_zero", [(_N, "double n = static_cast<double>((2 * r + 1) * (2 * r + 1));")]),
+    "盒式均值：y1 不裁剪（越界读）": ("v_oob", [("y1 = std::min(img.rows, y + r + 1);", "y1 = y + r + 2;")]),
+    "盒式均值：除数只考虑窗口从一侧伸出图像": ("v_oneside", [(_N,
+        "int ny = 2 * r + 1;\n            if (y - r < 0) ny = y + r + 1; else if (y + r >= img.rows) ny = img.rows - y + r;\n"
+        "            int nx = 2 * r + 1;\n            if (x - r < 0) nx = x + r + 1; else if (x + r >= img.cols) nx = img.cols - x + r;\n"
+        "            double n = static_cast<double>(ny * nx);")]),
+    "盒式均值：窗口比图大时抛异常": ("v_bigr", [(_R_CHECK, _R_CHECK + '\n    if (2 * r + 1 > img.rows || 2 * r + 1 > img.cols) throw std::invalid_argument("窗口比图大");')]),
+    "盒式均值：把 r 截到图像短边的一半": ("v_clamp", [(_R_CHECK, _R_CHECK + "\n    r = std::min(r, std::min(img.rows, img.cols) / 2);")]),
+    "盒式均值：内部另建一张 float 的积分图": ("v_floatii", [(_BOX, FLOAT_II_BOX)]),
+    "NCC：不特判平坦窗口": ("v_nan", [(_SCORE, "double s = cov / std::sqrt(wvar * tvar);")]),
+    "NCC：不减均值（另外特判了平坦窗口）": ("v_nomean", [(_NCC, NOMEAN_NCC)]),
+    "NCC：用 float 累加协方差和方差": ("v_nccfloat", [("double cov = 0, wvar = 0;", "float cov = 0, wvar = 0;"),
+                                             ("cov += a * b;", "cov += static_cast<float>(a * b);"), ("wvar += a * a;", "wvar += static_cast<float>(a * a);")]),
+    "NCC：同分时取最后一个（用 >= 更新）": ("v_tie", [("if (s > best.score) best = {y, x, s};", "if (s >= best.score) best = {y, x, s};")]),
+    "NCC：按列优先的顺序搜索": ("v_colmajor", [(_NCC, COLMAJOR_NCC)]),
+    "NCC：搜索范围少了最后一行和最后一列": ("v_offby1", [("for (int y = 0; y + h <= img.rows; ++y) {", "for (int y = 0; y + h < img.rows; ++y) {"),
+                                               ("for (int x = 0; x + w <= img.cols; ++x) {", "for (int x = 0; x + w < img.cols; ++x) {")]),
+    "NCC：只特判窗口方差为 0，不管模板": ("v_flattpl", [(_SCORE, "double s = (wvar < 1e-12) ? 0.0 : cov / std::sqrt(wvar * tvar);")]),
+    "NCC：行数和列数都超出才抛异常": ("v_sizeand", [("if (tpl.rows > img.rows || tpl.cols > img.cols || tpl.empty())",
+                                            "if ((tpl.rows > img.rows && tpl.cols > img.cols) || tpl.empty())")]),
+    "NCC：最好分数的初值取 0": ("v_init0", [("best.score = -2.0;", "best.score = 0.0;")]),
+    "连通域：用递归": ("v_rec", [(_BLOBS, RECURSIVE_BLOBS)]),
+    "连通域：用一维下标找邻居，行尾和下一行行首连在一起": ("v_wrap", [(_BLOBS, WRAP_BLOBS)]),
+    "连通域：8 连通漏了反对角线方向": ("v_nodiag", [("offs.insert(offs.end(), {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}});", "offs.insert(offs.end(), {{-1, -1}, {1, 1}});")]),
+    "连通域：只把 255 当前景": ("v_only255", [("if (!binary(y, x) || seen(y, x)) continue;", "if (binary(y, x) != 255 || seen(y, x)) continue;"),
+                                       ("if (binary(ny, nx) && !seen(ny, nx)) {", "if (binary(ny, nx) == 255 && !seen(ny, nx)) {")]),
+    "正确的另一种写法：盒式均值行列都用滑动和，不用积分图": ("ok_sliding", [(_BOX, SLIDING_BOX)]),
+    "正确的另一种写法：积分图用 double 累加": ("ok_double", [(_ROW, "double row = 0;"), (_REC, "ii(y + 1, x + 1) = static_cast<std::uint64_t>(static_cast<double>(ii(y, x + 1)) + row);")]),
+    "正确的另一种写法：NCC 的窗口统计量查积分图": ("ok_nccint", [(_NCC, INTEGRAL_NCC)]),
+    "正确的另一种写法：连通域用显式栈": ("ok_stack", [(_BLOBS, STACK_BLOBS)]),
+}
+CORRECT_PREFIX = "正确的另一种写法："
+# 结果取决于测试里的计时检查的写法（盒式均值的复杂度变了），以及会让测试程序崩溃的写法：这些钉住
+TIMED_VARIANTS = ("盒式均值：可分离的 O(r)，每个像素把窗口加一遍", "盒式均值：可分离的 O(r)，按行累加（编译器能向量化）", "盒式均值：朴素的 O(r^2)",
+                  "盒式均值：内部用积分图，离边不到 r 的像素逐个暴力求和", "正确的另一种写法：盒式均值行列都用滑动和，不用积分图")
+CRASH_VARIANT = "连通域：用递归"
+
+# 加固之前（git 里 95f478e 那一版的 tests/）这些写法过验收的结果。2026-11-19 把旧的 tests/ 留在临时目录里，
+# 对每种写法实际运行后抄录；旧测试已经不在仓库里，所以这一栏是记录，不随重跑变化。
+OLD_SLOW = "盒式均值 FAIL：r 增大时耗时明显增长，没有做到 O(1) 每像素"
+OLD_RESULT = {
+    "积分图：累加用 uint32": _ALL_PASS,
+    "积分图：累加用 int": "积分图 FAIL：大图累加溢出，检查累加类型",
+    "积分图：累加用 float": "积分图 FAIL：大图累加溢出，检查累加类型",
+    "积分图：遇到空图抛异常": _ALL_PASS,
+    "盒式均值：可分离的 O(r)，每个像素把窗口加一遍": _ALL_PASS + "（不稳：分三批连跑 15 次，有 1 次是盒式均值 FAIL）",
+    "盒式均值：可分离的 O(r)，按行累加（编译器能向量化）": _ALL_PASS,
+    "盒式均值：朴素的 O(r^2)": OLD_SLOW,
+    "盒式均值：内部用积分图，离边不到 r 的像素逐个暴力求和": OLD_SLOW,
+    "盒式均值：边界按补零算": "盒式均值 FAIL：均值或边界裁剪不对（r=1）",
+    "盒式均值：y1 不裁剪（越界读）": "盒式均值 FAIL：均值或边界裁剪不对（r=0）",
+    "盒式均值：除数只考虑窗口从一侧伸出图像": _ALL_PASS,
+    "盒式均值：窗口比图大时抛异常": _ALL_PASS,
+    "盒式均值：把 r 截到图像短边的一半": _ALL_PASS,
+    "盒式均值：内部另建一张 float 的积分图": _ALL_PASS,
+    "NCC：不特判平坦窗口": "NCC 模板匹配 FAIL：平坦窗口分数应为 0",
+    "NCC：不减均值（另外特判了平坦窗口）": _ALL_PASS,
+    "NCC：用 float 累加协方差和方差": "NCC 模板匹配 FAIL：完全匹配的 NCC 应为 1",
+    "NCC：同分时取最后一个（用 >= 更新）": _ALL_PASS,
+    "NCC：按列优先的顺序搜索": _ALL_PASS,
+    "NCC：搜索范围少了最后一行和最后一列": _ALL_PASS,
+    "NCC：只特判窗口方差为 0，不管模板": _ALL_PASS,
+    "NCC：行数和列数都超出才抛异常": _ALL_PASS,
+    "NCC：最好分数的初值取 0": _ALL_PASS,
+    "连通域：用递归": "只有一行“运行 FAIL：程序异常退出（返回码 -11）”，四项的结果都看不到",
+    "连通域：用一维下标找邻居，行尾和下一行行首连在一起": _ALL_PASS,
+    "连通域：8 连通漏了反对角线方向": _ALL_PASS,
+    "连通域：只把 255 当前景": "连通域计数 FAIL：8 连通应有 3 个连通域",
+    "正确的另一种写法：盒式均值行列都用滑动和，不用积分图": _ALL_PASS,
+    "正确的另一种写法：积分图用 double 累加": _ALL_PASS,
+    "正确的另一种写法：NCC 的窗口统计量查积分图": _ALL_PASS,
+    "正确的另一种写法：连通域用显式栈": _ALL_PASS,
+}
+assert set(OLD_RESULT) == set(VARIANTS)
+# 计时模式（tests/test_main.cpp 的 timing 参数）要单独编译的几种盒式均值
+TIMING_IMPLS = {
+    "积分图 O(1)（参考实现）": ("t_ref", None),
+    "滑动和 O(1)（不用积分图）": ("t_sliding", "ok_sliding"),
+    "可分离 O(r)，每个像素把窗口加一遍": ("t_sep", "v_sep"),
+    "可分离 O(r)，按行累加（编译器能向量化）": ("t_sepvec", "v_sepvec"),
+    "朴素 O(r^2)": ("t_naive", "v_naive"),
+    "内部用积分图，离边不到 r 的像素逐个暴力求和": ("t_border", "v_border"),
 }
 
 
@@ -892,7 +1408,12 @@ def build_all() -> None:
                 assert src.count(old) == 1, (exe, old)
                 src = src.replace(old, new)
         (BUILD / f"{exe}.cpp").write_text(src, encoding="utf-8")
-        jobs.append((exe, [TEST_MAIN, BUILD / f"{exe}.cpp"], ["-O2"]))
+        # 同一份源码再按 solutions/ 的目录结构放一份，交给 tests/check_progress.py 的 COURSE_IMPL_DIR
+        home = impl_root(exe) / CH
+        home.mkdir(parents=True, exist_ok=True)
+        (home / HOMEWORK).write_text(src, encoding="utf-8")
+    for exe, variant in TIMING_IMPLS.values():
+        jobs.append((exe, [TEST_MAIN, BUILD / f"{variant}.cpp" if variant else REF], ["-O2"]))
     jobs.append(("v_oob_asan", [TEST_MAIN, BUILD / "v_oob.cpp"], SAN))
     jobs.append(("testtime_ref", [BUILD / "testtime.cpp", REF], ["-O2"]))
     jobs.append(("testtime_sep", [BUILD / "testtime.cpp", BUILD / "v_sep.cpp"], ["-O2"]))
@@ -1109,6 +1630,7 @@ def box_inner(ii, r):
 
 def fig_overflow():
     chk = run_json("checks")
+    big_n = test_constants()["积分图大图测试的边长"]
     limits = {"float32 能精确表示的连续整数上限 2^24": 2 ** 24, "int32 上限": 2 ** 31 - 1, "uint32 上限": 2 ** 32 - 1}
 
     def first_side(per_pixel, limit):
@@ -1176,6 +1698,11 @@ def fig_overflow():
         "类型上限": {k: int(v) for k, v in limits.items()},
         "原讲义的例子：4000x4000 全白图的像素和": {"数值": 255 * 4000 * 4000, "占 uint32 上限的比例": f"{100 * 255 * 4000 * 4000 / (2 ** 32 - 1):.1f}%",
                                       "是否超过 uint32 上限": bool(255 * 4000 * 4000 > 2 ** 32 - 1), "是否超过 int32 上限": bool(255 * 4000 * 4000 > 2 ** 31 - 1)},
+        "现在验收用的全白大图": {"说明": "边长取自 tests/test_main.cpp。2026-11 之前的测试用的是 4000x4000，就是上面“原讲义的例子”那张",
+                       "边长": big_n, "像素和": 255 * big_n * big_n, "占 uint32 上限的比例": f"{100 * 255 * big_n * big_n / (2 ** 32 - 1):.1f}%",
+                       "是否超过 uint32 上限": bool(255 * big_n * big_n > 2 ** 32 - 1),
+                       "输出的积分图占用的内存（MB）": round((big_n + 1) ** 2 * 8 / 2 ** 20), "输入图占用的内存（MB）": round(big_n * big_n / 2 ** 20, 1),
+                       "图 3 放大图画的边长范围": [3900, 4300]},
         "全白正方形图的像素和第一次超过上限时的边长": sides,
         "全白正方形窗口的平方和第一次超过上限时的边长": sides_sq,
         "double 能精确累加的全白平方和对应的最大边长": math.isqrt(2 ** 53 // (255 * 255)),
@@ -1213,9 +1740,29 @@ def fig_overflow():
         ax[1].plot([sides[name]], [lim], "o", color=color, ms=6)
         ax[1].annotate(f"N = {sides[name]}", (sides[name], lim), textcoords="offset points",
                        xytext=(7, 5) if name.startswith("uint32") else (7, -13), fontsize=9, color=color)
-    ax[1].plot([4000], [255 * 4000 * 4000], "*", color=S.BLUE, ms=13)
-    ax[1].annotate("测试用的 4000 x 4000\n像素和 4.08e9", (4000, 255 * 4000 * 4000), xytext=(700, 1.5e8), fontsize=9, color=S.BLUE,
-                   arrowprops={"arrowstyle": "-", "color": S.BLUE, "lw": 1})
+    # 4000 和 4200 在对数轴上挤在一起，右下角另画一张线性坐标的放大图，两个测试尺寸都标在放大图里
+    old_sum, new_sum, u32 = 255 * 4000 * 4000, 255 * big_n * big_n, limits["uint32 上限"]
+    inset = ax[1].inset_axes([0.6, 0.1, 0.33, 0.38])
+    zoom = np.arange(3900, 4301)
+    inset.plot(zoom, 255.0 * zoom * zoom, color=S.INK, lw=1.6)
+    inset.axhline(u32, color=S.RED, lw=1.2, ls="--")
+    inset.text(3908, u32 + 0.03e9, "uint32 上限", color=S.RED, fontsize=8)
+    inset.plot([4000], [old_sum], "o", mfc="white", color=S.BLUE, ms=7)
+    inset.annotate("旧测试 4000", (4000, old_sum), textcoords="offset points", xytext=(8, -10), fontsize=8, color=S.BLUE)
+    inset.plot([big_n], [new_sum], "*", color=S.BLUE, ms=11)
+    inset.annotate(f"现在 {big_n}", (big_n, new_sum), textcoords="offset points", xytext=(-52, 5), fontsize=8, color=S.BLUE)
+    inset.set_xlim(3900, 4300)
+    inset.set_ylim(3.8e9, 4.8e9)
+    inset.set_xticks([3900, 4100, 4300], ["3900", "4100", "4300"])
+    inset.set_yticks([4.0e9, 4.4e9, 4.8e9], ["4.0e9", "4.4e9", "4.8e9"])
+    inset.yaxis.tick_right()
+    inset.tick_params(labelsize=7.5, length=2)
+    for side in inset.spines.values():
+        side.set_color("#b9bec7")
+    inset.set_title("放大（线性坐标）", fontsize=8.5, pad=3)
+    _box, connectors = ax[1].indicate_inset_zoom(inset, edgecolor=S.MUTED, alpha=0.9)  # 主图上框出放大的范围
+    for line in connectors:  # 连接线会压住旁边的标注，不画
+        line.set_visible(False)
     ax[1].set_xscale("log")
     ax[1].set_yscale("log")
     ax[1].set_xticks([100, 300, 1000, 3000, 10000], ["100", "300", "1000", "3000", "10000"])
@@ -1223,7 +1770,8 @@ def fig_overflow():
     ax[1].set_ylim(1e6, 1e11)
     ax[1].set_xlabel("图像边长 N")
     ax[1].set_ylabel("积分图右下角的值")
-    ax[1].set_title("4000 x 4000 全白图超过 int32，没超过 uint32")
+    assert old_sum < u32 < new_sum
+    ax[1].set_title(f"测试用的全白图：4000 没超过 uint32，{big_n} 超过了")
     S.clean(ax[1])
 
     for r, color, marker in ((1, S.RED, "o"), (7, S.BLUE, "s")):
@@ -1707,7 +2255,7 @@ def exp_tools():
     yes = lambda s, k: "报" if k in s else "不报"  # noqa: E731
     env = {"ASAN_OPTIONS": "abort_on_error=0"}
     asan = [run("asan_demo", i, env=env) for i in (0, 1, 2)]
-    oob_plain = run_tests("v_oob")
+    oob_plain = acceptance(impl_root("v_oob"))
     oob_asan = run("v_oob_asan", env=env)
     where = re.search(r"#0 .*? in (\S+)\(.*?(\w+\.cpp):(\d+)", oob_asan.stderr)
     NUM["工具能抓住什么"] = {
@@ -1726,64 +2274,178 @@ def exp_tools():
             "同样的下标用 at() 访问": asan[2].stdout.strip(),
         },
         "把参考实现的 y1 改成 y + r + 2 之后": {
-            "不开 Sanitizer 时程序是否崩溃": False if oob_plain else True,
-            "不开 Sanitizer 时盒式均值一项的测试结果": oob_plain.get("盒式均值", "没有输出"),
+            "不开 Sanitizer 时程序是否崩溃": bool(not oob_plain or any("异常退出" in text for _, text in oob_plain.values())),
+            "不开 Sanitizer 时盒式均值一项的测试结果": "：".join(oob_plain.get("盒式均值", ("没有输出", ""))),
             "开 ASan 后的报告类型": "heap-buffer-overflow" if "heap-buffer-overflow" in oob_asan.stderr else "没有报告",
             "报告是否指到出错的函数和行号": bool(where and "box_mean" in where.group(1)),
         },
     }
     chk = run_json("checks")
-    NUM["负尺寸构造"] = {"说明": "cpp/image.hpp 的构造函数先用 rows*cols 分配内存，再检查负数",
-                     "Image(-1, 5) 抛出的异常": "std::" + chk["image_neg1_5"], "Image(-2, -3) 抛出的异常": "std::" + chk["image_neg2_neg3"]}
+    NUM["负尺寸构造"] = {
+        "说明": "构造函数里“先分配再检查”和“先检查再分配”的区别。cpp/image.hpp 在 2026-11 之前是前一种写法（先用 rows*cols 分配内存，再检查负数），"
+              "现在改成了后一种；前一种写法留在本脚本的小程序里做对照",
+        "先分配再检查（修正前的写法）": {"Image(-1, 5) 抛出的异常": "std::" + chk["old_neg1_5"], "Image(-2, -3) 抛出的异常": "std::" + chk["old_neg2_neg3"]},
+        "先检查再分配（现在的 cpp/image.hpp）": {"Image(-1, 5) 抛出的异常": "std::" + chk["image_neg1_5"], "Image(-2, -3) 抛出的异常": "std::" + chk["image_neg2_neg3"]},
+    }
 
-    timing_msg = "r 增大时耗时明显增长"
-    by_timing = ("盒式均值写成可分离的 O(r)", "盒式均值写成 O(r^2)")  # 这两种改法过不过只取决于测试里的计时检查
-    count_key = "可分离的 O(r) 实现再连跑 5 次，“盒式均值”一项通过的次数"
+    crit = test_constants()
+    others = [n for n in TEST_NAMES if n != "连通域计数"]
 
-    def summarize(res):
-        return ("四项全部 PASS" if all(v == "PASS" for v in res.values()) and len(res) == 4 else
-                "；".join(f"{k} {v}" for k, v in res.items() if v != "PASS"))
-
-    def stable_tests(exe):
-        # 这几种改法没有动盒式均值的复杂度，它们的结果不取决于耗时。测试里的计时检查万一因为机器一时卡顿没过，重跑
-        for _ in range(3):
-            res = run_tests(exe)
-            if not any(timing_msg in v for v in res.values()):
-                break
-        return res
-
-    def test_timing(exe, n=5):
+    # ---- 加固前的计时检查：2026-11 之前那一版测试的做法，由 testtime.cpp 照原样重现
+    def old_timing(exe, n=5):
         runs = [run_json(exe) for _ in range(n)]
         small, large = sorted(r["small_ms"] for r in runs)[n // 2], sorted(r["large_ms"] for r in runs)[n // 2]
         return {"r=1 的耗时": sig(small), "r=30 的耗时": sig(large), "r=30 是 r=1 的几倍": round(large / small, 1),
                 "判据允许的 r=30 耗时上限": sig(small * 4 + 50.0), f"{n} 次里按判据算通过的次数": int(sum(r["pass"] for r in runs))}
 
-    def measure_timing_check():
+    old_note = ("2026-11 加固验收之前，tests/test_main.cpp 里盒式均值计时检查的做法（现在的测试已经不这样做）：2000x2000 的随机图，r=1 和 r=30 各调用一次，不重复、不预热；"
+                "判据是 r=30 的耗时大于 r=1 耗时的 4 倍再加 0.05 秒才判失败。这里按同样的步骤单独计时，每种实现跑 5 次，耗时取中位数（ms），-O2")
+
+    def measure_old_timing_check():
         return {
-            "说明": "按 tests/test_main.cpp 里盒式均值计时检查的写法单独计时：2000x2000 的随机图，r=1 和 r=30 各调用一次，不重复、不预热；"
-                  "判据是 r=30 的耗时大于 r=1 耗时的 4 倍再加 0.05 秒才判失败。每种实现跑 5 次，耗时取中位数（ms），-O2",
-            "积分图 O(1)（参考实现）": test_timing("testtime_ref"),
-            "可分离 O(r)": test_timing("testtime_sep"),
-            "朴素 O(r^2)": test_timing("testtime_naive", 3),
+            "说明": old_note,
+            "积分图 O(1)（参考实现）": old_timing("testtime_ref"),
+            "可分离 O(r)": old_timing("testtime_sep"),
+            "朴素 O(r^2)": old_timing("testtime_naive", 3),
         }
 
-    def measure_gaps():
-        out = {name: summarize(run_tests(VARIANTS[name][0])) for name in by_timing}
-        out[count_key] = int(sum(run_tests("v_sep").get("盒式均值") == "PASS" for _ in range(5)))
+    pin_moved("加固前的计时检查", "测试的计时检查", measure_old_timing_check)
+    NUM["加固前的计时检查"] = {**NUM["加固前的计时检查"], "说明": old_note}  # 说明是脚本里的文字，每次按现在的写法写
+
+    # ---- 现在的计时检查：直接用测试程序的 timing 模式（python tests/check_progress.py --timing 调的就是它）
+    def timing_mode(exe: str, n: int) -> dict:
+        """测试程序的 timing 模式跑 n 遍，每个半径取各遍的中位数。和验收一样，某一遍在哪个半径超了上限就不再测更大的。"""
+        runs = []
+        for _ in range(n):
+            rungs = {}
+            for line in run(exe, "timing", timeout=600).stdout.splitlines():
+                parts = line.split("|", 3)
+                if parts[0] == "TIMING" and len(parts) == 4 and parts[2] in ("ok", "slow"):
+                    f = dict(item.split("=", 1) for item in parts[3].split())
+                    rungs[int(f["r"])] = {"small": float(f["small_ms"]), "large": float(f["large_ms"]), "limit": float(f["limit_ms"]), "slow": parts[2] == "slow"}
+            runs.append(rungs)
+
+        def med(xs):
+            return sorted(xs)[len(xs) // 2]
+
+        out, caught = {}, []
+        for r in crit["和 r=1 比较的半径"]:
+            got = [x[r] for x in runs if r in x]
+            if not got:
+                out[f"r={r}"] = "没测（在更小的半径上已经超过上限）"
+                continue
+            small, large, over = med([g["small"] for g in got]), med([g["large"] for g in got]), int(sum(g["slow"] for g in got))
+            out[f"r={r}"] = {"r=1 最快的一次": sig(small), f"r={r} 最快的一次": sig(large), "是 r=1 的几倍": round(large / small, 1),
+                             "允许的上限": sig(med([g["limit"] for g in got])), "测到这个半径的遍数": len(got), "其中超过上限的遍数": over}
+            if over:
+                caught.append(f"r={r}" if over == len(got) == n else f"r={r}（{len(got)} 遍里 {over} 遍）")
+        out["在哪个半径被拦下"] = "，".join(caught) if caught else "没有被拦下"
         return out
 
-    pin("测试的计时检查", measure_timing_check)
-    timed_gaps = pin("测试能抓住什么", measure_gaps)
+    def box_passes(root, n: int) -> int:
+        return int(sum(acceptance(root).get("盒式均值", ("", ""))[0] == "PASS" for _ in range(n)))
+
+    def measure_timing_check():
+        out = {
+            "说明": "现在的 tests/test_main.cpp 里盒式均值的计时检查：在一张随机图上先各调用一次预热，再让 r=1 和 r=R 交替运行，各取最快的一次；"
+                  "只有 r=R 最快的一次超过 r=1 最快一次的“倍数上限”倍再加“余量”，才判耗时随半径增长。R 从小到大依次试，哪一级超了就停。"
+                  "这里用测试程序的 timing 模式把每种实现跑 5 遍（两种很慢的跑 3 遍），耗时取各遍的中位数（ms），-O2；"
+                  "再用 tests/check_progress.py 把整个验收连跑同样的遍数，数“盒式均值”一项通过了几次。"
+                  "测量时这台机器上同时在跑别的任务，耗时偏大，只看倍数",
+            "判据": crit,
+        }
+        for name, (exe, variant) in TIMING_IMPLS.items():
+            n = 3 if exe in ("t_naive", "t_border") else 5
+            entry = timing_mode(exe, n)
+            entry[f"连跑 {n} 次验收，“盒式均值”一项通过的次数"] = box_passes(impl_root(variant) if variant else None, n)
+            out[name] = entry
+        return out
+
+    pin_checked("验收的计时检查", measure_timing_check, lambda prev: prev.get("判据") == crit)
+
+    # ---- 各种写法过验收
+    pinned_names = (*TIMED_VARIANTS, CRASH_VARIANT)
+    rest_key = "连通域用递归时，另外三项是否照常显示 PASS"
+
+    def measure_pinned_results():
+        out = {name: summarize(acceptance(impl_root(VARIANTS[name][0]))) for name in TIMED_VARIANTS}
+        crash = acceptance(impl_root(VARIANTS[CRASH_VARIANT][0]))
+        out[CRASH_VARIANT] = summarize(crash)
+        out[rest_key] = bool(all(crash.get(n, ("", ""))[0] == "PASS" for n in others))
+        return out
+
+    def load_pinned_results():
+        prev = previous("测试能抓住什么") or {}
+        if os.environ.get(RETIME) == "1" or prev.get("判据") != crit:
+            return None
+        try:
+            out = {name: prev["各种写法"][name]["加固后"] for name in pinned_names}
+            out[rest_key] = prev[rest_key]
+            return out
+        except (KeyError, TypeError):
+            return None
+
+    def stable(name: str) -> str:
+        # 这些写法的盒式均值都是每像素 O(1) 的，结果不该取决于耗时。万一被计时检查误判，重跑并提醒：反复出现说明判据的余量不够
+        res: dict = {}
+        for attempt in range(3):
+            res = acceptance(impl_root(VARIANTS[name][0]))
+            if not any(SLOW_MARK in text for _, text in res.values()):
+                break
+            print(f"注意：“{name}”的盒式均值是 O(1) 的，却被计时检查判成随半径增长（第 {attempt + 1} 次），重跑", flush=True)
+        return summarize(res)
+
+    pinned_results = load_pinned_results()
+    if pinned_results is None:
+        print("测试能抓住什么：取决于耗时和会崩溃的几种写法重新运行", flush=True)
+        pinned_results = measure_pinned_results()
+    else:
+        print(f"测试能抓住什么：取决于耗时和会崩溃的几种写法沿用上次的结果（设置 {RETIME}=1 重测）", flush=True)
+    live = [name for name in VARIANTS if name not in pinned_names]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        live_results = dict(zip(live, pool.map(stable, live)))
+    after = {name: pinned_results[name] if name in pinned_names else live_results[name] for name in VARIANTS}
+    wrong = [name for name in VARIANTS if not name.startswith(CORRECT_PREFIX)]
+    correct = [name for name in VARIANTS if name.startswith(CORRECT_PREFIX)]
+    reference = summarize(acceptance(None))
+    starter = acceptance(S.MAIN)
+    unexpected = [name for name in wrong if after[name] == _ALL_PASS] + [name for name in correct if after[name] != _ALL_PASS]
+    if unexpected or reference != _ALL_PASS or [status for status, _ in starter.values()] != ["TODO"] * 4:
+        raise RuntimeError(f"验收的行为和预期不符：{unexpected}；参考实现：{reference}；初始作业：{starter}。先查 tests/ 最近的改动，再改讲义里对应的说法")
     NUM["测试能抓住什么"] = {
-        "说明": "把参考实现改一处得到几种常见写法，用 -O2 编译后跑 tests/test_main.cpp。改动只存在于 /tmp，仓库里的作业、测试和参考实现都没有动。"
-              "两种改了盒式均值复杂度的写法过不过只取决于测试里的计时检查，结果会随机器变化，和耗时一样钉住；其余几种每次运行都重新跑",
-        **{name: timed_gaps[name] if name in by_timing else summarize(stable_tests(exe)) for name, (exe, _) in VARIANTS.items()},
-        count_key: timed_gaps[count_key],
+        "说明": "把参考实现改一处得到各种写法，交给 tests/check_progress.py（通过 COURSE_IMPL_DIR）实际跑一遍验收，-O2。改动只存在于 /tmp，仓库里的作业、测试和参考实现都没有动。"
+              "“加固后”是现在的测试的结果：改了盒式均值复杂度的几种写法过不过取决于计时检查，“连通域用递归”会让测试程序崩溃，这几项和耗时一样钉住，其余每次运行都重新跑。"
+              "“加固前”是 2026-11 加固验收之前那一版测试的结果，旧测试已经不在仓库里，这一栏是 2026-11-19 实际运行后抄录的记录。"
+              "计时没过的说明里带有每次都不同的耗时，这里只留结论",
+        "判据": crit,
+        "各种写法": {name: {"加固前": OLD_RESULT[name], "加固后": after[name]} for name in VARIANTS},
+        "错误写法的种数": len(wrong),
+        "错误写法里加固前能通过验收的种数": int(sum(OLD_RESULT[name].startswith(_ALL_PASS) for name in wrong)),
+        "错误写法里加固后能通过验收的种数": int(sum(after[name] == _ALL_PASS for name in wrong)),
+        "正确的另一种写法的种数": len(correct),
+        "正确的另一种写法里加固后被判错的种数": int(sum(after[name] != _ALL_PASS for name in correct)),
+        rest_key: pinned_results[rest_key],
+        "参考实现": reference,
+        "初始作业四项的状态": [status for status, _ in starter.values()],
+        "加固前的测试下，可分离写法（每个像素把窗口加一遍）分三批连跑 15 次验收通过的次数": 14,
+        "加固前的测试下，可分离写法（按行累加）分三批连跑 15 次验收通过的次数": 15,
+    }
+    NUM["验收的误判压力测试（抄录）"] = {
+        "说明": "2026-11-19 的一次记录，不是本脚本算出来的，重跑不会更新：把很多份 tests/check_progress.py 同时启动，让机器过载（18 核，另外还有别的任务在跑），"
+              "看每像素 O(1) 的正确实现会不会被计时检查误判成耗时随半径增长",
+        "同时启动的验收份数": 36,
+        "两种 O(1) 写法（参考实现、行列都用滑动和）运行的总次数": 180,
+        "其中“盒式均值”一项通过的次数": 180,
+        "这些运行里 r=200 与 r=1 最快耗时之比的范围": [0.93, 1.13],
+        "两种可分离 O(r) 写法各自运行的次数": 36,
+        "两种可分离 O(r) 写法里“盒式均值”一项通过的次数": 0,
     }
     NUM["文档值（没有实测）"] = {
         "说明": "讲义里提到、但没有条件在这台 Mac 上验证的数字，来自厂商文档，用之前以自己机器上的实测为准",
         "MSVC 链接器默认给主线程保留的栈（MB）": 1,
         "64 位 Windows 上 long 的位数": 32,
+        "Windows 上进程因栈溢出被终止时的返回码（STATUS_STACK_OVERFLOW）": "0xC00000FD",
+        "Windows 上进程因找不到 DLL 启动失败时的返回码（STATUS_DLL_NOT_FOUND）": "0xC0000135",
         "64 位 macOS 和 Linux 上 long 的位数": 64,
         "CMake 在 GCC 和 Clang 下的默认编译选项": {"Debug": "-g", "Release": "-O3 -DNDEBUG"},
     }

@@ -854,35 +854,85 @@ def fig_dense():
               "全局匹配 = 把第二帧线性拉伸到和第一帧相同的均值和标准差；局部归一化 = 减去标准差 8 px 的高斯局部均值，再除以同样尺度的局部标准差",
         "表": btab}
 
-    # Notebook 的场景
-    rng = np.random.default_rng(2026)
-    tex = cv2.GaussianBlur(rng.normal(110, 32, (120, 160)).astype(np.float32), (5, 5), 0.8)
-    cv2.circle(tex, (55, 58), 20, 220, -1)
-    cv2.rectangle(tex, (95, 28), (135, 88), 40, -1)
-    f0 = np.clip(tex, 0, 255).astype(np.uint8)
-    yy, xx = np.mgrid[0:120, 0:160]
-    flat = (((xx - 55) ** 2 + (yy - 58) ** 2) < 14 ** 2) | ((xx > 101) & (xx < 129) & (yy > 34) & (yy < 82))
+    # Notebook 的场景（和 实验_光流.ipynb 里的代码保持一致）
+    def scene(scale=1):
+        rng = np.random.default_rng(2026)
+        tex = cv2.GaussianBlur(rng.normal(110, 32, (120 * scale, 160 * scale)).astype(np.float32), (5, 5), 0.8)
+        cv2.circle(tex, (55 * scale, 58 * scale), 20 * scale, 220, -1)
+        cv2.rectangle(tex, (95 * scale, 28 * scale), (135 * scale, 88 * scale), 40, -1)
+        return np.clip(tex, 0, 255).astype(np.uint8)
 
-    def nb(dx=5, dy=3, winsize=15, add=0):
-        f1 = cv2.warpAffine(f0, np.float32([[1, 0, dx], [0, 1, dy]]), (160, 120), borderMode=cv2.BORDER_REFLECT)
+    def flat_mask(scale=1):
+        yy, xx = np.mgrid[0:120 * scale, 0:160 * scale]
+        return ((((xx - 55 * scale) ** 2 + (yy - 58 * scale) ** 2) < (14 * scale) ** 2)
+                | ((xx > 101 * scale) & (xx < 129 * scale) & (yy > 34 * scale) & (yy < 82 * scale)))
+
+    f0, flat = scene(), flat_mask()
+
+    def nb(dx=5, dy=3, winsize=15, add=0, gain=None, levels=4, scale=1):
+        a0, fl = (f0, flat) if scale == 1 else (scene(scale), flat_mask(scale))
+        f1 = cv2.warpAffine(a0, np.float32([[1, 0, dx], [0, 1, dy]]), (a0.shape[1], a0.shape[0]), borderMode=cv2.BORDER_REFLECT)
         if add:
             f1 = cv2.add(f1, add)
-        flow = cv2.calcOpticalFlowFarneback(f0, f1, None, 0.5, 4, winsize, 3, 5, 1.2, 0)
+        if gain:
+            f1 = cv2.convertScaleAbs(f1, alpha=gain)
+        flow = cv2.calcOpticalFlowFarneback(a0, f1, None, 0.5, levels, winsize, 3, 5, 1.2, 0)
         m = max(abs(dx), abs(dy), 10) + 4
         E = np.linalg.norm(flow[m:-m, m:-m] - np.float32([dx, dy]), axis=2)
-        fm = flat[m:-m, m:-m]
+        fm = fl[m:-m, m:-m]
         out = {"Notebook 显示的 EPE（平均值）": r(E.mean()), "EPE 中位数": r(np.median(E)), "饱和到 255 的像素（%）": r(100 * (f1 == 255).mean(), 1)}
         if fm.any():
             out.update({"平坦的圆和矩形内部的 EPE 平均值": r(E[fm].mean()), "其余纹理区的 EPE 平均值": r(E[~fm].mean())})
         return out
 
+    # Notebook 实验 2 和实验 3：同一对帧上的稀疏 LK
+    nb_shift = np.float32([5, 3])
+    nb_f1 = cv2.warpAffine(f0, np.float32([[1, 0, 5], [0, 1, 3]]), (160, 120), borderMode=cv2.BORDER_REFLECT)
+    nb_pts = cv2.goodFeaturesToTrack(f0, 200, 0.01, 5)
+
+    def nb_lk(second):
+        out = {}
+        for w in (9, 21, 31):
+            moved, _, _ = cv2.calcOpticalFlowPyrLK(f0, second, nb_pts, None, winSize=(w, w), maxLevel=3)
+            e = np.linalg.norm((moved - nb_pts).reshape(-1, 2) - nb_shift, axis=1)
+            out[f"LK 窗口 {w}"] = {"EPE 中位数": r(np.median(e)), "EPE 超过 1 px 的点（%）": r(100 * (e > 1).mean(), 1)}
+        return out
+
+    def nb_round_trip(max_level):
+        fwd, s1, _ = cv2.calcOpticalFlowPyrLK(f0, nb_f1, nb_pts, None, winSize=(21, 21), maxLevel=max_level)
+        bwd, s2, _ = cv2.calcOpticalFlowPyrLK(nb_f1, f0, fwd, None, winSize=(21, 21), maxLevel=max_level)
+        ok = (s1.ravel() != 0) & (s2.ravel() != 0)
+        e = np.linalg.norm((fwd - nb_pts).reshape(-1, 2) - nb_shift, axis=1)
+        out = {"前向和反向的 status 都是 1 的点数": int(ok.sum()), "EPE 小于 1 px 的点数": int((e < 1).sum())}
+        for thr in (0.1, 1.0, 5.0):
+            keep = filter_tracks(nb_pts, fwd, bwd, ok, thr)
+            out[f"往返误差不超过 {thr:g} px"] = {"留下的点数": int(keep.sum()), "其中 EPE 不小于 1 px 的点数": int((keep & (e >= 1)).sum())}
+        return out
+
+    xy = np.rint(nb_pts.reshape(-1, 2)).astype(int)
     NUM["Notebook 场景"] = {
         "说明": "按 实验_光流.ipynb 的代码生成 160x120 的两帧（随机种子 2026，纹理上画了一个灰度 220 的圆和一个灰度 40 的矩形），用它的 Farneback 参数和它的 EPE 算法（去掉边缘后取平均）；"
-              "平坦内部 = 圆心 14 px 以内和矩形向内收 6 px 的部分；变亮用 cv2.add（超过 255 的截断）",
+              "平坦内部 = 圆心 14 px 以内和矩形向内收 6 px 的部分；变亮用 cv2.add（超过 255 的截断），乘增益用 cv2.convertScaleAbs；"
+              "稀疏 LK 跟踪 goodFeaturesToTrack(frame0, 200, 0.01, 5) 取的角点，其余参数用 OpenCV 的默认值；"
+              "放大的画面是把画布、圆和矩形都放大 4 倍（宽 640、高 480），纹理的粗细不变",
+        "位移的长度（px）": {f"({dx}, {dy})": r(np.hypot(dx, dy), 1) for dx, dy in [(5, 3), (8, 5), (10, 6), (18, 12)]},
         "默认：位移 (5, 3)，winsize 15": nb(),
         "第二帧整体加 20": nb(add=20), "第二帧整体加 40": nb(add=40), "第二帧整体加 80": nb(add=80),
         "位移 (5, 3)，winsize 5": nb(winsize=5), "位移 (5, 3)，winsize 31": nb(winsize=31),
-        "滑块最大位移 (18, 12)，winsize 5": nb(18, 12, 5), "滑块最大位移 (18, 12)，winsize 15": nb(18, 12, 15), "滑块最大位移 (18, 12)，winsize 31": nb(18, 12, 31)}
+        "滑块最大位移 (18, 12)，winsize 5": nb(18, 12, 5), "滑块最大位移 (18, 12)，winsize 15": nb(18, 12, 15), "滑块最大位移 (18, 12)，winsize 31": nb(18, 12, 31),
+        "实验 1：位移 (8, 5)": {f"winsize {w}": nb(8, 5, w) for w in (5, 15, 31)},
+        "实验 1：位移 (10, 6)": {f"winsize {w}": nb(10, 6, w) for w in (5, 15, 31)},
+        "实验 1：位移 (18, 12)、winsize 15，levels 取 1、2、4、8 时 Notebook 显示的 EPE": [nb(18, 12, 15, levels=n)["Notebook 显示的 EPE（平均值）"] for n in (1, 2, 4, 8)],
+        "实验 1：画面放大到 640x480，位移 (18, 12)、winsize 15": {f"levels={n}": nb(18, 12, 15, levels=n, scale=4) for n in (1, 4)},
+        "实验 2：位移 (5, 3)，Farneback（winsize 15）": {"第二帧整体加 10": nb(add=10), "第二帧整体乘 1.1": nb(gain=1.1)},
+        "实验 2：位移 (5, 3)，稀疏 LK（maxLevel=3）": {
+            "角点数": len(nb_pts),
+            "不变": nb_lk(nb_f1), "第二帧整体加 10": nb_lk(cv2.add(nb_f1, 10)), "第二帧整体加 20": nb_lk(cv2.add(nb_f1, 20)),
+            "第二帧整体乘 1.1": nb_lk(cv2.convertScaleAbs(nb_f1, alpha=1.1))},
+        "实验 3：位移 (5, 3)，winSize=21，往返筛选（参考实现的 filter_tracks）": {
+            "角点数": len(nb_pts), "落在平坦内部的角点数": int(flat[np.clip(xy[:, 1], 0, 119), np.clip(xy[:, 0], 0, 159)].sum()),
+            "maxLevel=3": nb_round_trip(3), "maxLevel=0": nb_round_trip(0)},
+    }
 
     # 旋转场
     rot = {}

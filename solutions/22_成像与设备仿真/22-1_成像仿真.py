@@ -32,10 +32,10 @@ def convolve_same(image, kernel):
     return out
 
 
-def simulate_capture(mean_electrons, read_noise_e, gain_e_per_adu, bit_depth, rng):
+def simulate_capture(mean_electrons, read_noise_e, gain_e_per_adu, bit_depth, rng, black_level_adu=0.0):
     lam = np.maximum(np.asarray(mean_electrons, dtype=np.float64), 0.0)
     e = rng.poisson(lam).astype(np.float64) + rng.normal(0.0, read_noise_e, size=lam.shape)
-    adu = np.round(e / gain_e_per_adu)
+    adu = np.round(e / gain_e_per_adu + black_level_adu)
     return np.clip(adu, 0, 2 ** bit_depth - 1).astype(np.int64)
 
 

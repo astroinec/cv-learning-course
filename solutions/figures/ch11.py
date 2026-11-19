@@ -769,6 +769,17 @@ def bug_nan(b1, b2):
     return inter / (area(b1)[:, None] + area(b2)[None, :] - inter)
 
 
+def bug_fixed_eps(b1, b2):
+    wh = (torch.minimum(b1[:, None, 2:], b2[None, :, 2:]) - torch.maximum(b1[:, None, :2], b2[None, :, :2])).clamp(min=0)
+    inter = wh[..., 0] * wh[..., 1]
+    area = lambda b: (b[:, 2] - b[:, 0]).clamp(min=0) * (b[:, 3] - b[:, 1]).clamp(min=0)
+    return inter / (area(b1)[:, None] + area(b2)[None, :] - inter + 1e-7)
+
+
+def bug_no_class(boxes, scores, labels, thr):
+    return cnms(boxes, scores, torch.zeros_like(labels), thr)
+
+
 def bug_sorted_index(boxes, scores, labels, thr):
     order = torch.argsort(scores, descending=True)
     return cnms(boxes[order], scores[order], labels[order], thr)
@@ -826,15 +837,18 @@ def table_misc():
         return r(100 * np.mean([nms_fn(b, s, l, t).tolist() != cnms(b, s, l, t).tolist() for b, s, l, t in sets]), 1)
     pairs = T(np.hstack([(xy := np.random.default_rng(2).uniform(0, 100, (4000, 2))), xy + np.random.default_rng(3).uniform(5, 30, (4000, 2))]))
     ref_m, bad_m = piou(pairs[:2000], pairs[2000:]).diagonal(), bug_no_clamp(pairs[:2000], pairs[2000:]).diagonal()
+    ref_pass = run_checker(piou, cnms)
     NUM["常见的错误实现"] = {
-        "说明": "把作业里常见的五种写错的实现交给本章的验收脚本 tests/check_progress.py（共 2 项），并在上面那 300 组随机输入上和参考实现比较。这些错误实现只存在于配图脚本里",
+        "说明": f"把作业里常见的七种写错的实现交给本章的验收脚本 tests/check_progress.py（共 {ref_pass.split('/')[1]} 项），“验收”是通过的项数；并在上面那 300 组随机输入上和参考实现比较。这些错误实现只存在于配图脚本里",
         "交集的宽高没有截断到 0": {"验收": run_checker(bug_no_clamp, cnms), "2000 对随机框里本来不相交却算出正 IoU 的比例（%）": r(100 * ((ref_m == 0) & (bad_m > 0)).double().mean().item(), 1),
                          "不相交的框对里算出的 IoU 最大值": r(bad_m[ref_m == 0].max().item(), 3)},
         "并集为 0 时直接相除": {"验收": run_checker(bug_nan, cnms), "面积为 0 的框和它自己的 IoU": "nan" if torch.isnan(bug_nan(zero, zero)[0, 0]) else "不是 nan"},
         "返回的是排序之后的位置，不是原始下标": {"验收": run_checker(piou, bug_sorted_index), "300 组随机输入里结果和参考实现不同的比例（%）": differ(bug_sorted_index)},
         "已经被删掉的框继续去删别的框": {"验收": run_checker(piou, bug_not_greedy), "300 组随机输入里结果和参考实现不同的比例（%）": differ(bug_not_greedy)},
         "IoU 大于等于阈值就抑制": {"验收": run_checker(piou, bug_ge), "300 组随机输入里结果和参考实现不同的比例（%）": differ(bug_ge)},
-        "参考实现": {"验收": run_checker(piou, cnms)}}
+        "分母加一个固定的 1e-7": {"验收": run_checker(bug_fixed_eps, cnms)},
+        "抑制时不分类别": {"验收": run_checker(piou, bug_no_class), "300 组随机输入里结果和参考实现不同的比例（%）": differ(bug_no_class)},
+        "参考实现": {"验收": ref_pass}}
 
     chain = np.array([[0, 0, 10, 10], [4, 0, 14, 10], [8, 0, 18, 10]], float)
     ci = iou_np(chain, chain)

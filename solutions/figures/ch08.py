@@ -14,7 +14,11 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import re
+import subprocess
 import sys
+import tempfile
 import warnings
 from pathlib import Path
 
@@ -31,8 +35,10 @@ torch.set_num_threads(2)
 warnings.filterwarnings("ignore")
 
 CH = "08_神经网络基础"
-mod = S.load_solution(CH, "作业_手写两层网络.py")
+HOMEWORK = "作业_手写两层网络.py"
+mod = S.load_solution(CH, HOMEWORK)
 fwd, ce = mod.two_layer_forward, mod.cross_entropy_from_logits
+REFERENCE_SOURCE = (S.SOLUTIONS / CH / HOMEWORK).read_text(encoding="utf-8")
 NUM: dict = {}
 
 SIZE, D, C = 12, 144, 10
@@ -43,6 +49,29 @@ DATA_NOTE = ("合成数字：用 cv2.putText 在 48x48 的画布上画 0 到 9�
 
 def r(x, k=3):
     return round(float(x), k)
+
+
+def acceptance(source: str) -> dict:
+    """把一份作业实现写进临时目录，用 COURSE_IMPL_DIR 指过去运行本章的验收脚本，返回通过几项、哪几项没通过。"""
+    script = S.MAIN / CH / "tests" / "check_progress.py"
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / CH
+        target.mkdir()
+        (target / HOMEWORK).write_text(source, encoding="utf-8")
+        env = dict(os.environ, COURSE_IMPL_DIR=tmp, PYTHONDONTWRITEBYTECODE="1")
+        res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, encoding="utf-8", env=env, timeout=600)
+    done, total = re.findall(r"通过 (\d+)/(\d+)", res.stdout)[-1]
+    failed = [line[len("[FAIL] "):].split(" — ")[0] for line in res.stdout.splitlines() if line.startswith("[FAIL] ")]
+    return {"通过项数": int(done), "总项数": int(total), "没通过的项数": int(total) - int(done), "没通过的检查": failed}
+
+
+def variant(*pairs: tuple[str, str]) -> str:
+    """在参考实现的源码上做几处替换，得到一份故意写错的实现。要替换的片段必须正好出现一次。"""
+    src = REFERENCE_SOURCE
+    for old, new in pairs:
+        assert src.count(old) == 1, f"参考实现里找不到唯一的片段：{old}"
+        src = src.replace(old, new)
+    return src
 
 
 def sci(x, digits=2):
@@ -1139,6 +1168,54 @@ def table_pitfalls():
         "对 batch 求和而不是求平均": describe(lambda: -right[np.arange(2), lab2].sum()),
         "取正确类别时写成 log_probs[:, labels]": describe(lambda: -right[:, lab2].mean()),
         "把 logits 和 labels 都换成 float32 再用参考实现": describe(lambda: ce(case.astype(np.float32), lab2)),
+    }
+
+    # 验收脚本后来补的两个用例：一个能手算的例子（logits 取整数的对数，每行的概率就是 整数/这一行的和），
+    # 一个正确类别比这一行最大值小几百的例子。同样看几种错误写法各算出什么。
+    counts = np.array([[1.0, 2.0, 5.0], [3.0, 1.0, 4.0], [2.0, 2.0, 4.0], [6.0, 1.0, 1.0]])
+    hand, hand_lab = np.log(counts), np.array([2, 0, 1, 1])
+    hand_lp = lse(hand, hand.max(axis=1, keepdims=True))
+    far, far_lab = np.array([[0.0, 800.0], [-300.0, 300.0]]), np.array([0, 0])
+
+    def prob_then_log(z, lab, add=0.0):
+        zz = z - z.max(axis=1, keepdims=True)
+        pr = np.exp(zz) / np.exp(zz).sum(axis=1, keepdims=True)
+        return -np.log(pr[np.arange(len(lab)), lab] + add).mean()
+
+    NUM["作业里常见的写法错误"]["验收的手算例子"] = {
+        "说明": "logits 是 [[1,2,5],[3,1,4],[2,2,4],[6,1,1]] 逐元素取自然对数，labels=[2,0,1,1]；四个样本正确类别的概率是 5/8、3/8、2/8、1/8",
+        "理论值 ln(4096/30)/4": r(math.log(4096 / 30) / 4, 4),
+        "正确写法（参考实现）": describe(lambda: ce(hand, hand_lab)),
+        "取正确类别时写成 log_probs[:, labels]": describe(lambda: -hand_lp[:, hand_lab].mean()),
+        "对 batch 求和而不是求平均": describe(lambda: -hand_lp[np.arange(4), hand_lab].sum()),
+    }
+    NUM["作业里常见的写法错误"]["验收的大 logits 例子"] = {
+        "说明": "logits=[[0,800],[-300,300]]，labels=[0,0]；正确类别的 logit 比这一行的最大值小 800 和 600，两个样本的交叉熵约为 800 和 600",
+        "正确写法（参考实现）": describe(lambda: ce(far, far_lab)),
+        "直接 exp 再归一化": describe(lambda: naive_ce(far, far_lab)),
+        "减掉每行最大值之后先算概率再取对数": describe(lambda: prob_then_log(far, far_lab)),
+        "同上，概率加 1e-12 再取对数": describe(lambda: prob_then_log(far, far_lab, 1e-12)),
+    }
+
+    # 把参考实现改成各种错误写法，实际运行验收脚本
+    lp_line = "log_probs = z - np.log(np.exp(z).sum(axis=1, keepdims=True))"
+    wrong = {
+        "参考实现": variant(),
+        "交叉熵：取正确类别时写成 log_probs[:, labels]": variant(("log_probs[np.arange(len(labels)), labels]", "log_probs[:, labels]")),
+        "交叉熵：对 batch 求和而不是求平均": variant(("labels].mean()", "labels].sum()")),
+        "交叉熵：减的是整个 batch 的最大值": variant(("logits.max(axis=1, keepdims=True)", "logits.max()")),
+        "交叉熵：直接 exp 再归一化": variant(("z = logits - logits.max(axis=1, keepdims=True)", "z = logits")),
+        "交叉熵：减掉每行最大值之后先算概率再取对数": variant((lp_line, "log_probs = np.log(np.exp(z) / np.exp(z).sum(axis=1, keepdims=True))")),
+        "交叉熵：同上，概率加 1e-12 再取对数": variant((lp_line, "log_probs = np.log(np.exp(z) / np.exp(z).sum(axis=1, keepdims=True) + 1e-12)")),
+        "交叉熵：原地减最大值，改掉了输入的 logits": variant(("z = logits - logits.max(axis=1, keepdims=True)", "logits -= logits.max(axis=1, keepdims=True)\n    z = logits")),
+        "前向：hidden 返回的是 ReLU 之前的值": variant(("hidden = np.maximum(x @ w1 + b1, 0.0)\n    return hidden, hidden @ w2 + b2",
+                                               "pre = x @ w1 + b1\n    hidden = np.maximum(pre, 0.0)\n    return pre, hidden @ w2 + b2")),
+        "前向：logits 上多做了一次 ReLU": variant(("return hidden, hidden @ w2 + b2", "return hidden, np.maximum(hidden @ w2 + b2, 0.0)")),
+        "前向：漏了第二层的偏置": variant(("hidden @ w2 + b2", "hidden @ w2")),
+    }
+    NUM["验收能否查出错误写法"] = {
+        "说明": "把本章作业的参考实现改成各种错误写法，写进临时目录，用 COURSE_IMPL_DIR 指过去实际运行 tests/check_progress.py；每种写法只改一处",
+        **{name: acceptance(src) for name, src in wrong.items()},
     }
 
     lf = nn.CrossEntropyLoss()

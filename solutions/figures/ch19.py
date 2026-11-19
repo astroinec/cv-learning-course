@@ -8,6 +8,7 @@
 
 特征沿用本章 Notebook 的做法：4x4 像素块（步长 2）展平成 16 维，再做 3x3 邻域平均，
 不依赖预训练权重。最后一组对照用 torchvision 的 ResNet-18（Notebook 的选做单元已经用到）。
+table_boundary_fill 对应 Notebook 的“对照 1”：聚合时边界换成只对真实存在的邻居平均。
 """
 
 from __future__ import annotations
@@ -960,11 +961,44 @@ def numbers_misc():
         assert np.allclose(knn_multi(mem, q, (k,))[k], mod.knn_scores(mem, q, k)), "分块的 kNN 应和参考实现一致"
 
 
+# ---------------------------------------------------------------- 表：聚合时边界换一种补法（Notebook 的“对照 1”）
+def patch_features_valid(img):
+    """和 patch_features 相同，但边界上只对真实存在的邻居平均（边上 6 个，角上 4 个），不做复制填充。"""
+    pats = np.lib.stride_tricks.sliding_window_view(img, (4, 4))[::2, ::2]
+    f = pats.reshape(pats.shape[0], pats.shape[1], -1).astype(np.float64)
+    gh, gw = f.shape[:2]
+    pad, ones = np.pad(f, ((1, 1), (1, 1), (0, 0))), np.pad(np.ones((gh, gw)), 1)
+    count = sum(ones[dy:dy + gh, dx:dx + gw] for dy in range(3) for dx in range(3))
+    return sum(pad[dy:dy + gh, dx:dx + gw] for dy in range(3) for dx in range(3)) / count[..., None]
+
+
+def table_boundary_fill():
+    rows, med = [], []
+    for seed in SEEDS:
+        train, tests, masks, labels = dataset(seed, aligned=False, amp=0.12)
+        bank = np.stack([patch_features_valid(im) for im in train]).reshape(-1, 16)
+        s = score_maps(bank[mod.greedy_coreset(bank, len(bank) // 10)], np.stack([patch_features_valid(im) for im in tests]))
+        goods = s[labels == 0]
+        rows.append([mod.auroc(image_score(s, inner=False), labels), mod.auroc(image_score(s), labels),
+                     float(RING.ravel()[goods.reshape(len(goods), -1).argmax(axis=1)].mean())])
+        med.append([np.median(goods[:, ~RING]), np.median(goods[:, RING & ~CORNER]), np.median(goods[:, CORNER])])
+    v, m = np.mean(rows, axis=0), np.mean(med, axis=0)
+    NUM["边界只对真实存在的邻居平均"] = {
+        "说明": "不对齐、缺陷幅度 0.12 的主设置，其余条件和“局部聚合与边界”相同（20 张良品，200 张待检图，核心集 10%，k=1，3 个种子取平均），"
+              "只把聚合时的边界处理从复制填充换成“只对真实存在的邻居平均”：边上的 patch 有 6 个邻居（含自己），角上有 4 个",
+        "image AUROC（全图）": r3(v[0]), "image AUROC（去掉最外一圈）": r3(v[1]), "良品图的最高分落在最外一圈的比例": r3(v[2]),
+        "各种子：image AUROC（全图）": [r3(x[0]) for x in rows], "各种子：image AUROC（去掉最外一圈）": [r3(x[1]) for x in rows],
+        "良品 patch 分数的中位数": {"内部": r3(m[0]), "边上（不含角）": r3(m[1]), "四个角": r3(m[2])},
+        "邻域平均后的噪声方差相对单个 patch 的比例（1 除以邻居个数）": {"内部": r3(1 / 9), "边上": r3(1 / 6), "角": r3(1 / 4)},
+    }
+    NUM["AUROC 的分辨率"]["Notebook 对照单元的 50 张良品加 50 张缺陷图"] = 1 / 2500
+
+
 def main() -> None:
     S.setup()
     plt.rcParams["svg.hashsalt"] = "ch19"
     t_all = time.perf_counter()
-    for fn in (numbers_misc, fig_methods, fig_pipeline, fig_coreset, fig_contamination, fig_goods_shift, fig_metrics, table_reconstruction, table_resnet):
+    for fn in (numbers_misc, fig_methods, fig_pipeline, fig_coreset, fig_contamination, fig_goods_shift, fig_metrics, table_reconstruction, table_resnet, table_boundary_fill):
         t = time.perf_counter()
         fn()
         print(f"完成 {fn.__name__}（{time.perf_counter() - t:.0f} 秒）", flush=True)

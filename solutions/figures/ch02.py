@@ -899,12 +899,15 @@ def numbers_homework():
             d.mkdir(parents=True)
             (d / "2-1_手写相关运算.py").write_text(TEMPLATE.format(flip="[::-1, ::-1]" if flip else "", mode=mode), encoding="utf-8")
             env = dict(os.environ, COURSE_IMPL_DIR=str(d.parent), PYTHONDONTWRITEBYTECODE="1")
-            res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, env=env, timeout=120).stdout
-            status = next((line[1:5].strip() for line in res.splitlines() if line.startswith("[")), "无输出")
+            res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, env=env, timeout=120)
+            lines = [line for line in res.stdout.splitlines() if line.startswith("[")]
+            status = "无输出" if not lines else ("PASS" if res.returncode == 0 else "FAIL")
+            failed = [line[6:].split(" — ")[0].strip() for line in lines if line.startswith("[FAIL")]
             diff = np.abs(corr_pad(img, k5[::-1, ::-1].copy() if flip else k5, mode) - truth)
-            out[name] = {"验收脚本的结论": status, "与 cv2.filter2D（默认填充）的最大差": r3(diff.max(), 4), "差大于 0.01 的像素占比": r3((diff > 0.01).mean())}
+            out[name] = {"验收脚本的结论": status, "没通过的检查项": failed, "与 cv2.filter2D（默认填充）的最大差": r3(diff.max(), 4), "差大于 0.01 的像素占比": r3((diff > 0.01).mean())}
     NUM["验收脚本能分辨哪些错误"] = {
-        "说明": "把每种写法存成作业文件，用 COURSE_IMPL_DIR 交给 tests/check_progress.py。对照实验：64x64 随机图（种子 50）和一个 5x5 随机核，与 cv2.filter2D(img, cv2.CV_32F, k) 比较",
+        "说明": "把每种写法存成作业文件，用 COURSE_IMPL_DIR 交给 tests/check_progress.py（加固后的版本：除恒等核和常量图外，还查冲激响应、手算的 reflect 边界、非方形核与 cv2.filter2D 的对照、整数输入）。"
+              "结论按脚本的退出码定，有一项 FAIL 就算 FAIL。对照实验：64x64 随机图（种子 50）和一个 5x5 随机核，与 cv2.filter2D(img, cv2.CV_32F, k) 比较",
         "各种写法": out,
         "自查时建议的容差": {"说明": "灰度 0 到 255 的图、5x5 的核，参考实现与 filter2D 的差来自 float32 的舍入，取比它略大的值", "数值": 0.001},
     }

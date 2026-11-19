@@ -9,6 +9,8 @@
 长度单位统一用 λ/NA，这样结论不依赖具体的波长和物镜。
 光学部分用标量、傍轴、非相干的模型：像的强度等于物的强度卷积 PSF。
 传感器部分调用作业的参考实现 simulate_capture 和 estimate_gain_from_ptc。
+simulate_capture 的黑电平参数默认是 0。只有专门研究暗处统计量的几组实验传了黑电平（BLACK），
+它们用单独的随机数发生器，所以其余数字和加这个参数之前逐位相同。
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ DX = 0.05          # 细网格间距，单位 λ/NA
 U = "λ/NA"
 U2 = "λ/NA$^2$"     # 上标用 mathtext，中文字体里没有“²”这个字形
 _TAU = (np.arange(720) + 0.5) * (2 * np.pi / 720)
+BLACK = 64.0        # 研究暗处统计量时用的黑电平（ADU），比这些实验里读出噪声换算成 ADU 的 5 倍还大
 
 
 def r3(v, n=3):
@@ -590,21 +593,26 @@ def fig_pixel():
 
 
 # ---------------------------------------------------------------- 图 5：噪声、PTC、曝光量、量化
-def ptc_points(levels, read, gain, bits, rng, shape=(200, 200)):
+def ptc_points(levels, read, gain, bits, rng, shape=(200, 200), black=0.0):
+    """black 不为 0 时拍摄带黑电平，均值里把它减掉（方差不受黑电平影响）。"""
     m, v = [], []
     for lv in levels:
-        f = mod.simulate_capture(np.full(shape, float(lv)), read, gain, bits, rng)
-        m.append(float(f.mean()))
+        mean_e = np.full(shape, float(lv))
+        if black:
+            f = mod.simulate_capture(mean_e, read, gain, bits, rng, black_level_adu=black)
+        else:
+            f = mod.simulate_capture(mean_e, read, gain, bits, rng)
+        m.append(float(f.mean()) - black)
         v.append(float(f.var()))
     return np.array(m), np.array(v)
 
 
-def ptc_repeat(levels, read, gain, bits, seed, reps=200, weighted=False):
+def ptc_repeat(levels, read, gain, bits, seed, reps=200, weighted=False, black=0.0):
     """重复做 PTC 拟合，返回每次的 (增益, 读出噪声, 截距)。weighted=True 时按方差的倒数加权。"""
     rng = np.random.default_rng(seed)
     out = []
     for _ in range(reps):
-        m, v = ptc_points(levels, read, gain, bits, rng)
+        m, v = ptc_points(levels, read, gain, bits, rng, black=black)
         if weighted:
             a, b = np.polyfit(m, v, 1, w=1.0 / v)
             out.append((1 / a, math.sqrt(max(b, 0.0)) / a, b))
@@ -657,7 +665,8 @@ def fig_noise():
         "验收脚本的设置（读出噪声 8 e-，增益 1.5，14 位）": ptc_summary(ptc_repeat(test_levels, 8.0, 1.5, 14, 20), 8.0, 1.5),
         "读出噪声换成 3 e-": ptc_summary(ptc_repeat(test_levels, 3.0, 1.5, 14, 21), 3.0, 1.5),
         "读出噪声 3 e-，改用按方差倒数加权的拟合": ptc_summary(ptc_repeat(test_levels, 3.0, 1.5, 14, 21, weighted=True), 3.0, 1.5),
-        "读出噪声 8 e-，多加一档全暗（0 e-）": ptc_summary(ptc_repeat([0] + test_levels, 8.0, 1.5, 14, 22), 8.0, 1.5),
+        "读出噪声 8 e-，多加一档全暗（0 e-），不加黑电平": ptc_summary(ptc_repeat([0] + test_levels, 8.0, 1.5, 14, 22), 8.0, 1.5),
+        f"读出噪声 8 e-，多加一档全暗（0 e-），加黑电平 {BLACK:.0f} ADU": ptc_summary(ptc_repeat([0] + test_levels, 8.0, 1.5, 14, 26, black=BLACK), 8.0, 1.5),
     }
     coarse = ptc_repeat([100, 200, 400, 800, 1600, 3200], 2.0, 8.0, 14, 23)
     b_mean, a_mean = coarse[:, 2].mean(), 1 / coarse[:, 0].mean()
@@ -667,6 +676,13 @@ def fig_noise():
         f = mod.simulate_capture(np.zeros((400, 400)), rd, gn, 12, rng).astype(np.float64)
         dark[f"读出噪声 {rd:.0f} e-、增益 {gn}"] = {"暗帧均值（ADU）": r3(f.mean(), 2), "暗帧标准差（ADU）": r3(f.std(), 2),
                                              "没有裁剪时应有的标准差（ADU）": r3(math.sqrt(rd ** 2 / gn ** 2 + 1 / 12), 2)}
+    rng_b = np.random.default_rng(25)
+    for rd, gn in ((8.0, 1.5), (5.0, 2.0)):
+        f = mod.simulate_capture(np.zeros((400, 400)), rd, gn, 12, rng_b, black_level_adu=BLACK).astype(np.float64)
+        dark[f"读出噪声 {rd:.0f} e-、增益 {gn}"].update({
+            f"加黑电平 {BLACK:.0f} ADU：暗帧均值减去黑电平（ADU）": r3(f.mean() - BLACK, 2) + 0.0,   # 加 0.0 是为了不把 -0.0 写进 JSON
+            f"加黑电平 {BLACK:.0f} ADU：暗帧标准差（ADU）": r3(f.std(), 2),
+            f"加黑电平 {BLACK:.0f} ADU：被裁到 0 的像素个数": int((f == 0).sum())})
 
     # 信噪比随曝光量
     rd_s = 5.0
@@ -678,6 +694,12 @@ def fig_noise():
         snr_meas.append(float(f.mean() / f.std()))
         mean_meas.append(float(f.mean()))
     snr_th = [mu / math.sqrt(mu + rd_s ** 2) for mu in mus]
+    rng_b = np.random.default_rng(15)
+    snr_black, mean_black = [], []
+    for mu in mus:
+        f = mod.simulate_capture(np.full((300, 300), float(mu)), rd_s, 1.0, 16, rng_b, black_level_adu=BLACK).astype(np.float64)
+        mean_black.append(float(f.mean()) - BLACK)
+        snr_black.append(mean_black[-1] / float(f.std()))
     at = lambda mu: mu / math.sqrt(mu + rd_s ** 2)  # noqa: E731
 
     # 量化位数
@@ -728,19 +750,27 @@ def fig_noise():
             "说明": "读出噪声 2 e-、增益 8 e-/ADU、14 位，电子数 100 到 3200 共 6 档，重复 200 次，用 200 次的平均截距和平均斜率换算",
             "换算出的读出噪声": r3(math.sqrt(b_mean) / a_mean, 2), "真值": 2.0, "按 sqrt(读出噪声² + 增益²/12) 算": r3(math.sqrt(4 + 64 / 12), 2),
         },
-        "全暗时的裁剪": {"说明": "平均电子数为 0，12 位，400×400 像素。作业的模型没有黑电平，负值被裁成 0", **dark},
+        "全暗时的裁剪": {"说明": f"平均电子数为 0，12 位，400×400 像素。不传黑电平（默认 0）时负值被裁成 0；传黑电平 {BLACK:.0f} ADU 时整个分布离开 0，不再被裁剪",
+                   "只有读出噪声、负的一半被裁成 0 时（不算量化）：均值 ÷ 裁剪前的标准差": r3(1 / math.sqrt(2 * math.pi)),
+                   "只有读出噪声、负的一半被裁成 0 时（不算量化）：标准差 ÷ 裁剪前的标准差": r3(math.sqrt(0.5 - 1 / (2 * math.pi))),
+                   **dark},
     }
     NUM["信噪比随曝光量"] = {
-        "说明": f"均匀场，读出噪声 {rd_s:.0f} e-、增益 1、16 位，每档 300×300 像素；信噪比 = 均值 ÷ 标准差",
+        "说明": f"均匀场，读出噪声 {rd_s:.0f} e-、增益 1、16 位，每档 300×300 像素；信噪比 = 均值 ÷ 标准差。"
+              f"实测有两组：一组不传黑电平（默认 0），一组传黑电平 {BLACK:.0f} ADU、算信噪比时先从均值里减掉它",
         "平均电子数": mus,
-        "实测信噪比": [r3(v, 2) for v in snr_meas],
+        "实测信噪比（不加黑电平）": [r3(v, 2) for v in snr_meas],
+        f"实测信噪比（黑电平 {BLACK:.0f} ADU）": [r3(v, 2) for v in snr_black],
         "公式 μ/sqrt(μ+σ²)": [r3(v, 2) for v in snr_th],
-        "实测均值": [r3(v, 2) for v in mean_meas],
+        "实测均值（不加黑电平）": [r3(v, 2) for v in mean_meas],
+        f"实测均值减去黑电平（黑电平 {BLACK:.0f} ADU）": [r3(v, 2) for v in mean_black],
         "两种噪声相等的电子数（读出噪声的平方）": rd_s ** 2,
         "曝光量乘 4 时信噪比的倍数（公式）": {"4 → 16 e-": r3(at(16) / at(4), 2), "100 → 400 e-": r3(at(400) / at(100), 2),
                                  "1000 → 4000 e-": r3(at(4000) / at(1000), 2), "4000 → 16000 e-": r3(at(16000) / at(4000), 2)},
         "曝光量乘 4 时信噪比的倍数（实测）": {"100 → 400 e-": r3(snr_meas[12] / snr_meas[9], 2), "1000 → 4000 e-": r3(snr_meas[14] / snr_meas[13], 2),
                                  "4000 → 16000 e-": r3(snr_meas[15] / snr_meas[14], 2)},
+        f"曝光量乘 4 时信噪比的倍数（实测，黑电平 {BLACK:.0f} ADU）": {"4 → 16 e-": r3(snr_black[5] / snr_black[2], 2), "100 → 400 e-": r3(snr_black[12] / snr_black[9], 2),
+                                                 "1000 → 4000 e-": r3(snr_black[14] / snr_black[13], 2)},
     }
     NUM["量化位数"] = {
         "说明": f"满量程 {fw:.0f} e-，量化步长 = 满量程 ÷ 2^位数，读出噪声 {rd_q:.0f} e-；每个像素的平均电子数在背景值上下半个步长内均匀分布，"
@@ -774,7 +804,8 @@ def fig_noise():
 
     mm = np.array(mus, dtype=np.float64)
     ax[1].plot(mm, snr_th, "-", color=S.BLUE, lw=1.8, label=r"公式 $\mu/\sqrt{\mu+\sigma_r^2}$")
-    ax[1].plot(mm, snr_meas, "o", color=S.INK, ms=4.5, label="实测（均值 / 标准差）")
+    ax[1].plot(mm, snr_meas, "o", mfc="white", mec=S.RED, ms=8, mew=1.3, label="实测，不加黑电平（负值被裁成 0）")
+    ax[1].plot(mm, snr_black, "o", color=S.INK, ms=4, label=f"实测，黑电平 {BLACK:.0f} ADU（均值已减去黑电平）")
     ax[1].plot(mm[mm <= 200], mm[mm <= 200] / rd_s, ":", color=S.ORANGE, lw=1.6, label=r"只有读出噪声：$\mu/\sigma_r$")
     ax[1].plot(mm[mm >= 4], np.sqrt(mm[mm >= 4]), ":", color=S.GREEN, lw=1.6, label=r"只有散粒噪声：$\sqrt{\mu}$")
     ax[1].axvline(rd_s ** 2, color=S.MUTED, lw=1, ls="--")
@@ -786,7 +817,7 @@ def fig_noise():
     ax[1].minorticks_off()
     ax[1].set_xlabel("平均电子数（曝光量）")
     ax[1].set_ylabel("信噪比")
-    ax[1].set_title("亮处信噪比按平方根增长，最暗的几档被裁剪抬高")
+    ax[1].set_title("加黑电平后和公式一致；不加时最暗几档被裁剪抬高")
     ax[1].legend(fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
     S.clean(ax[1])
 
@@ -1127,6 +1158,17 @@ def fig_gap():
 
 
 # ---------------------------------------------------------------- 没有配图的数字
+NB_DIAMS = (0.5, 1, 1.5, 2, 3, 4, 6)
+
+
+def nb_disk(diam_px, size=41, sub=16):
+    """Notebook 实验 1 的画法：圆心在中间那个像素的中心，返回每个像素被圆覆盖的比例。"""
+    c = (size - 1) / 2
+    t = (np.arange(size * sub) + 0.5) / sub - 0.5
+    inside = (t[:, None] - c) ** 2 + (t[None, :] - c) ** 2 <= (diam_px / 2) ** 2
+    return inside.reshape(size, sub, size, sub).mean(axis=(1, 3))
+
+
 def numbers_misc():
     """讲义里的算例、TDI 和设计问题用到的数字。"""
     ex = {f"{lam} nm、NA {na}": {"λ/NA（µm）": r3(lam / 1000 / na, 3),
@@ -1155,8 +1197,14 @@ def numbers_misc():
         "均值 400 e-、读出噪声 5 e- 的信噪比": r3(400 / math.sqrt(425), 1),
         "作业验收里 1000 e-、读出噪声 5 e-、增益 2 的方差（ADU²，含量化项 1/12）": r3((1000 + 25) / 4 + 1 / 12, 2),
         "Notebook 实验 1 的 PSF sigma 1.5 像素，按对焦的高斯近似折算的像素尺寸（λ/NA）": r3(SIG_FOCUS / 1.5, 3),
-        "Notebook 实验 1 按“像素中心到圆心的距离不超过半径”画圆，各直径实际置亮的像素数": {
-            f"{d:g}": int((((yy - 20) ** 2 + (xx - 20) ** 2) <= (d / 2) ** 2).sum()) for d in (0.5, 1, 1.5, 2, 3, 4, 6)},
+        "Notebook 实验 1 的缺陷画法": {
+            "说明": "41×41 像素，圆心在像素 (20, 20) 的中心，直径的单位是像素。只看像素中心：像素中心到圆心的距离不超过半径就整个置亮（Notebook 原来的画法）。"
+                  "按覆盖比例：把每个像素切成 16×16 个小格，取落在圆里的小格所占的比例（Notebook 现在的画法，函数 nb_disk 和 Notebook 里的 disk_coverage 相同）",
+            "只看像素中心：各直径置亮的像素数": {f"{d:g}": int((((yy - 20) ** 2 + (xx - 20) ** 2) <= (d / 2) ** 2).sum()) for d in NB_DIAMS},
+            "按覆盖比例：各直径的覆盖面积（像素）": {f"{d:g}": r3(nb_disk(d).sum(), 3) for d in NB_DIAMS},
+            "圆的面积 π·d²/4（像素）": {f"{d:g}": r3(math.pi * d * d / 4, 3) for d in NB_DIAMS},
+            "按覆盖比例：圆心所在像素的覆盖比例": {f"{d:g}": r3(nb_disk(d)[20, 20], 3) for d in NB_DIAMS},
+        },
         "颗粒远小于波长时的瑞利散射（教科书公式，强度正比于直径的 6 次方）：直径减半后散射强度剩下": f"1/{2 ** 6}",
     }
 

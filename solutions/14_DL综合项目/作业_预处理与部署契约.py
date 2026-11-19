@@ -9,6 +9,7 @@ def letterbox_metadata(src_hw, dst_hw):
     sh, sw = src_hw
     dh, dw = dst_hw
     scale = min(dh / sh, dw / sw)
+    # 作业的文档字符串规定：取整用 Python 内置的 round，正好落在 .5 时取偶数（不是逢 .5 进一）
     nh, nw = min(dh, int(round(sh * scale))), min(dw, int(round(sw * scale)))
     return {"scale": float(scale), "resized_hw": (nh, nw), "pad_xy": ((dw - nw) // 2, (dh - nh) // 2)}
 

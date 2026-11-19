@@ -7,7 +7,8 @@
 讲义里引用的数字全部来自这个脚本，改讲义数字之前先重跑。
 
 两条约定（这一章的消融、工作点曲线和漏检分析正是学员报告里要自己做的事）：
-1. 所有实验用种子 100 起的数据，避开验收种子 11 和 23，学员报告里要填的数字不在这里出现。
+1. 所有实验用种子 100 起的数据，避开验收种子（都小于 100，见 tests/check_progress.py 的 SEEDS），学员报告里要填的数字不在这里出现。
+   唯一的例外是“验收判据”一节：它要说明判据为什么这样定，所以记录了参考实现和几种改动在验收种子上达标的个数。
 2. 参考实现调好的参数（k、min_area、sigma 下限、搜索范围、边界宽度）不写进 实测数字.json，
    扫描类实验用“参考配置的几倍”或者报告模板里公开列出的取值来描述。
 """
@@ -937,8 +938,67 @@ def numbers_setup():
         "图形缺失": {"边长（px）": [3, 5], "做法": "块内灰度变成 0.2 倍再加 0.1"},
         "对位标记": {"中心（行，列）": [18, 18], "十字的臂长（px）": 8, "周围暗区的半边长（px）": 10},
     }
-    NUM["验收规则"] = {"说明": "来自 tests/check_progress.py", "种子": list(test.SEEDS), "匹配半径（px）": test.RADIUS,
-                   "检出率下限": 0.85, "每 die 误报上限": 0.3, "单次运行时间上限（秒）": 30}
+    NUM["验收规则"] = {
+        "说明": "来自 tests/check_progress.py。一个种子达标：检出率、每 die 误报、单次运行时间都满足下面的线。"
+              "通过：达标的种子不少于下面写的个数，并且全部验收种子合计的检出率和每 die 误报也满足这两条线",
+        "种子": list(test.SEEDS), "种子个数": len(test.SEEDS), "至少要达标的种子个数": test.NEED, "匹配半径（px）": test.RADIUS,
+        "检出率下限": test.MIN_CAPTURE, "每 die 误报上限": test.MAX_NUISANCE, "单次运行时间上限（秒）": int(test.MAX_SECONDS)}
+
+
+CRITERIA = ("完整流水线", "亚像素对齐不做细化", "面积门槛加倍", "只对齐到整数像素", "对齐前加 Hanning 窗", "搜索范围只取 ±4 px", "sigma 下限降到四分之一")
+
+
+def numbers_criteria():
+    """验收判据的对照：同一批逐种子结果，分别按“两个种子都达标”和“多数种子达标并且合计达标”来判。"""
+    test = _load(next(p for p in (S.MAIN / CH / "tests" / "check_progress.py", S.REPO / CH / "tests" / "check_progress.py") if p.exists()), "check24")
+    lo, hi, need, k = test.MIN_CAPTURE, test.MAX_NUISANCE, test.NEED, len(test.SEEDS)
+    seeds = list(range(100, 200))
+    data = [gen.make_dataset(seed=sd) for sd in seeds]
+    accept = [gen.make_dataset(seed=sd) for sd in test.SEEDS]
+    old = [test.SEEDS.index(11), test.SEEDS.index(23)]          # 改判据之前只用这两个种子
+    rng = np.random.default_rng(2400)
+    draws = 20000
+    pairs = np.stack([rng.choice(len(seeds), 2, replace=False) for _ in range(draws)])
+    groups = np.stack([rng.choice(len(seeds), k, replace=False) for _ in range(draws)])
+
+    def judge(rows):
+        n = rows[:, 0] + rows[:, 2]
+        return (rows[:, 0] / n >= lo) & (rows[:, 1] / 30 <= hi), n
+
+    res = {}
+    for name in CRITERIA:
+        rows = tally(ABLATIONS[name], data)
+        ok, n = judge(rows)
+        tp, fp, tot = rows[:, 0][groups].sum(axis=1), rows[:, 1][groups].sum(axis=1), n[groups].sum(axis=1)
+        pooled = (tp / tot >= lo) & (fp / (30 * k) <= hi)
+        arows = tally(ABLATIONS[name], accept)
+        aok, an = judge(arows)
+        a_cap, a_fa = float(arows[:, 0].sum() / an.sum()), float(arows[:, 1].sum() / (30 * k))
+        res[name] = {
+            "种子 100 到 199 里达标的个数": int(ok.sum()),
+            "随机抽 2 个种子，两个都达标的比例": round(float(ok[pairs].all(axis=1).mean()), 3),
+            f"随机抽 {k} 个种子，至少 {need} 个达标并且合计达标的比例": round(float(((ok[groups].sum(axis=1) >= need) & pooled).mean()), 3),
+            "在种子 11 和 23 上都达标（改判据之前的通过条件）": bool(aok[old].all()),
+            f"在 {k} 个验收种子上达标的个数": int(aok.sum()),
+            f"{k} 个验收种子合计的检出率和每 die 误报": [round(a_cap, 3), round(a_fa, 2)],
+            "按现在的判据通过": bool(aok.sum() >= need and a_cap >= lo and a_fa <= hi),
+        }
+    ref = np.asarray([score(mod.run_pipeline(d["golden"].copy(), d["test"].copy()), d["truth"]) for d in accept])
+    assert np.array_equal(ref, tally({}, accept)), "拆开的流水线和参考实现在验收种子上不一致"
+    cap = ref[:, 0] / (ref[:, 0] + ref[:, 2])
+    NUM["验收判据"] = {
+        "说明": f"每个配置先在种子 100 到 199 上各跑一遍，得到每个种子是否达标（检出率不低于 {lo:.0%}、每 die 误报不超过 {hi}）；"
+              f"再从这 100 个种子里不放回地随机抽 {draws} 组，分别按两种判据统计通过的比例。配置的名字和“逐项消融”相同，阈值不重新调。"
+              "最后四项是同一个配置在真正的验收种子上的结果",
+        "按配置": res,
+        "参考实现在验收种子上": {
+            "达标的种子数": int(((cap >= lo) & (ref[:, 1] / 30 <= hi)).sum()), "种子个数": k,
+            "合计检出": int(ref[:, 0].sum()), "合计缺陷": int((ref[:, 0] + ref[:, 2]).sum()),
+            "合计检出率": round(float(ref[:, 0].sum() / (ref[:, 0] + ref[:, 2]).sum()), 3),
+            "各种子检出率的最小和最大": [round(float(cap.min()), 3), round(float(cap.max()), 3)],
+            "误报总数": int(ref[:, 1].sum()),
+        },
+    }
 
 
 def numbers_noise():
@@ -958,6 +1018,8 @@ def main() -> None:
     check_equivalence(data)
     numbers_noise()
     numbers_setup()
+    numbers_criteria()
+    print("完成 numbers_criteria", flush=True)
     for fn in (fig_stages, fig_seeds, fig_ablation, fig_halves, fig_alignment, fig_operating):
         fn(data)
         print("完成", fn.__name__, flush=True)

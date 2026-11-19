@@ -786,6 +786,36 @@ def fig_edges():
     S.save(fig, CH, "fig06_保边的门槛")
 
 
+def numbers_salt_pepper_model():
+    """椒盐噪声的两种抽法：一张随机数图切成两段（讲义的模型，作业 1-3 的参考实现），以及椒、盐各抽一次随机数（常见的错误写法）。"""
+    size, reps = 512, 20
+    flat = np.full((size, size), 120, np.uint8)
+    out = {}
+    for amount in (0.05, 0.1, 0.2, 0.5):
+        ref = {"椒": [], "盐": []}
+        two = {"椒": [], "盐": []}
+        for s in range(reps):
+            a = salt_pepper(flat, amount, 9000 + s)
+            rng = np.random.default_rng(9100 + s)
+            b = flat.copy()
+            b[rng.random(flat.shape) < amount / 2] = 0          # 先写椒
+            b[rng.random(flat.shape) < amount / 2] = 255        # 后写盐，和椒重叠的位置被盖成盐
+            for store, img in ((ref, a), (two, b)):
+                store["椒"].append(float(np.mean(img == 0)))
+                store["盐"].append(float(np.mean(img == 255)))
+        q = amount / 2
+        out[f"{amount:g}"] = {
+            "参考实现（每个像素抽一次随机数）": {"椒": r3(np.mean(ref["椒"]), 4), "盐": r3(np.mean(ref["盐"]), 4), "合计": r3(np.mean(ref["椒"]) + np.mean(ref["盐"]), 4)},
+            "椒和盐各抽一次随机数": {"椒": r3(np.mean(two["椒"]), 4), "盐": r3(np.mean(two["盐"]), 4), "合计": r3(np.mean(two["椒"]) + np.mean(two["盐"]), 4),
+                           "合计的理论值": r3(1 - (1 - q) ** 2, 4), "先写的那一种的理论值": r3(q * (1 - q), 4), "后写的那一种的理论值": r3(q, 4)},
+        }
+    NUM["椒盐的两种抽法"] = {
+        "说明": f"{size}x{size} 的平坦图（灰度 120），每个噪声比例 {reps} 张图取平均，数值是变成 0（椒）和变成 255（盐）的像素占比。"
+              "参考实现给每个像素抽一次随机数，落在两段不重叠的区间里分别算椒和盐；错误写法给椒和盐各抽一次，先写椒后写盐，两张掩膜重叠的像素被盖成盐",
+        "按噪声比例": out,
+    }
+
+
 def main() -> None:
     S.setup()
     plt.rcParams["svg.hashsalt"] = "ch01"  # 固定 SVG 里的内部编号，重复运行时文件逐字节相同
@@ -793,6 +823,7 @@ def main() -> None:
     for fn in (fig_uint8, fig_color, fig_equalize, fig_salt_pepper, fig_filters_defect, fig_edges):
         fn()
         print("完成", fn.__name__, flush=True)
+    numbers_salt_pepper_model()      # 放在最后，不影响前面各组用到的随机数
     out = S.MAIN / CH / "figures" / "实测数字.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(NUM, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

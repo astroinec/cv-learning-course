@@ -9,6 +9,7 @@
 本机不运行真正的 OpenGL；和 OpenCV 约定的对照用的是第 7、17 章那台合成相机，投影公式自己写，不依赖 cv2。
 
 耗时每次运行都会波动，用 S.pinned 钉住：默认沿用 实测数字.json 里上次的值，设置 CH21_RETIME=1 才重测。
+参考实现的 render_depth 只遍历三角形的包围盒；耗时一节拿它和本文件里“每个三角形算整幅图”的 fullframe_render 对比。
 """
 
 from __future__ import annotations
@@ -28,10 +29,12 @@ CH = "21_3D数学与渲染管线"
 mod = S.load_solution(CH, "21-1_软光栅.py")
 NUM: dict = {}
 
-# 立方体：顶点和演示页、Notebook 相同。CUBE_F 是演示页的面表（从外面看逆时针，法线朝外），NB_FACES 是 Notebook 的面表。
+# 立方体：顶点和面表与演示页、Notebook 相同。CUBE_F 从外面看逆时针，按 cross(b - a, c - a) 算出的法线朝外。
+# CW_FACES 把每个三角形的后两个下标对调（从外面看顺时针），用来展示“面表的绕序整体写反”时光照的症状。
 CUBE_V = np.array([[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]], dtype=float)
 CUBE_F = [[0, 2, 1], [0, 3, 2], [4, 5, 6], [4, 6, 7], [0, 1, 5], [0, 5, 4], [3, 6, 2], [3, 7, 6], [0, 4, 7], [0, 7, 3], [1, 2, 6], [1, 6, 5]]
-NB_FACES = [(0, 1, 2), (0, 2, 3), (4, 6, 5), (4, 7, 6), (0, 4, 5), (0, 5, 1), (3, 2, 6), (3, 6, 7), (0, 3, 7), (0, 7, 4), (1, 5, 6), (1, 6, 2)]
+NB_FACES = [tuple(f) for f in CUBE_F]
+CW_FACES = [(a, c, b) for a, b, c in CUBE_F]
 CUBE_E = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4), (0, 4), (1, 5), (2, 6), (3, 7)]
 LIGHT = np.array([0.4, 0.8, 0.6]) / np.linalg.norm([0.4, 0.8, 0.6])
 UP = np.array([0.0, 1.0, 0.0])
@@ -765,7 +768,7 @@ def fig_cull():
     P = mod.perspective(50.0, W / H, 0.5, 20.0)
     center = CUBE_V.mean(axis=0)
     outward = {name: int(sum(np.cross(CUBE_V[b] - CUBE_V[a], CUBE_V[c] - CUBE_V[a]) @ (CUBE_V[a] - center) > 0 for a, b, c in F))
-               for name, F in (("演示页的面表", CUBE_F), ("Notebook 的面表", NB_FACES))}
+               for name, F in (("演示页和 Notebook 的面表", NB_FACES), ("绕序整体写反的面表", CW_FACES))}
     nfront, same, flipped, holes, nocull_same = [], [], [], [], []
     for i in range(200):
         rng = np.random.default_rng(2160 + i)
@@ -803,17 +806,21 @@ def fig_cull():
         rgb[fid >= 0] = (COL * shade_out[:, None])[fid[fid >= 0]]
         imgs[key], fids[key] = rgb, fid
     assert np.array_equal(fids["正确剔除"], fids["不剔除"])
-    # Notebook 的逐面 Lambert：按 Notebook 的写法逐个三角形调用参考实现
-    nb_tris = s[np.array(NB_FACES)]
-    per_face = np.stack([mod.render_depth(nb_tris[i:i + 1], W, H) for i in range(len(NB_FACES))])
-    nb_id, nb_cov = np.argmin(per_face, axis=0), np.isfinite(per_face.min(axis=0))
-    n_nb = face_normals(NB_FACES)
-    nb_shade = 0.15 + 0.85 * np.maximum(0, n_nb @ LIGHT)
-    vals_nb = sorted({r(v, 3) for v in nb_shade[nb_id[nb_cov]]})
-    ok_shade = 0.15 + 0.85 * np.maximum(0, -n_nb @ LIGHT)        # 把法线取反之后
-    vals_ok = sorted({r(v, 3) for v in ok_shade[nb_id[nb_cov]]})
-    rgb_nb = np.ones((H, W, 3))
-    rgb_nb[nb_cov] = np.repeat(nb_shade[nb_id[nb_cov]][:, None], 3, axis=1)
+    # 逐面 Lambert，按 Notebook 的写法：逐个三角形调用参考实现，深度最小的决定像素属于哪个面，法线 n = cross(V[b] - V[a], V[c] - V[a])
+    def nb_lambert(faces):
+        t = s[np.array(faces)]
+        per_face = np.stack([mod.render_depth(t[i:i + 1], W, H) for i in range(len(faces))])
+        fid, cov = np.argmin(per_face, axis=0), np.isfinite(per_face.min(axis=0))
+        shade = 0.15 + 0.85 * np.maximum(0, face_normals(faces) @ LIGHT)
+        return cov, shade[fid[cov]], per_face.min(axis=0)
+
+    nb_cov, nb_vals, nb_depth = nb_lambert(NB_FACES)             # Notebook 的面表（逆时针）
+    cw_cov, cw_vals, cw_depth = nb_lambert(CW_FACES)             # 绕序整体写反
+    assert np.array_equal(nb_cov, cw_cov) and float(np.abs(nb_depth[nb_cov] - cw_depth[nb_cov]).max()) < 1e-12, "绕序不影响覆盖和深度"
+    vals_nb = sorted({r(v, 3) for v in nb_vals})
+    vals_cw = sorted({r(v, 3) for v in cw_vals})
+    rgb_cw = np.ones((H, W, 3))
+    rgb_cw[cw_cov] = np.repeat(cw_vals[:, None], 3, axis=1)
     fl = np.array(flipped)
     NUM["背面剔除"] = {
         "说明": "画面 240x180，垂直视场角 50 度；边长 2 的立方体用演示页的面表（12 个三角形，从外面看逆时针）；200 个随机视点（种子 2160 到 2359）：距离 4 到 8，仰角正负 60 度以内，看向原点。"
@@ -828,17 +835,19 @@ def fig_cull():
         "图 6 的视点 (3, 2.5, 5)": {"立方体占的像素数": int((fids["不剔除"] >= 0).sum()),
                                "三个可见面的亮度 0.15 + 0.85 max(0, n·l)": sorted({r(v, 3) for v in shade_out[fids["不剔除"][fids["不剔除"] >= 0]]}),
                                "一个三角形绕序写反时漏掉的像素数": int(((fids["不剔除"] >= 0) & (fids["一个三角形绕序写反"] < 0)).sum())},
-        "Notebook 的逐面 Lambert（视点 (3, 2.5, 5)）": {"说明": "按 Notebook 的面表和写法 n = cross(V[b] - V[a], V[c] - V[a]) 计算，深度用参考实现",
-                                                "可见像素数": int(nb_cov.sum()), "可见像素上出现的亮度值": vals_nb, "把法线取反之后出现的亮度值": vals_ok},
+        "Notebook 的逐面 Lambert（视点 (3, 2.5, 5)）": {"说明": "按 Notebook 的面表（和演示页相同，从外面看逆时针）和写法 n = cross(V[b] - V[a], V[c] - V[a]) 计算，深度用参考实现",
+                                                "可见像素数": int(nb_cov.sum()), "可见像素上出现的亮度值": vals_nb},
+        "面表的绕序整体写反时的逐面 Lambert（视点 (3, 2.5, 5)）": {"说明": "把面表里每个三角形的后两个下标对调（从外面看顺时针），其余同上；法线全部朝里。覆盖和深度与绕序正确时相同（深度差小于 1e-12）",
+                                                      "可见像素数": int(cw_cov.sum()), "可见像素上出现的亮度值": vals_cw},
     }
 
     fig, ax = plt.subplots(1, 4, figsize=(15, 3.4), layout="constrained")
     for a, (img, title) in zip(ax, ((imgs["正确剔除"], "剔除背面：只画 6 个三角形，画面不变"), (imgs["符号弄反"], "符号弄反：看到的是三个背面"),
-                                   (imgs["一个三角形绕序写反"], "一个三角形绕序写反：出现一个洞"), (rgb_nb, "Notebook 的面表：三个面一样暗"))):
+                                   (imgs["一个三角形绕序写反"], "一个三角形绕序写反：出现一个洞"), (rgb_cw, "面表的绕序整体写反：三个面一样暗"))):
         a.imshow(img, extent=(0, W, H, 0))
         a.set_title(title, fontsize=10.5)
         frame(a, W, H)
-    ax[3].set_xlabel("灰度图，亮度都是 0.15", fontsize=9, color=S.MUTED)
+    ax[3].set_xlabel("逐面 Lambert 的灰度图，法线朝里，亮度都是 0.15", fontsize=9, color=S.MUTED)
     S.save(fig, CH, "fig06_绕序与背面剔除")
 
 
@@ -1023,19 +1032,21 @@ def tab_shading():
 # ---------------------------------------------------------------- 表：演示页上能读到的数
 def demo_render(spin=30.0, az=35.0, el=25.0, dist=6.0, fov=50.0, near=0.5, far=20.0, noz=False):
     """按 demos/渲染管线.html 的做法重算一遍：立方体绕 y 轴自转，相机在球面上看向原点；逐个三角形调用参考实现，
-    深度不在 [0, 1] 内的像素丢掉；深度缓冲是 float32；含相机后方顶点的三角形整个丢掉。"""
+    深度不在 [0, 1] 内的像素丢掉；深度缓冲是 float32；含相机后方顶点的三角形整个丢掉。返回的各项和页面信息栏上的名字相同。"""
     W, H = 320, 240
     s = mod.to_screen(CUBE_V, mod.perspective(fov, W / H, near, far) @ look(orbit(az, el, dist)) @ R4("y", spin), W, H)
     zbuf = np.full((H, W), np.inf, dtype=np.float32)
     fid = np.full((H, W), -1)
-    writes = dropped = 0
+    writes = dropped = zdrop = 0
     for i, f in enumerate(CUBE_F):
         tri = s[f]
         if np.isnan(tri).any():
             dropped += 1
             continue
         layer = mod.render_depth(tri[None], W, H)
-        ok = np.isfinite(layer) & (layer >= 0) & (layer <= 1)
+        inside = np.isfinite(layer)
+        ok = inside & (layer >= 0) & (layer <= 1)
+        zdrop += int((inside & ~ok).sum())
         if not noz:
             ok &= layer < zbuf.astype(np.float64)
         zbuf[ok] = layer[ok]
@@ -1043,9 +1054,11 @@ def demo_render(spin=30.0, az=35.0, el=25.0, dist=6.0, fov=50.0, near=0.5, far=2
         writes += int(ok.sum())
     cov = fid >= 0
     gray = np.rint(255 * (1 - zbuf[cov].astype(np.float64))) if cov.any() else np.array([np.nan])
-    return {"页面上“覆盖像素”显示的数（深度测试通过并写入的次数）": writes, "实际画上颜色的像素数": int(cov.sum()), "页面上“被近平面裁掉的三角形”显示的数": dropped,
+    edges = np.array([np.linalg.norm(s[i, :2] - s[j, :2]) for i, j in ((0, 3), (1, 2), (4, 7), (5, 6))])
+    return {"上色的像素": int(cov.sum()), "写入次数": writes, "含相机后方顶点、被整个丢掉的三角形": dropped, "深度不在 [0, 1] 被丢掉的片元": zdrop,
             "可见深度范围": [float(f"{zbuf[cov].min():.4f}"), float(f"{zbuf[cov].max():.4f}")] if cov.any() else None,
-            "深度图的灰度范围（0 到 255）": [int(gray.min()), int(gray.max())] if cov.any() else None}, fid
+            "深度图的灰度范围（0 到 255）": [int(gray.min()), int(gray.max())] if cov.any() else None,
+            "四条竖直棱在屏幕上的长度，最长比最短": r(edges.max() / edges.min(), 2) if np.isfinite(edges).all() else None}, fid
 
 
 def tab_demo():
@@ -1057,40 +1070,38 @@ def tab_demo():
                      ("fovy 120", dict(fov=120.0)), ("fovy 120，相机距离 2.5", dict(fov=120.0, dist=2.5))):
         out[name] = demo_render(**kw)[0]
     NUM["演示页"] = {
-        "说明": "按 demos/渲染管线.html 的参数和做法，用参考实现重算页面上能读到的数；画面 320x240，共 76800 个像素。默认值：自转角 30，方位角 35，仰角 25，相机距离 6，fovy 50，near 0.5，far 20。"
+        "说明": "按 demos/渲染管线.html 的参数和做法，用参考实现重算页面信息栏上能读到的数（各项的名字和信息栏相同）；画面 320x240，共 76800 个像素。"
+                "默认值：自转角 30，方位角 35，仰角 25，相机距离 6，fovy 50，near 0.5，far 20。“上色的像素”一个像素只数一次；“写入次数”是通过深度测试并写入缓冲的次数。"
                 "这些数和用 node 直接执行页面脚本的输出逐项核对过",
         "画面的像素总数": 320 * 240,
         "各种设置": out,
     }
-    c = out["相机距离 1"]["实际画上颜色的像素数"]
+    c = out["相机距离 1"]["上色的像素"]
     NUM["演示页"]["相机距离 1 时画上颜色的像素占画面的比例（%）"] = r(100 * c / (320 * 240), 1)
     NUM["演示页"]["默认值下立方体只用了深度范围的百分之几"] = r(100 * (base["可见深度范围"][1] - base["可见深度范围"][0]), 1)
     NUM["演示页"]["near 3 时立方体用了深度范围的百分之几"] = r(100 * (out["near 3"]["可见深度范围"][1] - out["near 3"]["可见深度范围"][0]), 1)
-    NUM["演示页"]["关闭深度测试后颜色变了的像素占立方体的比例（%）"] = r(100 * noz["和默认值相比颜色变了的像素数"] / base["实际画上颜色的像素数"], 1)
+    NUM["演示页"]["关闭深度测试后颜色变了的像素占立方体的比例（%）"] = r(100 * noz["和默认值相比颜色变了的像素数"] / base["上色的像素"], 1)
+    NUM["演示页"]["关闭深度测试后写入次数是上色像素数的几倍"] = r(noz["写入次数"] / noz["上色的像素"], 3)
+    NUM["演示页"]["fovy 120、相机距离 2.5 时上色的像素是默认值的百分之几"] = r(100 * out["fovy 120，相机距离 2.5"]["上色的像素"] / base["上色的像素"], 0)
 
 
 # ---------------------------------------------------------------- 表：耗时
-def bbox_render(triangles, W, H):
-    """和参考实现同样的算式，但每个三角形只算包围盒里的像素。用来和参考实现（每个三角形算整幅图）对比耗时。"""
+def fullframe_render(triangles, W, H):
+    """和参考实现同样的算式，但每个三角形都算整幅图的重心坐标，不用包围盒。用来和参考实现（只算包围盒）对比耗时。"""
     depth = np.full((H, W), np.inf)
+    ys, xs = np.mgrid[0:H, 0:W]
+    px, py = xs + 0.5, ys + 0.5
     for tri in triangles:
         (x0, y0, z0), (x1, y1, z1), (x2, y2, z2) = tri
         area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0)
         if abs(area) < 1e-12:
             continue
-        xa, xb = max(0, int(np.floor(min(x0, x1, x2)))), min(W, int(np.ceil(max(x0, x1, x2))))
-        ya, yb = max(0, int(np.floor(min(y0, y1, y2)))), min(H, int(np.ceil(max(y0, y1, y2))))
-        if xa >= xb or ya >= yb:
-            continue
-        ys, xs = np.mgrid[ya:yb, xa:xb]
-        px, py = xs + 0.5, ys + 0.5
         w0 = ((x1 - px) * (y2 - py) - (x2 - px) * (y1 - py)) / area
         w1 = ((x2 - px) * (y0 - py) - (x0 - px) * (y2 - py)) / area
         w2 = 1.0 - w0 - w1
         z = w0 * z0 + w1 * z1 + w2 * z2
-        sub = depth[ya:yb, xa:xb]
-        upd = (w0 >= -1e-12) & (w1 >= -1e-12) & (w2 >= -1e-12) & (z < sub)
-        sub[upd] = z[upd]
+        upd = (w0 >= -1e-12) & (w1 >= -1e-12) & (w2 >= -1e-12) & (z < depth)
+        depth[upd] = z[upd]
     return depth
 
 
@@ -1126,8 +1137,11 @@ def tab_time():
     rng = np.random.default_rng(2180)
     chk = random_tris(rng, 100, 160, 120, 0.06 * 160)
     ref = mod.render_depth(chk, 160, 120)
-    assert np.array_equal(ref, bbox_render(chk, 160, 120)), "包围盒版本应与参考实现逐像素相同"
+    assert np.array_equal(ref, fullframe_render(chk, 160, 120)), "参考实现（包围盒）应与整幅图版本逐像素相同"
     assert np.array_equal(mod.render_depth(chk[:12], 160, 120), python_loop_render(chk[:12], 160, 120)), "纯 Python 循环应与参考实现逐像素相同"
+    big = np.array([[[0, 0, 0.5], [320, 0, 0.5], [0, 240, 0.5]], [[320, 0, 0.6], [320, 240, 0.6], [0, 240, 0.6]]] * 50, dtype=float)
+    assert np.array_equal(mod.render_depth(big, 320, 240), fullframe_render(big, 320, 240))
+    nb = mod.to_screen(CUBE_V, mod.perspective(50.0, 240 / 180, 0.5, 20.0) @ look([3.0, 2.5, 5.0]), 240, 180)[np.array(NB_FACES)]
 
     def measure():
         two = lambda v: float(f"{v:.2g}")   # noqa: E731
@@ -1138,33 +1152,40 @@ def tab_time():
                 t0 = time.perf_counter()
                 fn(*a)
                 ts.append(time.perf_counter() - t0)
-            return min(ts)
+            return 1000 * min(ts)
 
         rng_ = np.random.default_rng(2181)
-        t_ref, t_bb = {}, {}
-        for W, H in sizes:
-            for T in counts:
-                tr = random_tris(rng_, T, W, H, 0.06 * W)
-                t_ref.setdefault(f"{W}x{H}", {})[str(T)] = two(1000 * best(mod.render_depth, tr, W, H))
-                t_bb.setdefault(f"{W}x{H}", {})[str(T)] = two(1000 * best(bbox_render, tr, W, H))
+        cases = {(W, H, T): random_tris(rng_, T, W, H, 0.06 * W) for W, H in sizes for T in counts}
         small = random_tris(rng_, 12, 160, 120, 0.06 * 160)
-        t_py, t_np = best(python_loop_render, small, 160, 120, rep=1), best(mod.render_depth, small, 160, 120)
-        big = np.array([[[0, 0, 0.5], [320, 0, 0.5], [0, 240, 0.5]], [[320, 0, 0.6], [320, 240, 0.6], [0, 240, 0.6]]] * 50, dtype=float)
+
+        def one_round():
+            out = {"full": {k: best(fullframe_render, tr, k[0], k[1]) for k, tr in cases.items()},
+                   "ref": {k: best(mod.render_depth, tr, k[0], k[1]) for k, tr in cases.items()}}
+            out["py"], out["np"] = best(python_loop_render, small, 160, 120, rep=1), best(fullframe_render, small, 160, 120)
+            out["big"] = (best(fullframe_render, big, 320, 240), best(mod.render_depth, big, 320, 240))
+            out["nb"] = best(mod.render_depth, nb, 240, 180, rep=5)
+            return out
+
+        rounds = [one_round() for _ in range(3)]
+        med = lambda f: two(float(np.median([f(x) for x in rounds])))                    # noqa: E731
+        span = lambda f: [two(min(f(x) for x in rounds)), two(max(f(x) for x in rounds))]   # noqa: E731
+        table = lambda key: {f"{W}x{H}": {str(T): med(lambda x: x[key][(W, H, T)]) for T in counts} for W, H in sizes}   # noqa: E731
         return {
-            "说明": "在一台 Apple 芯片 Mac 的 CPU 上测一次，每项取 3 次里最快的一次（纯 Python 循环只跑 1 次），机器上同时还有别的任务；只看量级和倍数。"
-                    "随机三角形：中心在画面内均匀分布，三个顶点离中心不超过画面宽度的 6%；参考实现对每个三角形都算整幅图的重心坐标，包围盒版本只算三角形包围盒里的像素，两者的输出逐像素相同",
-            "参考实现（毫秒），按画面尺寸和三角形数": t_ref,
-            "包围盒版本（毫秒），按画面尺寸和三角形数": t_bb,
-            "参考实现：320x240 时 1000 个三角形与 12 个的耗时之比": two(t_ref["320x240"]["1000"] / t_ref["320x240"]["12"]),
-            "参考实现：100 个三角形时 640x480 与 160x120 的耗时之比": two(t_ref["640x480"]["100"] / t_ref["160x120"]["100"]),
-            "1000 个小三角形时参考实现与包围盒版本的耗时之比": {k: two(t_ref[k]["1000"] / t_bb[k]["1000"]) for k in t_ref},
-            "100 个各盖住半个画面的大三角形（320x240）：参考实现和包围盒版本（毫秒）": [two(1000 * best(mod.render_depth, big, 320, 240)), two(1000 * best(bbox_render, big, 320, 240))],
-            "160x120、12 个三角形：纯 Python 逐像素循环（毫秒）": two(1000 * t_py), "160x120、12 个三角形：参考实现（毫秒）": two(1000 * t_np),
-            "纯 Python 循环是参考实现的几倍": two(t_py / t_np),
+            "说明": "在一台 Apple 芯片 Mac 的 CPU 上测，机器上同时还有别的任务，绝对值只看量级。整套测量连做三轮，每轮每项取 3 次里最快的一次（纯 Python 循环每轮只跑 1 次）；"
+                    "毫秒数给的是三轮的中位数，倍数给的是三轮里的最小值和最大值。随机三角形：中心在画面内均匀分布，三个顶点离中心不超过画面宽度的 6%。"
+                    "“整幅图版本”对每个三角形都算整幅图的重心坐标，参考实现只算三角形包围盒里的像素，两者的输出逐像素相同",
+            "整幅图版本（毫秒，三轮的中位数），按画面尺寸和三角形数": table("full"),
+            "参考实现，只算包围盒（毫秒，三轮的中位数），按画面尺寸和三角形数": table("ref"),
+            "1000 个小三角形时整幅图版本是参考实现的几倍（三轮的最小值和最大值）": {f"{W}x{H}": span(lambda x: x["full"][(W, H, 1000)] / x["ref"][(W, H, 1000)]) for W, H in sizes},
+            "整幅图版本：320x240 时 1000 个三角形与 12 个的耗时之比（三轮的最小值和最大值）": span(lambda x: x["full"][(320, 240, 1000)] / x["full"][(320, 240, 12)]),
+            "整幅图版本：100 个三角形时 640x480 与 160x120 的耗时之比（三轮的最小值和最大值）": span(lambda x: x["full"][(640, 480, 100)] / x["full"][(160, 120, 100)]),
+            "100 个各盖住半个画面的大三角形（320x240）：参考实现是整幅图版本的几倍（三轮的最小值和最大值）": span(lambda x: x["big"][1] / x["big"][0]),
+            "160x120、12 个三角形：纯 Python 逐像素循环是整幅图版本的几倍（三轮的最小值和最大值）": span(lambda x: x["py"] / x["np"]),
+            "Notebook 的场景（240x180、立方体的 12 个三角形）：参考实现（毫秒，三轮的中位数）": med(lambda x: x["nb"]),
         }
 
     NUM["耗时"] = S.pinned(CH, "耗时", measure, "CH21_RETIME")
-    NUM["耗时的规模"] = {"说明": "参考实现的计算量正比于 三角形数 x 画面像素数，下面是这个乘积的比值，用来和实测的耗时之比对照", "1000 个三角形与 12 个三角形之比": r(1000 / 12, 1),
+    NUM["耗时的规模"] = {"说明": "整幅图版本的计算量正比于 三角形数 x 画面像素数，下面是这个乘积的比值，用来和实测的耗时之比对照", "1000 个三角形与 12 个三角形之比": r(1000 / 12, 1),
                      "640x480 与 160x120 的像素数之比": (640 * 480) // (160 * 120)}
 
 

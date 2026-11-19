@@ -1,10 +1,13 @@
 // 参考实现 15-1。学员完成本章前不要查看。
 #include "image.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <queue>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace course {
 

@@ -12,10 +12,15 @@
 
 from __future__ import annotations
 
+import contextlib
+import importlib.util
+import io
 import json
 import math
+import re
 import sys
 import time
+import types
 from pathlib import Path
 
 import numpy as np
@@ -822,20 +827,32 @@ def bug_loss(kind):
     return fn
 
 
+def run_checker(reparam_fn, loss_fn):
+    """把两个函数交给本章的验收脚本 tests/check_progress.py，返回“通过的项数/总项数”。
+
+    验收脚本自己会设随机种子，这里跑完把全局随机数状态恢复原样，不影响后面的实验。
+    """
+    state = torch.get_rng_state()
+    spec = importlib.util.spec_from_file_location("ch13_check", S.MAIN / CH / "tests" / "check_progress.py")
+    chk = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(chk)
+    chk.load = lambda: types.SimpleNamespace(reparameterize=reparam_fn, nt_xent_loss=loss_fn)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        chk.main()
+    torch.set_rng_state(state)
+    return re.findall(r"通过 (\d+/\d+)", buf.getvalue())[-1]
+
+
 def passes_check(fn):
-    """和本章 tests/check_progress.py 里对 NT-Xent 的检查相同：有限的标量、交换两个视图结果不变、梯度有限。"""
-    torch.manual_seed(13)
-    z1 = torch.randn(4, 6, requires_grad=True)
-    z2 = z1.detach().clone() + 0.01 * torch.randn(4, 6)
-    try:
-        loss, swapped = fn(z1, z2, 0.2), fn(z2, z1, 0.2)
-        ok = loss.ndim == 0 and bool(torch.isfinite(loss)) and bool(torch.allclose(loss, swapped, atol=1e-6))
-        loss.backward()
-        return bool(ok and z1.grad is not None and torch.isfinite(z1.grad).all())
-    except Exception:  # noqa: BLE001
-        return False
+    """把一个 NT-Xent 的写法（配上参考实现的 reparameterize）交给验收脚本，返回“通过的项数/总项数”。"""
+    result = run_checker(hw.reparameterize, fn)
+    # 这个函数以前在这里设过一次种子、取过两次随机数。保留这一行，后面各组实验的随机数状态和以前相同，讲义里的数字不用跟着变
+    torch.manual_seed(13); torch.randn(4, 6); torch.randn(4, 6)
+    return result
 
 
+# ---------------------------------------------------------------- 图 6（续）
 def fig_augment():
     configs = [
         ("不做增强（两个视图相同）", "太弱", dict(shift=0, noise=0.0, jitter=0.0)),
@@ -930,7 +947,7 @@ def fig_augment():
         fn = bug_loss(kind)
         ok = passes_check(fn)
         rows = [(lambda r: [con_eval(r[0])[0], r[1]])(simclr(seed, loss_fn=fn)) for seed in SEEDS[:2]]
-        bugs[kind] = {"能通过自动验收的三项检查": ok, "线性探测精度（h，2 个种子）": [r3(r[0]) for r in rows], "训练结束时的损失": [r3(r[1]) for r in rows]}
+        bugs[kind] = {"验收": ok, "线性探测精度（h，2 个种子）": [r3(r[0]) for r in rows], "训练结束时的损失": [r3(r[1]) for r in rows]}
 
     cond = NUM["温度"]["说明"].split("。后四项")[0]
     NUM["数据增强的强弱"] = {
@@ -955,8 +972,9 @@ def fig_augment():
         **{f"各种子：{n}（每行一个标签数）": [[r3(x) for x in v] for v in lab[n]] for n in lab_names},
         "h 的维数（带标签的图数接近它时，最小二乘的线性探测最差）": 64,
     }
-    NUM["NT-Xent 的三种写错"] = {"说明": "把参考实现改错一处再训练，其余同默认设置。“自动验收的三项检查”指 tests/check_progress.py 对 NT-Xent 的检查：结果是有限的标量、交换两个视图结果不变、梯度有限",
-                            **bugs, "参考实现": {"能通过自动验收的三项检查": passes_check(hw.nt_xent_loss), "线性探测精度（h，3 个种子）": [r3(run_default(s)[2][0]) for s in SEEDS]}}
+    ref_pass = passes_check(hw.nt_xent_loss)
+    NUM["NT-Xent 的三种写错"] = {"说明": f"把参考实现改错一处再训练，其余同默认设置。“验收”是把这种写法交给本章的验收脚本 tests/check_progress.py（共 {ref_pass.split('/')[1]} 项）之后通过的项数",
+                            **bugs, "参考实现": {"验收": ref_pass, "线性探测精度（h，3 个种子）": [r3(run_default(s)[2][0]) for s in SEEDS]}}
 
     colors = {"太弱": S.ORANGE, "合适": S.GREEN, "太强": S.RED, "改变类别": S.PURPLE}
     fig, ax = plt.subplots(1, 3, figsize=(16.5, 4.3), gridspec_kw={"width_ratios": [1.5, 0.9, 1.1]}, layout="constrained")
@@ -1036,11 +1054,6 @@ def numbers_misc():
     def wrong_fn(m, lv, eps=None):
         return m + torch.exp(lv) * (torch.randn_like(m) if eps is None else eps)
 
-    m0 = torch.tensor([[1., 2.]], requires_grad=True)
-    lv0 = torch.zeros_like(m0, requires_grad=True)
-    e0 = torch.tensor([[0.5, -1.]])
-    zt = wrong_fn(m0, lv0, e0)
-    zt.sum().backward()
     sig, m1 = 0.5, 1.0
     q = m1 + sig * torch.randn(n, generator=g)
     mc = (-0.5 * ((q - m1) / sig) ** 2 - math.log(sig) + 0.5 * q ** 2).mean()
@@ -1049,7 +1062,8 @@ def numbers_misc():
         "说明": f"mu=1、logvar=ln 4（标准差应为 2），用参考实现的 reparameterize 采 {n} 个样本",
         "样本均值": r3(z.mean()), "样本标准差": r3(z.std()),
         "把 exp(0.5*logvar) 写成 exp(logvar) 时的样本标准差": r3(wrong.std()),
-        "这个写错的版本能否通过自动验收（验收用的 logvar 是 0）": bool(torch.allclose(zt, m0 + e0) and m0.grad is not None and lv0.grad is not None),
+        "把这个写错的版本交给验收脚本，通过的项数": run_checker(wrong_fn, hw.nt_xent_loss),
+        "参考实现交给验收脚本，通过的项数": run_checker(hw.reparameterize, hw.nt_xent_loss),
         "torch.distributions.Normal 的 sample() 结果是否带梯度": bool(d.sample().requires_grad),
         "rsample() 结果是否带梯度": bool(d.rsample().requires_grad),
         "KL 闭式核对（一维，mu=1，sigma=0.5）": {"闭式 0.5·(mu^2 + sigma^2 - 1 - ln sigma^2)": r4(0.5 * (m1 ** 2 + sig ** 2 - 1 - math.log(sig ** 2))), f"{n} 个样本的蒙特卡洛估计": r4(mc)},

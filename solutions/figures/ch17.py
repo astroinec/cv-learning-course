@@ -285,6 +285,23 @@ def fig_normalization():
     NUM["归一化"] = {"说明": "54 个角点，噪声 0.5 px，300 个随机视图；误差是估出的单应把板上的点映射到图像后，和无噪声位置的均方根距离；"
                          "SVD 指直接分解方程矩阵 A，法方程指先算 A^T A 再做特征分解；缩小 8 倍指把角点的图像坐标绕各自的中心缩到八分之一", "结果": out}
 
+    # 验收用的条件：两组坐标都带很大的整体偏移，无噪声，直接对 A 做 SVD（float64）。用单独的随机数发生器，不影响上面的结果和图
+    base = BOARD - BOARD.min(axis=0)
+    shifted = {}
+    for offset in (1e4, 1e6):
+        rng = np.random.default_rng(401)
+        worst = {True: [], False: []}
+        for _ in range(100):
+            clean, _, _ = make_view(rng, 30, 0.5)
+            src, dst = base + offset, clean + offset
+            for nm in (True, False):
+                Hm, _ = dlt(src, dst, nm, np.float64, "svd")
+                ph = np.hstack([src, np.ones((len(src), 1))]) @ Hm.T
+                worst[nm].append(float(np.abs(ph[:, :2] / ph[:, 2:3] - dst).max()))
+        shifted[f"两组坐标都加 {int(offset)}"] = {"归一化": float(f"{np.median(worst[True]):.2g}"), "不归一化": float(f"{np.median(worst[False]):.2g}")}
+    NUM["归一化"]["整体偏移很大时"] = {"说明": "54 个角点，无噪声，100 个随机视图，板坐标和像素坐标都加上同一个整体偏移；SVD，float64；"
+                                              "数值是每个视图最大映射误差的中位数（px）", "结果": shifted}
+
     fig, ax = plt.subplots(1, 3, figsize=(15, 4.0), layout="constrained", sharey=True)
     x = np.arange(4)
     for a, (sname, res) in zip(ax, out.items()):

@@ -85,8 +85,9 @@ def run_pipeline(golden, test, k=6.0, min_area=4, border=5):
         a = _normalize(_shift(img, -dy, -dx), median)
         z = np.abs(a - median) / sigma
         mask = z > k
-        mask[:border, :] = mask[-border:, :] = False
-        mask[:, :border] = mask[:, -border:] = False
+        if border > 0:  # border 为 0 时 mask[-0:] 是整张图，不能照下面的写法屏蔽
+            mask[:border, :] = mask[-border:, :] = False
+            mask[:, :border] = mask[:, -border:] = False
         lab, n = _labels(mask)
         found = []
         for i in range(1, n + 1):

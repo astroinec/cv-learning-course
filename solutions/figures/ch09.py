@@ -16,7 +16,11 @@ from __future__ import annotations
 import itertools
 import json
 import math
+import os
+import re
+import subprocess
 import sys
+import tempfile
 import time
 import warnings
 from pathlib import Path
@@ -34,7 +38,9 @@ torch.set_num_threads(2)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 CH = "09_CNN核心"
-mod = S.load_solution(CH, "作业_卷积shape与残差块.py")
+HOMEWORK = "作业_卷积shape与残差块.py"
+mod = S.load_solution(CH, HOMEWORK)
+REFERENCE_SOURCE = (S.SOLUTIONS / CH / HOMEWORK).read_text(encoding="utf-8")
 conv_out = mod.conv_output_size
 ResBlock = mod.BasicResidualBlock
 NUM: dict = {}
@@ -43,6 +49,34 @@ CLASS_NAMES = ["横线", "竖线", "方块", "斜线"]
 
 def r(x, k=3):
     return round(float(x), k)
+
+
+def acceptance(source: str) -> dict:
+    """把一份作业实现写进临时目录，用 COURSE_IMPL_DIR 指过去运行本章的验收脚本，返回通过几项、哪几项没通过。"""
+    script = S.MAIN / CH / "tests" / "check_progress.py"
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / CH
+        target.mkdir()
+        (target / HOMEWORK).write_text(source, encoding="utf-8")
+        env = dict(os.environ, COURSE_IMPL_DIR=tmp, PYTHONDONTWRITEBYTECODE="1")
+        res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, encoding="utf-8", env=env, timeout=600)
+    done, total = re.findall(r"通过 (\d+)/(\d+)", res.stdout)[-1]
+    failed = [line[len("[FAIL] "):].split(" — ")[0] for line in res.stdout.splitlines() if line.startswith("[FAIL] ")]
+    out = {"通过项数": int(done), "总项数": int(total), "没通过的项数": int(total) - int(done), "没通过的检查": failed}
+    grid = re.search(r"(\d+) 种组合里有 (\d+) 种不一致", res.stdout)
+    if grid:
+        out["和 PyTorch 逐个比的组合数"] = int(grid.group(1))
+        out["其中对不上的组合数"] = int(grid.group(2))
+    return out
+
+
+def variant(*pairs: tuple[str, str]) -> str:
+    """在参考实现的源码上做几处替换，得到一份故意写错的实现。要替换的片段必须正好出现一次。"""
+    src = REFERENCE_SOURCE
+    for old, new in pairs:
+        assert src.count(old) == 1, f"参考实现里找不到唯一的片段：{old}"
+        src = src.replace(old, new)
+    return src
 
 
 def sig2(x):
@@ -299,7 +333,7 @@ def fig_cost():
         "错误写法 int(x / stride) + 1 在本该拒绝时返回正数的组合数": int(trunc_wrong),
         "例：输入 2、核 3、步长 2、无填充，错误写法返回": trunc_example,
         "原讲义的两个算例": {"32，核 3，步长 1，填充 1": conv_out(32, 3, 1, 1), "32，核 3，步长 2，填充 1": conv_out(32, 3, 2, 1)},
-        "验收脚本的三个算例": {"32，核 3，步长 1，填充 1": conv_out(32, 3, 1, 1), "31，核 3，步长 2，填充 1": conv_out(31, 3, 2, 1), "15，核 3，步长 1，填充 2，膨胀 2": conv_out(15, 3, 1, 2, 2)},
+        "验收脚本最早的三个算例（都能整除）": {"32，核 3，步长 1，填充 1": conv_out(32, 3, 1, 1), "31，核 3，步长 2，填充 1": conv_out(31, 3, 2, 1), "15，核 3，步长 1，填充 2，膨胀 2": conv_out(15, 3, 1, 2, 2)},
     }
 
     # 向下取整丢掉了什么
@@ -1162,7 +1196,7 @@ def table_architectures():
     }
 
 
-# ---------------------------------------------------------------- 表：验收脚本查不出的写法，以及自己怎么查
+# ---------------------------------------------------------------- 表：几种错误写法、验收脚本能不能查出来、自己怎么查
 def table_selfcheck():
     cases = [(32, 3, 1, 1, 1), (31, 3, 2, 1, 1), (15, 3, 1, 2, 2)]
     num = lambda size, k, s, p, d: size + 2 * p - d * (k - 1) - 1  # noqa: E731
@@ -1203,12 +1237,27 @@ def table_selfcheck():
     y = NoSkip(4).eval()(torch.randn(2, 4, 11, 13))
     torch.manual_seed(0)
     w = nn.Conv2d(64, 64, 3, bias=False).weight
+    numer = "(size + 2 * padding - dilation * (kernel - 1) - 1)"
+    wrong = {
+        "参考实现": variant(),
+        "尺寸：向上取整": variant((f"{numer} // stride + 1", f"-(-{numer} // stride) + 1")),
+        "尺寸：四舍五入": variant((f"{numer} // stride + 1", f"round({numer} / stride) + 1")),
+        "尺寸：向零取整，写成 int(x / stride) + 1": variant((f"{numer} // stride + 1", f"int({numer} / stride) + 1")),
+        "尺寸：不拒绝非正的输出": variant(('    if out <= 0:\n        raise ValueError("输出尺寸必须为正")\n', "")),
+        "尺寸：公式里漏了膨胀": variant(("dilation * (kernel - 1)", "(kernel - 1)")),
+        "残差块：去掉捷径": variant(("return torch.relu(y + x)", "return torch.relu(y)")),
+        "残差块：去掉最后的 ReLU": variant(("return torch.relu(y + x)", "return y + x")),
+        "残差块：去掉捷径和最后的 ReLU": variant(("return torch.relu(y + x)", "return y")),
+        "残差块：bn1 之后没有 ReLU": variant(("y = torch.relu(self.bn1(self.conv1(x)))", "y = self.bn1(self.conv1(x))")),
+        "残差块：相加之前多了一次 ReLU": variant(("y = self.bn2(self.conv2(y))", "y = torch.relu(self.bn2(self.conv2(y)))")),
+    }
     NUM["验收与自检"] = {
-        "说明": "验收脚本 tests/check_progress.py 只查三个尺寸算例，以及残差块输出的 shape、数值有限、梯度能传回输入。这里核对几种错误写法在这些检查下的表现，以及一个能把它们查出来的自检",
-        "三个尺寸算例下和参考实现结果相同": same,
+        "说明": "验收脚本 tests/check_progress.py 最早只查三个都能整除的尺寸算例，以及残差块输出的 shape、数值有限、梯度能传回输入，后来补了检查。这里记三件事：几种错误写法在最早那几项检查下的表现；把参考实现改成错误写法之后实际运行现在的验收脚本的结果；一个不依赖验收脚本的自检",
+        "最早的三个尺寸算例下和参考实现结果相同": same,
         "能把取整方式区分开的算例": extra,
         "参考实现对输入 2、核 3、步长 2、无填充": reject,
-        "去掉捷径和最后的 ReLU 的块能否通过 shape 与梯度检查": passes(NoSkip),
+        "去掉捷径和最后的 ReLU 的块能否通过最早的 shape 与梯度检查": passes(NoSkip),
+        "现在的验收脚本对各种写法的结果（每种只改一处，用 COURSE_IMPL_DIR 实际运行）": {name: acceptance(src) for name, src in wrong.items()},
         "去掉捷径和最后的 ReLU 的块：输出里负数的比例（%）": r(100 * float((y < 0).float().mean()), 1),
         "自检：把第二个 BN 的 γ 置 0（推理模式）后，输出和 ReLU(x) 的最大差": {"参考实现": ref_diff, "去掉捷径的块": r(bad_diff, 2)},
         "自检：参考实现的输出里负数的个数": ref_neg,

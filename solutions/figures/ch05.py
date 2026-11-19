@@ -1142,21 +1142,24 @@ def numbers_misc():
     rows = {}
     for kind in ("参考实现", "行列式漏了交叉项", "迹没有平方", "没有做窗口求和", "梯度留在 uint8 里", "没有用上 k 和 window_size"):
         fn = harris if kind == "参考实现" else wrong_variant(kind)
-        test.load_assignment = lambda fn=fn: type("M", (), {"harris_response": staticmethod(fn)})
         with contextlib.redirect_stdout(io.StringIO()):
-            passed = bool(test.check())
+            results = test.run_all(fn)
+        passed = bool(all(results))
+        failed = [name for (name, _), ok in zip(test.CHECKS, results) if not ok]
         rs = fn(square)
         quad = np.array([float(rs[y - 3:y + 4, x - 3:x + 4].max()) for y, x in ((18, 18), (18, 45), (45, 18), (45, 45))])
         half = square.astype(np.float32) * 0.5
         rows[kind] = {
             "能否通过验收脚本": passed,
+            "验收里没通过的检查项": failed,
             "45 度直边中段的最大响应 / 参考实现在方块顶点的最大响应": r3(max(float(fn(diag)[20:44, 20:44].max()), 0.0) / scale_ref, 3),
             "方块上边中段的最小响应 / 参考实现在方块顶点的最大响应": float(f"{float(rs[14:22, 28:36].min()) / scale_ref:.2g}"),
             "方块四个顶点的响应（左上、右上、左下、右下，最大的记为 1）": [r3(v, 2) for v in quad / max(quad.max(), 1e-9)],
             "图像灰度减半后最大响应变成原来的多少倍": r3(float(fn(half).max()) / max(float(fn(square.astype(np.float32)).max()), 1e-9), 4),
             "改 k（0.04 改成 0.1）后输出是否变化": bool(np.abs(fn(square, 0.1, 3) - fn(square, 0.04, 3)).max() > 0),
         }
-    NUM["作业自查"] = {"说明": "64x64 的测试图：验收脚本里的方块（18 到 45 行列为 255），和一条模糊 1 px 的 45 度直边。几种常见的写错的版本各自的表现", **rows}
+    NUM["作业自查"] = {"说明": "64x64 的测试图：验收脚本里的方块（18 到 45 行列为 255），和一条模糊 1 px 的 45 度直边。几种常见的写错的版本各自的表现；"
+                             "“能否通过验收脚本”是把这个版本交给本章 tests/check_progress.py 的全部检查项跑一遍的结果", **rows}
 
     # 5.6 的完整流程
     cv2.setRNGSeed(0)
