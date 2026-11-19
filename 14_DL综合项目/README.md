@@ -16,9 +16,9 @@
 |---|---|
 | `figures/` | 教程配图和 `实测数字.json`（教程里所有实测数字的来源） |
 | `../demos/预处理契约.html` | 交互演示，浏览器直接打开 |
-| `实验_端到端推理与导出.ipynb` | 合成输入、推理、TorchScript 跟踪与一致性验证 |
+| `实验_端到端推理与导出.ipynb` | 合成输入、推理、TorchScript 跟踪、`torch.export` 导出与一致性验证 |
 | `作业_预处理与部署契约.py` | letterbox 元数据和检测框回映射 |
-| `tests/check_progress.py` | 检查几何可逆性、边界和输出契约 |
-| `data/README.md` | COCO、Open Images、Roboflow Universe 使用提示 |
+| `tests/check_progress.py` | 检查缩放系数、取整规则、奇数加边，以及回映射的数值、裁剪和输出类型 |
+| `data/README.md` | COCO、Open Images 的官方来源、许可提示和项目数据清单 |
 
 实验只在临时目录导出模型，不留下权重；计时结果仅用于理解方法，不代表真实设备基准。

@@ -48,17 +48,17 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
-<div class="lesson-head"><div class="crumbs">第 21 章 <span class="tag P2">P2</span> <span class="badge ok">已升级</span></div><h1>3D 数学与渲染管线</h1><p class="scene"><b>用在哪：</b>渲染设计数据做参考图、三维仿真、OpenGL 和 Shader</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 24 小时</span><span class="chip">前置：<a href="../lessons/07.html">第 7 章 相机与三维视觉</a></span></div><div class="meta-row"><span class="chip mono">验收：python 21_3D数学与渲染管线/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="21"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都记录在 <a href="../../21_3D数学与渲染管线/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch21.py</code> 生成。视图矩阵、透视矩阵、屏幕映射和 z-buffer 用本章作业的参考实现；共享边规则、背面剔除这些作业里没有的功能，用配图脚本里另写的光栅器，它的“边上算在内”规则和参考实现逐像素核对过。本机没有运行真正的 OpenGL：第 6 节讲的是通用知识，没有在显卡上验证；深度缓冲位数的数字是按整数深度缓冲的量化规则算的。耗时是在一台 Apple 芯片 Mac 的 CPU 上测的一次结果。换成自己的场景和机器，数值会变，结论的方向要自己再测一遍。</p>
+<div class="lesson-head"><div class="crumbs">第 21 章 <span class="tag P2">P2</span> <span class="badge ok">已升级</span></div><h1>3D 数学与渲染管线</h1><p class="scene"><b>用在哪：</b>渲染设计数据做参考图、三维仿真、OpenGL 和 Shader</p><div class="meta-row"><span class="chip"><b>速通</b> 3 小时</span><span class="chip"><b>标准</b> 15 小时</span><span class="chip"><b>深挖</b> 24 小时</span><span class="chip">前置：<a href="../lessons/07.html">第 7 章 相机与三维视觉</a></span></div><div class="meta-row"><span class="chip mono">验收：python 21_3D数学与渲染管线/tests/check_progress.py</span><label class="chip done-pick">我的进度 <select data-done="21"><option value="">未开始</option><option value="fast">速通完成</option><option value="std">标准完成</option><option value="deep">深挖完成</option></select></label></div></div><article class="prose"><div class="callout callout-note"><div class="callout-title">说明</div><p>本章所有数字都记录在 <a href="../../21_3D数学与渲染管线/figures/实测数字.json"><code>figures/实测数字.json</code></a>，由 <code>solutions</code> 分支的 <code>solutions/figures/ch21.py</code> 生成。视图矩阵、透视矩阵、屏幕映射和 z-buffer 用本章作业的参考实现；共享边规则、背面剔除这些作业里没有的功能，用配图脚本里另写的光栅器，它的“边上算在内”规则和参考实现逐像素核对过。本机没有运行真正的 OpenGL：第 6 节讲的是通用知识，没有在显卡上验证；深度缓冲位数的数字是按整数深度缓冲的量化规则算的。耗时是在一台 Apple 芯片 Mac 的 CPU 上、机器上还有别的任务时测的，讲义里只写量级和倍数。换成自己的场景和机器，数值会变，结论的方向要自己再测一遍。</p>
 </div>
 <h2 id="0-本章怎么学">0. 本章怎么学</h2>
 <p><strong>应用场景</strong>：渲染设计数据做参考图、三维仿真、OpenGL 和 Shader。具体是三件事：把设计版图或三维结构渲染成“理想图像”，作为比对的参考；批量生成带标签的仿真图像，用来训练和测试算法；把标定好的相机搬进渲染器，让仿真图和真实图在几何上对齐。岗位要求里的“3D 数学”“OpenGL 渲染管线和 Shader 编程”从这一章入门。</p>
@@ -795,7 +795,7 @@ w2 = 1 - w0 - w1
 <li><strong>顶点是随机浮点坐标时，三种规则没有差别</strong>。50 个网格、156800 个像素里，没有一个像素中心正好落在边上。所以这个问题在随便摆的三维模型上很少露面，它专门出现在顶点落在整数或半整数坐标的场合：按网格对齐的版图多边形、界面上的矩形、手写的测试用例。</li>
 <li><strong>只写深度时，画两次没有后果</strong>，两个三角形在公共边上的深度相同。一旦像素的值是累加出来的（半透明混合、统计覆盖次数、把多边形的面积累加成灰度），画两次就是多算一次，接缝处会出现一条比两边亮或暗的线。漏画则会从接缝里露出背景。</li>
 <li><strong>左上规则</strong>让每个像素正好属于一个三角形。屏幕 y 向下时，“上边”是水平并且三角形在它下方的边，“左边”是三角形在它右侧的边。像素中心落在边上时，只有这条边是上边或左边才算在三角形内。共享边对一个三角形是左边，对另一个就是右边，所以不会两边都算、也不会两边都不算。Direct3D 的规范里明确写的是这条规则；OpenGL 的规范要求的是结果：共享一条边的两个三角形，对落在边上的像素中心恰好产生一个片元。</li>
-<li><strong>作业要按“边上算在内”实现</strong>。验收用的三角形 (0,0)、(8,0)、(0,8) 在这条规则下覆盖 36 个像素中心，其中 8 个在斜边上；换成“边上不算”或左上规则都是 28 个，验收会判错。左上规则留到第 12 节当扩展题。</li>
+<li><strong>作业要按“边上算在内”实现</strong>。验收用的三角形 (0,0)、(8,0)、(0,8) 在这条规则下覆盖 36 个像素中心，其中 8 个在斜边上；换成“边上不算”或左上规则都是 28 个，验收会判为不通过。这是作业故意定的约定，不是说左上规则有错：作业文件开头和 <code>render_depth</code> 的文档字符串里把它单独框了出来，验收得到 28 个像素时的失败提示也会直接告诉你是这条约定。先按约定通过验收，左上规则留到第 12 节当扩展题。</li>
 </ol>
 <div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一块三角形网格，顶点都是随机的浮点坐标。把规则从“边上算在内”改成“边上不算”，网格内部会漏掉多少像素？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>大约八分之一</span></button><button type="button" data-k="B"><b>B</b><span>一个也不漏</span></button><button type="button" data-k="C"><b>C</b><span>每条边漏一行</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测 50 个随机网格、156800 个像素里，三种规则都是每个像素正好画一次，因为没有像素中心正好落在边上。A 是顶点在整数坐标时的情况：4096 个像素里漏 512 个（12.5%），因为对角线正好穿过像素中心。这类问题在顶点对齐到像素网格时才出现。</p></div></div>
 <h3 id="绕序和背面剔除">绕序和背面剔除</h3>
@@ -843,14 +843,14 @@ w2 = 1 - w0 - w1
 </tr>
 </tbody>
 </table></div>
-<figure><img src="../../21_3D数学与渲染管线/figures/fig06_绕序与背面剔除.svg" alt="图 6：同一个视点下的四种情况，前三栏每个面一种颜色并乘上 Lambert 亮度。左，剔除背面后只画 6 个三角形，画面和不剔除时相同。中左，判断的符号弄反，画出来的是三个背对相机的面。中右，一个三角形的绕序写反并开着剔除，这个三角形被当成背面丢掉，露出一个洞。右，按 Notebook 的面表计算逐面 Lambert 得到的灰度图，三个可见面的亮度相同" loading="lazy"><figcaption>图 6：同一个视点下的四种情况，前三栏每个面一种颜色并乘上 Lambert 亮度。左，剔除背面后只画 6 个三角形，画面和不剔除时相同。中左，判断的符号弄反，画出来的是三个背对相机的面。中右，一个三角形的绕序写反并开着剔除，这个三角形被当成背面丢掉，露出一个洞。右，按 Notebook 的面表计算逐面 Lambert 得到的灰度图，三个可见面的亮度相同</figcaption></figure>
+<figure><img src="../../21_3D数学与渲染管线/figures/fig06_绕序与背面剔除.svg" alt="图 6：同一个视点下的四种情况，前三栏每个面一种颜色并乘上 Lambert 亮度。左，剔除背面后只画 6 个三角形，画面和不剔除时相同。中左，判断的符号弄反，画出来的是三个背对相机的面。中右，一个三角形的绕序写反并开着剔除，这个三角形被当成背面丢掉，露出一个洞。右，把面表的绕序整体写反（从外面看顺时针）之后，按 Notebook 的写法计算逐面 Lambert 得到的灰度图，三个可见面的亮度相同" loading="lazy"><figcaption>图 6：同一个视点下的四种情况，前三栏每个面一种颜色并乘上 Lambert 亮度。左，剔除背面后只画 6 个三角形，画面和不剔除时相同。中左，判断的符号弄反，画出来的是三个背对相机的面。中右，一个三角形的绕序写反并开着剔除，这个三角形被当成背面丢掉，露出一个洞。右，把面表的绕序整体写反（从外面看顺时针）之后，按 Notebook 的写法计算逐面 Lambert 得到的灰度图，三个可见面的亮度相同</figcaption></figure>
 <ol>
 <li><strong>剔除不改变画面，只省计算</strong>。对封闭的凸物体，丢掉背面之后深度图逐像素不变，要光栅化的三角形从 12 个降到平均 5.15 个。</li>
 <li><strong>符号弄反时轮廓不变</strong>。画出来的是立方体的三个背面，占的像素和正确结果一样，只是每个像素的深度都变大了（平均大 0.0221），颜色和明暗是背面的（图 6 第二栏）。只看轮廓或者只看有没有画出东西，发现不了这个错误。</li>
 <li><strong>一个三角形的绕序写反，开着剔除就是一个洞</strong>。图 6 的视点下立方体占 6220 个像素，洞有 1807 个。不开剔除时深度图不变，因为按作业的写法两种绕序都能画。所以模型里绕序不一致的毛病，在自己的软光栅里看不出来，换到开着剔除的 OpenGL 里才会暴露。</li>
 <li>作业不做剔除：验收要求“顺时针和逆时针绕序应得到同样的覆盖”。</li>
 </ol>
-<div class="callout callout-warn"><div class="callout-title">注意</div><p>Notebook 里“逐面 Lambert”那个单元画出来的三个面一样暗，这是 Notebook 的面表造成的，不是你的光栅器有错。Notebook 的 <code>FACES</code> 从外面看是顺时针的，按 <code>n = cross(V[b] - V[a], V[c] - V[a])</code> 算出的 12 条法线全部指向立方体内部。三个可见面的法线都背对光源，<span class="arithmatex">\(\max(0, n \cdot l)\)</span> 都是 0，可见的 6220 个像素亮度全是 0.15（图 6 最右）。在那一行后面加一句 <code>n = -n</code>，三个面的亮度变成 0.466、0.624、0.781。深度图不受影响。这件事已经报给课程的维护者。</p>
+<div class="callout callout-warn"><div class="callout-title">注意</div><p>绕序还决定法线朝哪边，进而决定光照。Notebook 的“逐面 Lambert”单元按 <code>n = cross(V[b] - V[a], V[c] - V[a])</code> 算法线，它的面表 <code>FACES</code> 和演示页相同，12 个三角形从外面看都是逆时针，算出的法线全部朝外，从 (3, 2.5, 5) 看到的三个面亮度是 0.466、0.624、0.781。如果把面表的绕序整体写反（每个三角形的后两个下标对调），12 条法线全部指向立方体内部，三个可见面的法线都背对光源，<span class="arithmatex">\(\max(0, n \cdot l)\)</span> 都是 0，可见的 6220 个像素亮度全是 0.15（图 6 最右）。深度图不受影响，覆盖也不变，所以这个错误只看深度图发现不了。自己建模时看到“所有面一样暗”，先数一下有几条法线朝外：Notebook 的单元会打印这个数，应该是 12/12。</p>
 </div>
 <h3 id="透视校正插值">透视校正插值</h3>
 <p>三角形内部的属性（纹理坐标、颜色、法线）在三维空间里是线性变化的，投影到屏幕之后就不再是屏幕坐标的线性函数了，因为中间除了一个各顶点不同的 <span class="arithmatex">\(w\)</span>。正确的做法是先把每个顶点的属性除以自己的 <span class="arithmatex">\(w\)</span>，在屏幕上线性插值 <span class="arithmatex">\(a/w\)</span> 和 <span class="arithmatex">\(1/w\)</span>，再相除：</p>
@@ -940,63 +940,38 @@ a = \frac{\lambda_0\,a_0 / w_0 + \lambda_1\,a_1 / w_1 + \lambda_2\,a_2 / w_2}{\l
 <p>OpenGL 的着色器之间传递的变量默认就是透视校正插值的；GLSL 里给变量加 <code>noperspective</code> 限定符得到的是屏幕空间线性插值，加 <code>flat</code> 则不插值。</p>
 <div class="quiz" data-answer="A"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>一个四边形正对相机，在画面上占了一万多个像素。用屏幕空间线性插值算它的纹理坐标，不做透视校正，误差有多大？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>没有误差</span></button><button type="button" data-k="B"><b>B</b><span>三角形越大误差越大，这么大的四边形误差很明显</span></button><button type="button" data-k="C"><b>C</b><span>误差是纹理范围的三分之一左右</span></button></div><div class="quiz-exp" hidden><p><strong>A</strong>。实测正上方俯视的矩形占 14792 个像素，线性插值的最大误差是 2.8e-15。误差只取决于顶点 <span class="arithmatex">\(w\)</span> 的最大值与最小值之比 <span class="arithmatex">\(r\)</span>，正对相机时所有顶点的 <span class="arithmatex">\(w\)</span> 相同。C 是 <span class="arithmatex">\(r = 4.0\)</span> 时的数字（0.333），那是相机在 (0, 2, 1) 斜着看地面的情况。</p></div></div>
 <h3 id="耗时每个三角形要看多少像素">耗时：每个三角形要看多少像素</h3>
-<p>本节开头第 1 步说“计算三角形的包围盒，只遍历盒内的像素”。作业不要求这一步，参考实现也没有做：它对每个三角形都算整幅图的重心坐标，写法最短，代价是耗时正比于“三角形数 × 画面像素数”，和三角形多大无关。</p>
-<p>下面的耗时是在一台 Apple 芯片 Mac 的 CPU 上测的一次结果，每项取 3 次里最快的一次，测的时候机器上还有别的任务，只看量级和倍数。随机三角形的顶点离各自中心不超过画面宽度的 6%。</p>
+<p>本节开头第 1 步说“计算三角形的包围盒，只遍历盒内的像素”。作业不要求这一步，做不做结果都必须相同；参考实现做了。不做的写法最短：对每个三角形都算整幅图的重心坐标，代价是耗时正比于“三角形数 × 画面像素数”，和三角形多大无关。下面把这种“整幅图版本”和参考实现放在一起量，两者的输出逐像素相同。</p>
+<p>耗时是在一台 Apple 芯片 Mac 的 CPU 上测的，测的时候机器上还有不少别的任务，绝对值不稳定，这里只写量级和倍数。整套测量连做三轮，每轮每项取 3 次里最快的一次，倍数给的是三轮里的最小值和最大值；随机三角形的顶点离各自中心不超过画面宽度的 6%。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
-<th>画面</th>
-<th style="text-align: right;">三角形数</th>
-<th style="text-align: right;">参考实现</th>
-<th style="text-align: right;">包围盒版本</th>
+<th>1000 个小三角形</th>
+<th style="text-align: right;">整幅图版本是参考实现的几倍</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>160×120</td>
-<td style="text-align: right;">12</td>
-<td style="text-align: right;">1.1 ms</td>
-<td style="text-align: right;">0.19 ms</td>
-</tr>
-<tr>
-<td>160×120</td>
-<td style="text-align: right;">1000</td>
-<td style="text-align: right;">92 ms</td>
-<td style="text-align: right;">16 ms</td>
+<td style="text-align: right;">4.3 到 4.9</td>
 </tr>
 <tr>
 <td>320×240</td>
-<td style="text-align: right;">12</td>
-<td style="text-align: right;">3.9 ms</td>
-<td style="text-align: right;">0.21 ms</td>
-</tr>
-<tr>
-<td>320×240</td>
-<td style="text-align: right;">1000</td>
-<td style="text-align: right;">310 ms</td>
-<td style="text-align: right;">18 ms</td>
+<td style="text-align: right;">13 到 15</td>
 </tr>
 <tr>
 <td>640×480</td>
-<td style="text-align: right;">12</td>
-<td style="text-align: right;">15 ms</td>
-<td style="text-align: right;">0.31 ms</td>
-</tr>
-<tr>
-<td>640×480</td>
-<td style="text-align: right;">1000</td>
-<td style="text-align: right;">1200 ms</td>
-<td style="text-align: right;">27 ms</td>
+<td style="text-align: right;">37 到 39</td>
 </tr>
 </tbody>
 </table></div>
+<p>表里是钉住的那一次测量。机器忙的程度不同，换一个时刻重测这几个数会有出入，能下的结论只是量级：几倍、十几倍、几十倍，以及画面越大差得越多。</p>
 <ol>
-<li>参考实现的耗时跟着“三角形数 × 像素数”走。320×240 下 1000 个三角形是 12 个的 79 倍（三角形数之比是 83.3）；100 个三角形时 640×480 是 160×120 的 13 倍（像素数之比是 16）。</li>
-<li>三角形小的时候包围盒省得多：1000 个小三角形，640×480 下两者差 44 倍，160×120 下差 5.8 倍。画面越大，一个小三角形的包围盒占画面的比例越小。</li>
-<li>包围盒不是白拿的。100 个各盖住半个画面的大三角形（320×240），参考实现 30 ms，包围盒版本 43 ms，没有变快。</li>
-<li>不要写逐像素的 Python 循环。160×120、12 个三角形，纯 Python 的两层循环是 16 ms，参考实现是 1.1 ms，差 14 倍，而参考实现本身还远不是最快的写法。</li>
+<li>整幅图版本的耗时跟着“三角形数 × 像素数”走。320×240 下 1000 个三角形是 12 个的 80 到 86 倍（三角形数之比是 83.3）；100 个三角形时 640×480 是 160×120 的 13 到 15 倍（像素数之比是 16）。</li>
+<li>三角形小的时候包围盒省得多，画面越大省得越多：从 160×120 的几倍到 640×480 的几十倍。画面越大，一个小三角形的包围盒占画面的比例越小。640×480、1000 个小三角形，整幅图版本要秒的量级，参考实现是几十毫秒的量级。</li>
+<li>包围盒不是白拿的。100 个各盖住半个画面的大三角形（320×240），参考实现的耗时反而是整幅图版本的 1.5 倍：包围盒和画面一样大，一个像素也没省下。多出来的开销应该来自每个三角形都要重新生成一遍盒内的像素坐标，这一点是从代码推断的，没有单独计时。</li>
+<li>不要写逐像素的 Python 循环。160×120、12 个三角形，纯 Python 的两层循环是整幅图版本的 15 到 16 倍，而整幅图版本本身还远不是最快的写法。</li>
 </ol>
-<p>作业的验收只用 10×10 的图，怎么写都很快。Notebook 里渲染 240×180、12 个三角形也在几毫秒的量级。想渲染几千个三角形的模型时，再加包围盒。</p>
+<p>作业的验收只用很小的图，怎么写都很快。Notebook 里渲染 240×180、12 个三角形，参考实现在 1 毫秒的量级。自己的实现没有做包围盒也能通过验收；想渲染几千个三角形的模型时，再加上它，加完用验收确认结果没有变。</p>
 <h2 id="5-着色">5. 着色</h2>
 <p><strong>Lambert 漫反射</strong>：亮度 = 反射率 × max(0, n·l)，n 是法线，l 是指向光源的方向。和视线方向无关。</p>
 <p>用图 6 的立方体算一下。光的方向是 (0.4, 0.8, 0.6) 归一化，按 Notebook 的写法加 0.15 的环境光，亮度是 <span class="arithmatex">\(0.15 + 0.85 \max(0, n \cdot l)\)</span>。从 (3, 2.5, 5) 能看到的三个面，法线分别朝 +x、+y、+z，亮度是 0.466、0.781、0.624：朝上的面最亮，因为光主要从上方来。相机挪到别的位置，这三个数不变。</p>
@@ -1170,18 +1145,19 @@ a = \frac{\lambda_0\,a_0 / w_0 + \lambda_1\,a_1 / w_1 + \lambda_2\,a_2 / w_2}{\l
 </ul>
 <p>具体到某台设备怎样生成参考图、用什么渲染器，以设备和公司的资料为准。</p>
 <h2 id="8-交互演示">8. 交互演示</h2>
-<p>页面左图是逐像素的软光栅（重心坐标、深度测试、逐面 Lambert），右图是深度缓冲，画面 320×240，共 76800 个像素。滑块对应 M、V、P 三个矩阵的参数。这个页面没有“载入”按钮，按下面的顺序手动拖滑块；默认值是自转角 30、方位角 35、仰角 25、相机距离 6、fovy 50、near 0.5、far 20，每一步做完把滑块拖回默认值再做下一步。</p>
-<div class="embed"><iframe src="../../demos/渲染管线.html" height="760" loading="lazy" title="交互演示"></iframe></div>
+<p>页面左图是逐像素的软光栅（重心坐标、深度测试、逐面 Lambert），右图是深度缓冲，画面 320×240，共 76800 个像素。滑块对应 M、V、P 三个矩阵的参数。页面下方有“按顺序试”的五步，每步点“载入”就把滑块设到那一步的状态；默认值是自转角 30、方位角 35、仰角 25、相机距离 6、fovy 50、near 0.5、far 20。</p>
+<div class="embed"><iframe src="../../demos/渲染管线.html" height="1000" loading="lazy" title="交互演示"></iframe></div>
 <p><a href="../../demos/渲染管线.html">打开交互演示：渲染管线，MVP 与 z-buffer</a></p>
-<p>按顺序试：</p>
+<p>信息栏里有四个计数。“上色的像素”是画面上有颜色的像素个数，一个像素只数一次。“写入次数”是通过深度测试并写进缓冲的次数，同一个像素被几个三角形先后写入就数几次。“含相机后方顶点、被整个丢掉的三角形”对应第 3 节“相机后方的顶点和裁剪”。“深度不在 [0, 1] 被丢掉的片元”是页面比作业多做的一步，见本节末尾。</p>
+<p>按顺序试（和页面上的五步一一对应）：</p>
 <ol>
-<li>什么都不动，读画面下方的信息：可见深度范围是 [0.9142, 0.9474]。立方体离相机只有 6，far 是 20，深度却只用了 3.3% 的范围，而且都挤在靠近 1 的一头。右边的深度图越亮越近，这时立方体的灰度只有 13 到 22（满刻度 255），几乎全黑。这是第 3 节“一半的深度值花在 near 到 2 倍 near 之间”的直接后果。</li>
-<li>把 near 从 0.5 拖到 3。可见深度范围变成 [0.4094, 0.6382]，占了 22.9%，深度图的灰度是 92 到 151，三个面的深浅能分出来了。再把 near 拖到 0.05、far 拖到 30：范围缩到 [0.9908, 0.994]，整个立方体在深度图上是同一个灰度 2。near 越小，深度越挤。</li>
-<li>回到默认值，勾选“关闭深度测试”。立方体占 11431 个像素，其中 6228 个（54.5%）变了颜色：后画的面盖住了先画的面，不管谁在前。页面上“覆盖像素”这个数从 16634 变成 22862。它数的是写入的次数，不是不同像素的个数：关掉深度测试之后正好是 11431 的两倍，因为每个像素被正面和背面各写了一次。</li>
-<li>取消勾选，把相机距离拖到 1.5。画面 76800 个像素全部被立方体占满，可见深度范围的下限到了 0：离相机最近的那部分表面落在近平面以内，被逐像素丢掉，能直接看到内壁。再拖到 1：页面显示“被近平面裁掉的三角形 8/12”，只有 62640 个像素（81.6%）有颜色，其余是露出背景的洞。页面的这个计数实际数的是“含相机后方顶点的三角形”，它们被整个丢掉了，对应第 3 节“相机后方的顶点和裁剪”。</li>
-<li>回到默认值，把 fovy 拖到 120。<span class="arithmatex">\(f = 1/\tan(\text{fovy}/2)\)</span> 变小，立方体从 11431 个像素缩到 824 个。再把相机距离拖到 2.5 让它重新变大（7086 个像素）：相机离得近，立方体近处和远处到相机的距离之比变大，近大远小比默认值下更明显，像广角镜头。</li>
+<li>载入第 1 步（默认值），读画面下方的信息：可见深度范围是 [0.9142, 0.9474]。立方体离相机只有 6，far 是 20，深度却只用了 3.3% 的范围，而且都挤在靠近 1 的一头。右边的深度图越亮越近，这时立方体的灰度只有 13 到 22（满刻度 255），几乎全黑。这是第 3 节“一半的深度值花在 near 到 2 倍 near 之间”的直接后果。</li>
+<li>载入第 2 步（near 从 0.5 改成 3）。可见深度范围变成 [0.4094, 0.6382]，占了 22.9%，深度图的灰度是 92 到 151，三个面的深浅能分出来了。再手动把 near 拖到 0.05、far 拖到 30：范围缩到 [0.9908, 0.994]，整个立方体在深度图上是同一个灰度 2。near 越小，深度越挤。</li>
+<li>载入第 3 步（关闭深度测试）。上色的像素还是 11431 个，其中 6228 个（54.5%）变了颜色：后画的面盖住了先画的面，不管谁在前。写入次数从 16634 变成 22862，正好是上色像素数的 2 倍，因为每个像素被正面和背面各写了一次。开着深度测试时写入次数（16634）也比上色的像素（11431）多：有的像素先被远处的面写了一次，后来又被近处的面盖掉。</li>
+<li>载入第 4 步（相机距离 1.5）。画面 76800 个像素全部被立方体占满，可见深度范围的下限到了 0，“深度不在 [0, 1] 被丢掉的片元”从 0 变成 73947：离相机最近的那部分表面落在近平面以内，被逐像素丢掉，能直接看到内壁。再手动把距离拖到 1：信息栏显示“含相机后方顶点、被整个丢掉的三角形 8/12”，只有 62640 个像素（81.6%）有颜色，其余是露出背景的洞。这 8 个三角形不是被近平面“裁”掉的，裁剪会把三角形切开、留下前面的部分；它们是因为有顶点在相机后方而被整个丢掉了。</li>
+<li>载入第 5 步（fovy 120、相机距离 2.5、叠加线框）。只把 fovy 拖到 120 而不动距离，<span class="arithmatex">\(f = 1/\tan(\text{fovy}/2)\)</span> 变小，立方体会从 11431 个像素缩到 824 个；这一步同时把相机拉近到 2.5，立方体回到 7086 个像素（默认值的 62%）。相机离得近，立方体近处和远处到相机的距离之比变大：四条竖直的棱在屏幕上的长度，最长比最短在默认值下是 1.3，这里是 2.07，近大远小明显得多，像广角镜头。</li>
 </ol>
-<p>页面的说明里写“算法和第 21 章作业完全一致”，有两处小差别：页面只遍历包围盒，并且会丢掉深度不在 0 到 1 之间的像素（第 4 步靠的就是这一条），作业的 <code>render_depth</code> 不做这两件事。</p>
+<p>页面的做法和作业相同的部分：矩阵、屏幕映射、在像素中心采样、“边上算在内”、z-buffer。有两处不同，页面的副标题里也写了：页面会丢掉深度不在 0 到 1 之间的像素（第 4 步靠的就是这一条），作业的 <code>render_depth</code> 不丢；页面的深度缓冲是 32 位浮点，作业是 64 位。页面只遍历包围盒，这一点和参考实现相同，不影响结果。</p>
 <h2 id="9-怎样评估一个渲染器">9. 怎样评估一个渲染器</h2>
 <p>渲染器没有“精度”这一个数，要分几项查，每一项都找一个独立算出来的真值。</p>
 <div class="table-wrap"><table>
@@ -1289,7 +1265,7 @@ a = \frac{\lambda_0\,a_0 / w_0 + \lambda_1\,a_1 / w_1 + \lambda_2\,a_2 / w_2}{\l
 <tr>
 <td>验收说应覆盖 36 个像素，实际 28 个</td>
 <td>边上的像素没有算在内（用了严格大于，或者实现了左上规则）</td>
-<td>作业的约定是三个重心坐标都大于等于 0</td>
+<td>作业的约定是三个重心坐标都大于等于 0，见 <code>render_depth</code> 文档字符串里框出来的那一段</td>
 </tr>
 <tr>
 <td>顺时针的三角形画不出来</td>
@@ -1300,6 +1276,26 @@ a = \frac{\lambda_0\,a_0 / w_0 + \lambda_1\,a_1 / w_1 + \lambda_2\,a_2 / w_2}{\l
 <td>深度图里混进了 NaN 或者除零警告</td>
 <td>退化三角形（area 为 0）没有跳过；含 NaN 顶点的三角形参与了比较</td>
 <td>先判断 area，再做除法</td>
+</tr>
+<tr>
+<td>加了包围盒之后验收报运行异常，或者提示有像素该画没画</td>
+<td>包围盒没有裁到画面内（三角形有一部分在画面外）；上界取整取小了，漏掉最右一列或最下一行；含 NaN 顶点的三角形在取整时出错</td>
+<td>用一个超出画面的三角形和一个顶点是小数的三角形，和不用包围盒的结果逐像素比</td>
+</tr>
+<tr>
+<td>没有三角形时抛异常</td>
+<td>用 <code>np.stack</code> 之类的办法把各个三角形的结果叠起来，空输入时没有东西可叠</td>
+<td>传一个形状 (0, 3, 3) 的数组，应得到全是 <code>np.inf</code> 的深度图</td>
+</tr>
+<tr>
+<td>up 不是单位向量时 <code>look_at</code> 的结果变了，或者 up 与视线反向时没有报错</td>
+<td>判断平行时直接比较了 up 和视线，没有用叉积的长度</td>
+<td>up 取 (0, 5, 0) 和 (0, 1, 0) 应得到同一个矩阵；up 取 (0, -2, 0)、视线朝 +y 时应抛出 <code>ValueError</code></td>
+</tr>
+<tr>
+<td>和相机在同一个平面上的点输出了 inf</td>
+<td><code>to_screen</code> 只把 <span class="arithmatex">\(w &lt; 0\)</span> 的点置成 NaN，<span class="arithmatex">\(w = 0\)</span> 的点照样做了除法</td>
+<td>作业的条件是 <span class="arithmatex">\(w \le 0\)</span></td>
 </tr>
 <tr>
 <td>远处的面闪烁，或者出现条纹</td>
@@ -1322,9 +1318,9 @@ a = \frac{\lambda_0\,a_0 / w_0 + \lambda_1\,a_1 / w_1 + \lambda_2\,a_2 / w_2}{\l
 <td>片元着色器里先 <code>normalize</code></td>
 </tr>
 <tr>
-<td>Notebook 里三个面一样暗</td>
-<td>Notebook 的面表从外面看是顺时针的，法线朝里</td>
-<td>见第 4 节的提示框</td>
+<td>逐面 Lambert 画出来所有面一样暗</td>
+<td>面表的绕序整体写反了（从外面看顺时针），法线朝里</td>
+<td>数一下有几条法线朝外，见第 4 节的提示框；Notebook 的面表是对的，会打印 12/12</td>
 </tr>
 <tr>
 <td>相机靠近或进入物体之后缺一大块</td>
@@ -1359,8 +1355,8 @@ a = \frac{\lambda_0\,a_0 / w_0 + \lambda_1\,a_1 / w_1 + \lambda_2\,a_2 / w_2}{\l
 <li>在 Notebook 的 <code>render</code> 里把 up 从 (0, 1, 0) 改成 (0, -1, 0)。预测深度图怎样变。再把 up 改成和视线平行（例如相机在 (0, 5, 0) 看原点），你的 <code>look_at</code> 做了什么？</li>
 <li>把相机放到立方体内部，例如 <code>render([0.3, 0.2, 0.5])</code>。预测有多少个顶点是 NaN、多少个三角形画不出来、画面缺多大一块。<code>to_screen</code> 的 NaN 处理在哪一步起了作用？如果去掉它会怎样？</li>
 <li>把 <code>render</code> 里的 near 从 0.5 改成 0.01，再改成 3，各打印一次深度图里被覆盖像素的最小值和最大值。预测三次的范围，和第 8 节演示的第 1、2 步对照。</li>
-<li>把自己的 <code>render_depth</code> 里“边上算在内”改成“边上不算”，运行 <code>tests/check_progress.py</code>。预测覆盖的像素数从 36 变成多少，哪一条检查先报错。</li>
-<li>在 Notebook 的“逐面 Lambert”单元里把法线取反（见第 4 节的提示框）。预测三个面的亮度，哪个面最亮？再把光的方向改成从相机一侧照过来，重新预测。</li>
+<li>把自己的 <code>render_depth</code> 里“边上算在内”改成“边上不算”，运行 <code>tests/check_progress.py</code>。预测覆盖的像素数从 36 变成多少，哪一条检查先报错，失败提示是怎么说的。</li>
+<li>把 Notebook 的 <code>FACES</code> 里每个三角形的后两个下标对调（绕序整体反过来，见第 4 节的提示框），重新运行“逐面 Lambert”单元。预测“法线朝外的三角形”那一行打印多少、三个面的亮度各是多少、深度图变不变。改回来之后，再把光的方向改成从相机一侧照过来，预测哪个面最亮。</li>
 <li>取第 7 章作业的 <code>project_points</code>（OpenCV 约定）和本章的 <code>to_screen</code>，投影同一组点。先不转换，再按第 3 节的两个矩阵转换，最后把主点加 0.5。预测三次的差各是多少。</li>
 </ol>
 <h2 id="12-扩展深挖档">12. 扩展（深挖档）</h2>
@@ -1380,7 +1376,7 @@ a = \frac{\lambda_0\,a_0 / w_0 + \lambda_1\,a_1 / w_1 + \lambda_2\,a_2 / w_2}{\l
 <li>第 17 章标定出的 K、R、t，经过第 3 节的两个矩阵才能用在渲染器里。</li>
 <li>第 20 章讲合成缺陷，那里把本章和第 22 章的渲染、成像仿真列为物理仿真式合成的基础。</li>
 <li>第 22 章的成像仿真器第一步就是“版图到反射率图”的渲染，后面再加光学模糊和传感器噪声；明场、暗场照明在那一章第 3 节。</li>
-<li>规划中的第三部分有神经渲染（NeRF 和 3D Gaussian Splatting），它们要用到本章的投影和坐标约定。</li>
+<li>第 30 章讲神经渲染（NeRF 和 3D Gaussian Splatting），它们要用到本章的投影和坐标约定。</li>
 </ul>
 <h2 id="自测问题">自测问题</h2>
 <ol>

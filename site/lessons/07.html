@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -1005,9 +1005,19 @@ Z = \frac{f_x B}{d}
 <td>引入已知基线或已知尺寸</td>
 </tr>
 <tr>
-<td>验收通过，换一个位姿就不对</td>
-<td>实现里没有真正用上 <code>R</code>、<code>t</code>，或者把 <code>R</code> 写成了转置；验收脚本只用了单位旋转和零平移</td>
-<td>随机取一组 <code>R</code>、<code>t</code>，和 <code>cv2.projectPoints</code>（畸变传零）逐点比较</td>
+<td>验收的“单位位姿”一项能过，“旋转与平移”一项不通过</td>
+<td>实现里没有真正用上 <code>R</code>、<code>t</code>，把 <code>R</code> 写成了转置，或者先加 <span class="arithmatex">\(t\)</span> 再乘 <span class="arithmatex">\(R\)</span>。单位旋转、零平移时这几种写法的结果都是对的</td>
+<td>拿验收提示里的那个点手算一遍；再随机取一组 <code>R</code>、<code>t</code>，和 <code>cv2.projectPoints</code>（畸变传零）逐点比较</td>
+</tr>
+<tr>
+<td>相机前方的点被返回成 NaN，或者相机后方的点有了坐标，验收的“深度判断”一项不通过</td>
+<td>判断深度时用的是世界坐标的 <span class="arithmatex">\(Z\)</span>，不是相机坐标的 <span class="arithmatex">\(Z_c\)</span></td>
+<td>找一个旋转之后深度符号会变的位姿，把两种 <span class="arithmatex">\(Z\)</span> 都打印出来</td>
+</tr>
+<tr>
+<td>输入是整数数组时，结果的小数部分没了</td>
+<td>把结果写回了和输入同类型的数组</td>
+<td>用整数数组和内容相同的浮点数组各算一次，两个结果应相同</td>
 </tr>
 <tr>
 <td>恰好 3 个点时结果离谱，别的点数报广播错误</td>
@@ -1066,7 +1076,7 @@ Z = \frac{f_x B}{d}
 <li>输入可能是整数数组或列表，先转成 float64；输出必须是 (N, 2) 的 float64。</li>
 <li><code>translation</code> 可能是 (3,) 也可能是 (3, 1)，先统一形状再相加。不统一的话，点数恰好是 3 时不会报错，结果却是错的。</li>
 <li>深度 <span class="arithmatex">\(Z_c \le 10^{-12}\)</span> 的点输出 <code>[nan, nan]</code>，其余的点照常计算，不能因为有一个无效点就让整个数组变成 NaN。</li>
-<li>验收脚本只用了单位旋转和零平移，所以通过验收不代表旋转和平移用对了。自己再加一道检查：随机取一组 <span class="arithmatex">\(R\)</span>、<span class="arithmatex">\(t\)</span> 和一些相机前方的点，和 <code>cv2.projectPoints</code>（畸变传零）比较。参考实现和它在 200 个随机点上的最大差是 1.1e-13 px，你的实现也应该在这个量级。Notebook 里已经用 <code>cv2.projectPoints</code> 画立方体，可以直接拿它当对照。</li>
+<li>验收分五项：单位位姿、旋转与平移、深度判断、对照 OpenCV、不改输入。除了单位旋转和零平移，它还用一个手算过的旋转加平移、一个旋转之后深度符号改变的位姿，以及几组随机位姿和 <code>cv2.projectPoints</code>（畸变传零）对照。参考实现和它在 200 个随机点上的最大差是 1.1e-13 px，你的实现也应该在这个量级。对照不通过时，照 Notebook 的实验 1 自己再比一次，把相机坐标、归一化坐标、像素坐标逐步打印出来。</li>
 </ul>
 <p>AR 标记练习的原说明如下。</p>
 <p>练习入口：<a href="../../视觉算法学习计划.md#题-7-1ar-标记检测与叠加最终关卡">视觉算法学习计划中的题 7-1</a>。建议按以下里程碑完成，而不是一次写到底：</p>
@@ -1081,9 +1091,9 @@ Z = \frac{f_x B}{d}
 <h2 id="破坏实验">破坏实验</h2>
 <p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做，后三个是深挖档的内容。</p>
 <ol>
-<li>把一个点放到相机后方（<span class="arithmatex">\(Z_c &lt; 0\)</span>），分别交给自己实现的 <code>project_points</code> 和 <code>cv2.projectPoints</code>。预测两边各返回什么。再临时去掉自己代码里的深度检查，结果和 OpenCV 的是什么关系？</li>
-<li>把自己代码里的旋转换成它的转置（或者把“先旋转后平移”改成“先平移后旋转”），运行 <code>tests/check_progress.py</code>。预测能不能通过。再按“配套练习连接”一节说的方法，用随机位姿和 <code>cv2.projectPoints</code> 对照一次。</li>
-<li>在 Notebook 里把 <code>K</code> 的焦距乘 2，同时把深度滑块的值也乘 2（比如从 7 拖到 14）。预测立方体的投影和原来是否完全一样。前后两个面的大小比例变了吗？为什么？</li>
+<li>Notebook 的实验 1：把一个点放到相机后方（<span class="arithmatex">\(Z_c &lt; 0\)</span>），分别交给自己实现的 <code>project_points</code> 和 <code>cv2.projectPoints</code>。预测两边各返回什么。再临时去掉自己代码里的深度检查，结果和 OpenCV 的是什么关系？</li>
+<li>把自己代码里的旋转换成它的转置（或者把“先旋转后平移”改成“先平移后旋转”），运行 <code>tests/check_progress.py</code>。先预测哪几项会不通过，“单位位姿”那一项为什么还能过。再运行 Notebook 的实验 2，看这两种写错在画面上各是什么样。</li>
+<li>Notebook 的实验 3：把 <code>K</code> 的焦距乘 2，同时把立方体的距离也乘 2（在互动单元里也可以试，比如把深度滑块从 7 拖到 14）。预测立方体的投影和原来是否完全一样。前后两个面的大小比例变了吗？为什么？</li>
 <li>用 <code>cv2.solvePnP</code> 估一个方形标记的位姿（图像点用自己的 <code>project_points</code> 生成，再加 0.3 px 噪声），然后把图像点整体错开一位再估一次。预测重投影误差和旋转各差多少。</li>
 <li>把上一个实验的标记放远到图上只有 25 px 左右、接近正对相机，重复 100 次，统计姿态落到另一个解上的比例。用 <code>cv2.solvePnPGeneric</code> 加 <code>SOLVEPNP_IPPE_SQUARE</code>（物体点按文档规定的顺序）把两个解都取出来，看它们的重投影误差差多少。</li>
 <li>用两台平行放置的相机做三角化（<code>cv2.triangulatePoints</code>），基线 60 mm，每幅图加 0.5 px 噪声，把点的距离从 500 mm 加到 4000 mm。预测深度误差涨多少倍，再比较误差的平均值和中位数。</li>

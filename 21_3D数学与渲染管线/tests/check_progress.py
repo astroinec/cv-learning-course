@@ -40,6 +40,31 @@ def run(name, func):
     return ok
 
 
+def unchanged(before, after):
+    """调用前后的数组逐元素相同（NaN 对 NaN 也算相同）、数据类型也相同。"""
+    return before.dtype == after.dtype and np.array_equal(before, after, equal_nan=True)
+
+
+def expected_depth(tris, width, height):
+    """用另一套办法算期望的深度图：覆盖看像素中心相对三条边是否在同一侧，深度用过三个顶点的平面方程。
+
+    返回 (深度图, 可以比较的像素)。像素中心离某条边所在的直线不到 1e-7 的地方不参与比较，
+    那里算不算在内取决于舍入误差。
+    """
+    depth = np.full((height, width), np.inf)
+    sure = np.ones((height, width), dtype=bool)
+    cy, cx = np.mgrid[0:height, 0:width] + 0.5
+    for tri in tris:
+        xy, z = tri[:, :2], tri[:, 2]
+        side = np.stack([(xy[(i + 1) % 3, 0] - xy[i, 0]) * (cy - xy[i, 1]) - (xy[(i + 1) % 3, 1] - xy[i, 1]) * (cx - xy[i, 0]) for i in range(3)])
+        sure &= ~(np.abs(side) < 1e-7).any(axis=0)
+        inside = (side > 0).all(axis=0) | (side < 0).all(axis=0)
+        a, b, c = np.linalg.solve(np.column_stack([xy, np.ones(3)]), z)
+        plane = a * cx + b * cy + c
+        depth = np.where(inside & (plane < depth), plane, depth)
+    return depth, sure
+
+
 def check_look_at(mod):
     V = mod.look_at(np.array([0.0, 0.0, 5.0]), np.zeros(3), np.array([0.0, 1.0, 0.0]))
     if V.shape != (4, 4) or V.dtype != np.float64:
@@ -54,21 +79,41 @@ def check_look_at(mod):
     tgt_c = V2 @ np.array([0.0, 1.0, -2.0, 1.0])
     if not np.allclose(eye_c[:3], 0) or not (tgt_c[2] < 0 and np.allclose(tgt_c[:2], 0)):
         return False, "相机应在原点，目标点应在 -Z 轴上"
-    try:
-        mod.look_at(np.zeros(3), np.array([0.0, 1.0, 0.0]), np.array([0.0, 1.0, 0.0]))
-    except ValueError:
-        return True, "视图矩阵正交、相机位置和朝向正确"
-    return False, "up 与视线平行时应抛出 ValueError"
+    eye, tgt, up = np.array([3.0, 2.0, 1.0]), np.array([0.0, 1.0, -2.0]), np.array([0.0, 5.0, 0.0])
+    keep = eye.copy(), tgt.copy(), up.copy()
+    V3 = mod.look_at(eye, tgt, up)
+    if not all(unchanged(k, v) for k, v in zip(keep, (eye, tgt, up))):
+        return False, "函数改动了传入的 eye、target 或 up"
+    if not np.isfinite(V3).all() or not np.allclose(V3, V2):
+        return False, "up 取 (0, 5, 0) 和取 (0, 1, 0) 应得到同一个视图矩阵；up 只给方向，不保证是单位向量"
+    up_c = V2[:3, :3] @ np.array([0.0, 1.0, 0.0])
+    if not (abs(up_c[0]) < 1e-9 and up_c[1] > 0):
+        return False, "世界的 up 方向变到相机坐标后应该没有 x 分量、y 分量为正（画面里朝上）"
+    for bad_up, what in (((0.0, 1.0, 0.0), "同向"), ((0.0, -2.0, 0.0), "反向且不是单位向量"), ((0.0, 3.0, 0.0), "同向且不是单位向量")):
+        try:
+            got = mod.look_at(np.zeros(3), np.array([0.0, 1.0, 0.0]), np.array(bad_up))
+        except ValueError:
+            continue
+        extra = "，而且返回的矩阵里有 NaN" if not np.isfinite(np.asarray(got, dtype=float)).all() else ""
+        return False, f"up = {bad_up} 与视线{what}，应抛出 ValueError{extra}；平行要按叉积的长度判断，不要拿 up 和视线直接比较"
+    return True, "视图矩阵正交、相机位置和朝向正确，up 平行时报错"
 
 
 def check_perspective_and_screen(mod):
     P = mod.perspective(90.0, 2.0, 1.0, 10.0)
     if P.shape != (4, 4) or abs(P[0, 0] - 0.5) > 1e-12 or abs(P[1, 1] - 1.0) > 1e-12 or P[3, 2] != -1:
         return False, "透视矩阵元素不正确（fovy=90 时 f=1，aspect=2）"
-    for bad in [(90.0, 1.0, 0.0, 10.0), (90.0, 1.0, 5.0, 5.0)]:
+    want = [[0.5, 0, 0, 0], [0, 1, 0, 0], [0, 0, -11 / 9, -20 / 9], [0, 0, -1, 0]]
+    if P.dtype != np.float64 or not np.allclose(P, want, atol=1e-12):
+        return False, "perspective(90, 2, 1, 10) 的 16 个元素和文档字符串里的矩阵不一致；逐个对照，没写到的位置都是 0（包括右下角）"
+    P2 = mod.perspective(60.0, 1.5, 0.5, 20.0)
+    want2 = [[np.sqrt(3.0) / 1.5, 0, 0, 0], [0, np.sqrt(3.0), 0, 0], [0, 0, -20.5 / 19.5, -20.0 / 19.5], [0, 0, -1, 0]]
+    if not np.allclose(P2, want2, atol=1e-12):
+        return False, "perspective(60, 1.5, 0.5, 20) 不正确：fovy=60 度时 f 应为 sqrt(3)；检查角度换弧度、用的是不是半角、aspect 除在哪一行"
+    for bad in [(90.0, 1.0, 0.0, 10.0), (90.0, 1.0, 5.0, 5.0), (90.0, 1.0, -1.0, 10.0), (90.0, 1.0, 5.0, 2.0)]:
         try:
             mod.perspective(*bad)
-            return False, f"非法参数 {bad} 应抛出 ValueError"
+            return False, f"非法参数 (fovy, aspect, near, far) = {bad} 应抛出 ValueError；需要 0 < near < far"
         except ValueError:
             pass
     pts = np.array([[0.0, 0.0, -1.0], [0.0, 0.0, -10.0], [10.0, 5.0, -5.0], [0.0, 0.0, 2.0]])
@@ -81,6 +126,23 @@ def check_perspective_and_screen(mod):
         return False, "右上角视锥边缘应映射到屏幕 (W, 0)，检查 y 方向是否翻转"
     if not np.isnan(s[3]).all():
         return False, "相机后方的点应输出 NaN"
+    if abs(s[2, 2] - 8 / 9) > 1e-12:
+        return False, f"near=1、far=10 时距离 5 处的深度应为 8/9，得到 {s[2, 2]!r}；深度要先做透视除法再映射到 [0, 1]"
+    view = np.eye(4)
+    view[2, 3] = -5.0                                  # 相机在 (0, 0, 5)，看向 -Z
+    pts2 = np.array([[-5.0, -2.5, 0.0], [0.0, 0.0, 0.0], [3.0, 2.0, 5.0], [1.0, 1.0, 7.0]])
+    keep_pts, keep_mvp = pts2.copy(), (P @ view).copy()
+    mvp = P @ view
+    with np.errstate(all="ignore"):
+        s2 = mod.to_screen(pts2, mvp, 200, 100)
+    if not unchanged(keep_pts, pts2) or not unchanged(keep_mvp, mvp):
+        return False, "to_screen 改动了传入的 points 或 mvp"
+    if not np.allclose(s2[0], [50, 75, 8 / 9]) or not np.allclose(s2[1], [100, 50, 8 / 9]):
+        return False, "带视图矩阵时结果不对：左下方的点 (-5, -2.5, 0) 应映射到 (50, 75)，原点应映射到画面中心，深度都是 8/9"
+    if not np.isnan(s2[2]).all():
+        return False, f"裁剪坐标 w 正好等于 0 的点（和相机在同一个平面上）也应输出全 NaN，得到 {s2[2]}；条件是 w <= 0"
+    if not np.isnan(s2[3]).all():
+        return False, "相机后方的点应输出全 NaN（三个分量都是）"
     return True, "透视矩阵、NDC、视口和 y 翻转都正确"
 
 
@@ -90,10 +152,16 @@ def check_raster(mod):
     if d.shape != (10, 10) or d.dtype != np.float64:
         return False, "深度图应为 (H, W) float64"
     covered = np.isfinite(d)
+    if covered.sum() == 28:
+        return False, ("直角边为 8 的三角形应覆盖 36 个像素中心，得到 28：斜边上的 8 个像素中心没有算进来。"
+                       "本作业的约定是：像素中心正好落在三角形的边上也算在内（见 render_depth 文档字符串里框出来的那一段）。"
+                       "这和 GPU 的左上规则、“边上不算”都不一样；如果你是按左上规则写的，实现本身没有错，但验收按作业的约定判，左上规则留作讲义第 12 节的扩展")
     if covered.sum() != 36:
-        return False, f"直角边为 8 的三角形应覆盖 36 个像素中心，得到 {covered.sum()}"
+        return False, f"直角边为 8 的三角形应覆盖 36 个像素中心（边上的算在内），得到 {covered.sum()}；检查是不是在像素中心 (x + 0.5, y + 0.5) 采样"
     if not covered[0, 0] or covered[9, 9] or not np.allclose(d[covered], 0.5):
         return False, "覆盖区域或深度不对"
+    if not np.isposinf(d[~covered]).all():
+        return False, "没有被覆盖的像素应为正的 np.inf"
     tri_cw = tri_ccw[:, [0, 2, 1], :]
     if not np.array_equal(np.isfinite(mod.render_depth(tri_cw, 10, 10)), covered):
         return False, "顺时针和逆时针绕序应得到同样的覆盖"
@@ -107,10 +175,68 @@ def check_raster(mod):
     d3 = mod.render_depth(ramp, 10, 10)
     if abs(d3[0, 4] - 0.45) > 1e-9:
         return False, f"深度应按重心坐标插值，(x=4.5) 处应为 0.45，得到 {d3[0, 4]}"
+    tilt = np.array([[[0.0, 0.0, 0.1], [8.0, 0.0, 0.5], [0.0, 8.0, 0.9]]])
+    keep = tilt.copy()
+    d4 = mod.render_depth(tilt, 10, 10)
+    if not unchanged(keep, tilt):
+        return False, "render_depth 改动了传入的 triangles；要平移或换顺序时先复制"
+    yy, xx = np.mgrid[0:10, 0:10]
+    want = 0.1 + 0.05 * (xx + 0.5) + 0.1 * (yy + 0.5)      # 过这三个顶点的平面
+    if not np.array_equal(np.isfinite(d4), covered) or not np.allclose(d4[covered], want[covered], atol=1e-9):
+        return False, f"三个顶点深度是 0.1、0.5、0.9 时，像素 (x=2, y=1) 处应为 0.375，得到 {d4[1, 2]:.4f}；检查三个重心坐标和三个顶点是不是一一对应"
     flat = np.array([[[0.0, 0.0, 0.1], [5.0, 5.0, 0.1], [9.0, 9.0, 0.1]]])
-    if np.isfinite(mod.render_depth(flat, 10, 10)).any():
-        return False, "退化三角形应跳过"
-    return True, "覆盖测试、绕序、深度比较、插值和退化情况都正确"
+    same = np.array([[[2.0, 3.0, 0.1], [2.0, 3.0, 0.1], [7.0, 5.0, 0.1]]])
+    for name, bad in (("三点共线", flat), ("两个顶点重合", same)):
+        with np.errstate(all="ignore"):
+            d5 = mod.render_depth(bad, 10, 10)
+        if np.isnan(d5).any():
+            return False, f"退化三角形（{name}）应跳过，现在深度图里出现了 NaN；先判断面积再做除法"
+        if not np.isposinf(d5).all():
+            return False, f"退化三角形（{name}）应跳过，整张深度图应保持 np.inf"
+    with np.errstate(all="ignore"):
+        d6 = mod.render_depth(np.concatenate([flat, tri_ccw]), 10, 10)
+    if not np.array_equal(d6, d):
+        return False, "退化三角形和正常三角形一起画时，结果应和只画正常三角形相同"
+    nan_tri = np.array([[[np.nan, np.nan, np.nan], [8.0, 0.0, 0.5], [0.0, 8.0, 0.5]]])
+    with np.errstate(all="ignore"):
+        d7 = mod.render_depth(np.concatenate([nan_tri, tri_ccw, nan_tri]), 10, 10)
+    if np.isnan(d7).any() or not np.array_equal(d7, d):
+        return False, "含 NaN 顶点的三角形（to_screen 对相机后方的点输出 NaN）应跳过：不能抛异常，不能把 NaN 写进深度图，也不能影响别的三角形"
+    wide = np.array([[[-4.0, -4.0, 0.3], [12.5, -4.0, 0.3], [-4.0, 12.5, 0.3]]])
+    d8 = mod.render_depth(wide, 10, 10)
+    if d8.shape != (10, 10) or not np.array_equal(np.isfinite(d8), xx + yy <= 7) or not np.allclose(d8[xx + yy <= 7], 0.3):
+        return False, f"三角形有一部分在画面外时，画面内的部分要照常画：这个三角形应盖住满足 x + y <= 7 的 36 个像素，得到 {int(np.isfinite(d8).sum())} 个；检查遍历范围有没有裁到画面内"
+    frac = np.array([[[0.2, 0.2, 0.3], [7.9, 0.2, 0.3], [0.2, 7.9, 0.3]]])
+    d8 = mod.render_depth(frac, 10, 10)
+    if not np.array_equal(np.isfinite(d8), xx + yy <= 7):
+        return False, f"顶点是小数 (0.2, 0.2)、(7.9, 0.2)、(0.2, 7.9) 的三角形应盖住满足 x + y <= 7 的 36 个像素，得到 {int(np.isfinite(d8).sum())} 个；像素 (7, 0) 的中心 (7.5, 0.5) 在三角形内，检查遍历范围两端的取整"
+    outside = np.array([[[20.0, 20.0, 0.3], [30.0, 20.0, 0.3], [20.0, 30.0, 0.3]], [[-9.0, -9.0, 0.3], [-2.0, -9.0, 0.3], [-9.0, -2.0, 0.3]]])
+    if not np.isposinf(mod.render_depth(outside, 10, 10)).all():
+        return False, "完全在画面外的三角形不应画出任何像素"
+    d9 = mod.render_depth(np.zeros((0, 3, 3)), 12, 7)
+    if not isinstance(d9, np.ndarray) or d9.shape != (7, 12) or d9.dtype != np.float64 or not np.isposinf(d9).all():
+        return False, "没有三角形（T = 0）、width=12、height=7 时应返回形状 (7, 12)、全为 np.inf 的 float64 数组"
+    rng = np.random.default_rng(21)
+    for trial in range(8):
+        tris = []
+        while len(tris) < 6:
+            xy = rng.uniform([-4.0, -4.0], [28.0, 20.0], (3, 2))
+            if abs((xy[1, 0] - xy[0, 0]) * (xy[2, 1] - xy[0, 1]) - (xy[2, 0] - xy[0, 0]) * (xy[1, 1] - xy[0, 1])) > 40:
+                tris.append(np.column_stack([xy, rng.uniform(0.1, 0.9, 3)]))
+        tris = np.stack(tris)
+        want, sure = expected_depth(tris, 24, 16)
+        got = mod.render_depth(tris, 24, 16)
+        if got.shape != (16, 24):
+            return False, f"width=24、height=16 时深度图的形状应为 (16, 24)，得到 {got.shape}"
+        wrong_cov = sure & (np.isfinite(got) != np.isfinite(want))
+        if wrong_cov.any():
+            y, x = np.argwhere(wrong_cov)[0]
+            return False, (f"6 个顶点是小数、部分在画面外的随机三角形（24x16 的画面）：有 {int(wrong_cov.sum())} 个像素该画没画或者不该画却画了，"
+                           f"例如像素 (x={x}, y={y})；检查遍历范围两端的取整、有没有裁到画面内、像素中心的 0.5")
+        both = sure & np.isfinite(want)
+        if not np.allclose(got[both], want[both], atol=1e-7):
+            return False, "随机三角形的覆盖正确，但深度和按平面方程算出的不一致；检查插值，以及多个三角形重叠时是否保留最小的深度"
+    return True, "覆盖测试、绕序、深度比较、插值、退化和画面外的情况都正确"
 
 
 def main() -> int:

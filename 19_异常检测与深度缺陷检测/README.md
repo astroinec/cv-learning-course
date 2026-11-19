@@ -11,7 +11,7 @@
 1. 复习第 10 章（迁移学习、特征提取）、第 11 章（检测）、第 12 章（分割）。
 2. 阅读 `教程_异常检测.md`。
 3. 实现 `19-1_PatchCore核心.py`，运行验收。
-4. 运行 `实验_PatchCore.ipynb`：用合成纹理跑一个迷你 PatchCore；有网络和 torchvision 时，换成预训练 ResNet 特征。
+4. 运行 `实验_PatchCore.ipynb`：用合成纹理跑一个迷你 PatchCore，两个“对照”单元换成难一点的数据看边界问题和核心集的代价；本机有 torchvision 和 ResNet-18 权重时，最后一个单元换成预训练特征拼成完整的 PatchCore（没有权重时打印说明后跳过）。
 5. 下载 MVTec AD 的一个类别（比如 bottle 或 grid），用 Anomalib 跑 PatchCore 和 PaDiM，对比 image AUROC 和 pixel AUROC。
 6. 在 `实验记录.md` 写下：漏检率不超过 1% 时的过检率，以及最难的 3 个样本为什么难。
 

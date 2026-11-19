@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>零样本分类与提示词：二维演示</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .two { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; touch-action: none; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>零样本分类与提示词：二维演示（第 28 章）</h1>
+  <div class="sub">把图像向量和文本向量都画在一个平面上。120 个彩色的点是三类图（方块、圆、三角，每类 40 张）的图像向量，从原点出发的细箭头是文本向量：每个类别有 A、B、C 三种模板，各一个。粗箭头是最后用的分类器向量。分类规则和作业里的 build_zeroshot_classifier、zeroshot_predict 相同：向量先归一化，只看方向，余弦最大的类别胜出。箭头尖可以拖动。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>用哪个模板<div class="seg" id="tpl"><button data-v="A" class="on">A</button><button data-v="B">B</button><button data-v="C">C</button><button data-v="avg">三个平均</button></div></label>
+    <label>平均之前先各自归一化<div class="seg" id="norm"><button data-v="1" class="on">是</button><button data-v="0">否</button></div></label>
+    <label>相似度的放大倍数（温度的倒数）<b id="scaleV"></b><input type="range" id="scale" min="0" max="2" step="0.001" value="1.301"></label>
+    <label>空区域（不属于任何一类的 20 个点）<div class="seg" id="bg"><button data-v="0" class="on">不放</button><button data-v="1">放上</button><button data-v="2">再加背景提示</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>三类图的精度（120 张）</span><b id="kAcc"></b></div>
+    <div class="kpi"><span>方块｜圆｜三角 各自的精度</span><b id="kEach"></b></div>
+    <div class="kpi"><span>最大概率的平均</span><b id="kConf"></b></div>
+    <div class="kpi"><span>空区域被判成某一类（概率超过 0.5）</span><b id="kBg"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>底色是决策区域，越深表示这个方向上最大的概率越接近 1。点的颜色是它真正的类别，分错的点带黑圈。灰色虚线圆是单位圆</figcaption><canvas id="c1" height="340"></canvas></figure>
+    <figure class="panel"><figcaption>沿着圆周转一圈，每个方向上各类的概率<i style="background:var(--blue)"></i>方块<i style="background:var(--orange)"></i>圆<i style="background:var(--green)"></i>三角<i style="background:#8a8f98"></i>背景。下方的短线是各个点所在的方向</figcaption><canvas id="c2" height="340"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>模板 A，放大倍数 20。三个分类器向量各指向一团点的中间，决策区域是三个扇形，边界是相邻两个分类器向量的角平分线，精度 0.942。拖动任何一个箭头尖：边界只跟着方向转，把箭头拉长或缩短什么都不变，因为向量先做了归一化。<button data-preset='{"tpl":"A","norm":1,"scale":20,"bg":0}'>载入</button></li>
+      <li>换成模板 C，一种写得不合适的句式。三个文本向量都偏了，“方块”和“三角”的向量朝“圆”挤过来，圆的那一团有一半落到了别人的扇形里：圆的精度从 0.95 掉到 0.50，总精度 0.833。图像向量一个都没动，变的只是那三句话。<button data-preset='{"tpl":"C","norm":1,"scale":20,"bg":0}'>载入</button></li>
+      <li>三个模板取平均。每个类别的三个箭头先各自归一化、再平均、再归一化，A 和 B 把 C 的偏差拉回来一大半：圆的精度回到 0.85，总精度回到 0.942，和单独用 A 相同，比 C 的 0.833 高得多。<button data-preset='{"tpl":"avg","norm":1,"scale":20,"bg":0}'>载入</button> 再把“先各自归一化”关掉：C 的箭头最长，直接平均时它的权重最大，“方块”和“三角”的粗箭头又朝 C 那边偏了 6 度左右，圆的精度降到 0.80，总精度 0.933。差别不大，方向是确定的。<button data-preset='{"tpl":"avg","norm":0,"scale":20,"bg":0}'>载入不归一化</button></li>
+      <li>回到模板 A，把放大倍数调到 1。底色几乎褪光，右图三条曲线都很平，最大概率的平均只有 0.503，但精度还是 0.942，边界一度都没动。<button data-preset='{"tpl":"A","norm":1,"scale":1,"bg":0}'>载入</button> 再调到 100：曲线变成台阶，最大概率的平均是 0.994，精度仍然不变，分错的那几个点现在也是以很大的把握分错的。<button data-preset='{"tpl":"A","norm":1,"scale":100,"bg":0}'>载入 100</button></li>
+      <li>放上空区域的 20 个点（放大倍数 20）。它们在圆的另一侧，和三个类别的余弦全是负的，最大的也只有 -0.15。可是三个概率加起来必须是 1：20 个点全部被以超过 0.5 的概率判成了某一类（带黑圈），它们的最大概率平均有 0.936。<button data-preset='{"tpl":"A","norm":1,"scale":20,"bg":1}'>载入</button> 再加一个指向它们的“背景”文本向量：这个比例变成 0%，三类图的精度还是 0.942。<button data-preset='{"tpl":"A","norm":1,"scale":20,"bg":2}'>载入背景提示</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// == 计算部分开始 ==
+const NAMES = ["方块", "圆", "三角"], CENTERS = [150, 90, 30], PER = 40, SPREAD = 17, NBG = 20, BG_CENTER = 265, BG_SPREAD = 9;
+const TPL = ["A", "B", "C"];
+const OFFSET = { A: [5, -4, 6], B: [-7, 6, -5], C: [-34, -6, 30] };   // 每个模板的文本向量相对各类图像团中心偏了多少度
+const LENGTH = { A: 0.6, B: 0.5, C: 1.2 };                            // 没归一化时各模板文本向量的长度
+const RAD = Math.PI / 180;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r()); }
+function makeData(seed) {
+  // 图像向量：没有归一化，长度在 0.5 到 1 之间；label 3 表示空区域
+  const r = rng(seed), pts = [];
+  CENTERS.forEach((c, k) => { for (let j = 0; j < PER; j++) { const a = (c + SPREAD * gauss(r)) * RAD, len = 0.5 + 0.5 * r(); pts.push({ x: len * Math.cos(a), y: len * Math.sin(a), label: k }); } });
+  for (let j = 0; j < NBG; j++) { const a = (BG_CENTER + BG_SPREAD * gauss(r)) * RAD, len = 0.3 + 0.4 * r(); pts.push({ x: len * Math.cos(a), y: len * Math.sin(a), label: 3 }); }
+  return pts;
+}
+function makeTexts() {
+  const t = {};
+  for (const name of TPL) t[name] = CENTERS.map((c, k) => { const a = (c + OFFSET[name][k]) * RAD; return [LENGTH[name] * Math.cos(a), LENGTH[name] * Math.sin(a)]; });
+  t.bg = [0.8 * Math.cos(BG_CENTER * RAD), 0.8 * Math.sin(BG_CENTER * RAD)];
+  return t;
+}
+function unit(v) { const n = Math.max(Math.hypot(v[0], v[1]), 1e-12); return [v[0] / n, v[1] / n]; }
+function buildClassifier(texts, o) {
+  // 和作业的 build_zeroshot_classifier 相同：各模板先归一化，再平均，再归一化。o.norm 为假时跳过第一次归一化（错误写法，用来对比）
+  const use = o.tpl === "avg" ? TPL : [o.tpl], W = [];
+  for (let k = 0; k < NAMES.length; k++) {
+    let sx = 0, sy = 0;
+    for (const name of use) { const v = (o.norm || use.length === 1) ? unit(texts[name][k]) : texts[name][k]; sx += v[0] / use.length; sy += v[1] / use.length; }
+    W.push(unit([sx, sy]));
+  }
+  if (o.bg === 2) W.push(unit(texts.bg));
+  return W;
+}
+function probsOf(dir, W, scale) {
+  // 和作业的 zeroshot_predict 相同：dir 已经是单位向量；打分乘放大倍数，减去最大值后做 softmax
+  const z = W.map(w => scale * (dir[0] * w[0] + dir[1] * w[1])), m = Math.max(...z), e = z.map(v => Math.exp(v - m)), s = e.reduce((a, b) => a + b, 0);
+  return e.map(v => v / s);
+}
+function argmax(p) { let b = 0; for (let k = 1; k < p.length; k++) if (p[k] > p[b]) b = k; return b; }
+function evaluate(pts, W, o) {
+  const each = [0, 0, 0], res = []; let right = 0, conf = 0, bgAsClass = 0, nb = 0;
+  for (const p of pts) {
+    const pr = probsOf(unit([p.x, p.y]), W, o.scale), pred = argmax(pr);
+    res.push({ pred, pmax: pr[pred] });
+    if (p.label < 3) { if (pred === p.label) { right++; each[p.label]++; } conf += pr[pred]; }
+    else { nb++; if (pred < 3 && pr[pred] > 0.5) bgAsClass++; }
+  }
+  const n = pts.length - nb;
+  return { acc: right / n, each: each.map(v => v / PER), conf: conf / n, bgRate: bgAsClass / nb, res };
+}
+// == 计算部分结束 ==
+
+const COLORS = ["#2f6fed", "#e8710a", "#1a9c4b", "#8a8f98"];
+const RGBS = [[47, 111, 237], [232, 113, 10], [26, 156, 75], [138, 143, 152]];
+const SEED = 7;
+const pts = makeData(SEED);
+let texts = makeTexts();
+const opt = { tpl: "A", norm: true, scale: 20, bg: 0 };
+let drag = null;
+const $ = id => document.getElementById(id);
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function geom(canvas) { const w = canvas.clientWidth, h = +canvas.getAttribute("height"), R = Math.min(w, h) / 2 / 1.34; return { cx: w / 2, cy: h / 2, R }; }
+function handles() {
+  // 当前可以拖动的箭头：正在用的模板，以及背景提示
+  const use = opt.tpl === "avg" ? TPL : [opt.tpl], out = [];
+  for (const name of use) for (let k = 0; k < 3; k++) out.push({ v: texts[name][k], k, name });
+  if (opt.bg === 2) out.push({ v: texts.bg, k: 3, name: "背景" });
+  return out;
+}
+function arrow(ctx, g, v, color, width, head, dash) {
+  const x = g.cx + g.R * v[0], y = g.cy - g.R * v[1], a = Math.atan2(-(v[1]), v[0]);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash || []);
+  ctx.beginPath(); ctx.moveTo(g.cx, g.cy); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - head * Math.cos(a - 0.4), y - head * Math.sin(a - 0.4)); ctx.lineTo(x - head * Math.cos(a + 0.4), y - head * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+}
+
+function render() {
+  const W = buildClassifier(texts, opt), m = evaluate(pts, W, opt);
+  $("scaleV").textContent = opt.scale < 10 ? opt.scale.toFixed(1) : opt.scale.toFixed(0);
+  $("kAcc").textContent = m.acc.toFixed(3);
+  $("kEach").textContent = m.each.map(v => v.toFixed(2)).join("｜");
+  $("kConf").textContent = m.conf.toFixed(3);
+  $("kBg").textContent = opt.bg ? (100 * m.bgRate).toFixed(0) + "%" : "没有放";
+
+  let [ctx, w, h] = setup($("c1"));
+  const g = geom($("c1")), far = 1.34 * g.R * 1.5;
+  for (let a = 0; a < 360; a++) {
+    const pr = probsOf([Math.cos((a + 0.5) * RAD), Math.sin((a + 0.5) * RAD)], W, opt.scale), k = argmax(pr), c = RGBS[k];
+    const alpha = 0.05 + 0.3 * Math.max(0, (pr[k] - 1 / W.length) / (1 - 1 / W.length));
+    ctx.fillStyle = "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + alpha.toFixed(3) + ")";
+    ctx.beginPath(); ctx.moveTo(g.cx, g.cy); ctx.lineTo(g.cx + far * Math.cos(a * RAD), g.cy - far * Math.sin(a * RAD)); ctx.lineTo(g.cx + far * Math.cos((a + 1.2) * RAD), g.cy - far * Math.sin((a + 1.2) * RAD)); ctx.closePath(); ctx.fill();
+  }
+  ctx.strokeStyle = "#b9bec7"; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.arc(g.cx, g.cy, g.R, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  pts.forEach((p, i) => {
+    if (p.label === 3 && !opt.bg) return;
+    const x = g.cx + g.R * p.x, y = g.cy - g.R * p.y, wrong = p.label < 3 ? m.res[i].pred !== p.label : (m.res[i].pred < 3 && m.res[i].pmax > 0.5);
+    ctx.fillStyle = COLORS[p.label]; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, 2 * Math.PI); ctx.fill();
+    if (wrong) { ctx.strokeStyle = "#111"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(x, y, 5, 0, 2 * Math.PI); ctx.stroke(); }
+  });
+  const use = opt.tpl === "avg" ? TPL : [opt.tpl];
+  for (const name of TPL) for (let k = 0; k < 3; k++) {
+    const on = use.includes(name), v = texts[name][k];
+    ctx.globalAlpha = on ? 0.95 : 0.22; arrow(ctx, g, v, COLORS[k], 1.4, 7, name === "A" ? [] : name === "B" ? [5, 3] : [2, 3]);
+    ctx.fillStyle = "#1f2329"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(name, g.cx + g.R * v[0] + 9 * Math.cos(Math.atan2(v[1], v[0])), g.cy - g.R * v[1] - 9 * Math.sin(Math.atan2(v[1], v[0])) + 4);
+    ctx.globalAlpha = 1;
+  }
+  if (opt.bg === 2) { arrow(ctx, g, texts.bg, COLORS[3], 1.4, 7); }
+  W.forEach((wv, k) => { ctx.globalAlpha = 0.9; arrow(ctx, g, wv, COLORS[k], 3.4, 11); ctx.globalAlpha = 1; });
+  ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("粗箭头：分类器向量", 6, 14); ctx.fillText("细箭头：各模板的文本向量", 6, 28);
+
+  [ctx, w, h] = setup($("c2"));
+  const pl = 36, pr = 10, pt = 10, pb = 44, A0 = -30, X = a => pl + (w - pl - pr) * (((a - A0) % 360 + 360) % 360) / 360, Y = v => pt + (h - pt - pb) * (1 - v);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif";
+  for (const v of [0, 0.25, 0.5, 0.75, 1]) { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(w - pr, Y(v)); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(v.toFixed(2), pl - 5, Y(v) + 4); }
+  ctx.textAlign = "center"; for (const a of [0, 90, 180, 270]) ctx.fillText(a + "°", X(a), h - 4);
+  for (let k = 0; k < W.length; k++) {
+    ctx.strokeStyle = COLORS[k]; ctx.lineWidth = 2; ctx.beginPath();
+    for (let j = 0; j <= 360; j++) { const a = A0 + j * 0.999, p = probsOf([Math.cos(a * RAD), Math.sin(a * RAD)], W, opt.scale)[k], x = pl + (w - pl - pr) * j / 360; if (j) ctx.lineTo(x, Y(p)); else ctx.moveTo(x, Y(p)); }
+    ctx.stroke();
+  }
+  pts.forEach(p => {
+    if (p.label === 3 && !opt.bg) return;
+    const a = Math.atan2(p.y, p.x) / RAD, x = X(a), y0 = h - pb + 6;
+    ctx.strokeStyle = COLORS[p.label]; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + 12); ctx.stroke(); ctx.globalAlpha = 1;
+  });
+}
+
+function sync() {
+  $("scale").value = Math.log10(opt.scale);
+  $("tpl").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === opt.tpl));
+  $("norm").querySelectorAll("button").forEach(b => b.classList.toggle("on", (b.dataset.v === "1") === opt.norm));
+  $("bg").querySelectorAll("button").forEach(b => b.classList.toggle("on", +b.dataset.v === opt.bg));
+}
+function pos(e) { const r = $("c1").getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+$("c1").addEventListener("pointerdown", e => {
+  const g = geom($("c1")), [mx, my] = pos(e); let best = null, bd = 16;
+  for (const hd of handles()) { const d = Math.hypot(g.cx + g.R * hd.v[0] - mx, g.cy - g.R * hd.v[1] - my); if (d < bd) { bd = d; best = hd; } }
+  if (best) { drag = best; if ($("c1").setPointerCapture) $("c1").setPointerCapture(e.pointerId); e.preventDefault(); }
+});
+$("c1").addEventListener("pointermove", e => {
+  if (!drag) return;
+  const g = geom($("c1")), [mx, my] = pos(e); let x = (mx - g.cx) / g.R, y = -(my - g.cy) / g.R; const len = Math.hypot(x, y);
+  if (len < 0.15) { x *= 0.15 / Math.max(len, 1e-6); y *= 0.15 / Math.max(len, 1e-6); }
+  if (len > 1.28) { x *= 1.28 / len; y *= 1.28 / len; }
+  drag.v[0] = x; drag.v[1] = y; render();
+});
+const endDrag = () => { drag = null; };
+$("c1").addEventListener("pointerup", endDrag); $("c1").addEventListener("pointercancel", endDrag); $("c1").addEventListener("pointerleave", endDrag);
+$("scale").addEventListener("input", e => { opt.scale = Math.pow(10, +e.target.value); render(); });
+$("tpl").addEventListener("click", e => { if (e.target.dataset.v === undefined) return; opt.tpl = e.target.dataset.v; sync(); render(); });
+$("norm").addEventListener("click", e => { if (e.target.dataset.v === undefined) return; opt.norm = e.target.dataset.v === "1"; sync(); render(); });
+$("bg").addEventListener("click", e => { if (e.target.dataset.v === undefined) return; opt.bg = +e.target.dataset.v; sync(); render(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { const q = JSON.parse(b.dataset.preset); texts = makeTexts(); opt.tpl = q.tpl; opt.norm = !!q.norm; opt.scale = q.scale; opt.bg = q.bg; sync(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", () => render());
+sync(); render();
+</script>
+</body>
+</html>

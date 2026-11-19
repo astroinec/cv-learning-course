@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -796,7 +796,7 @@ O(x,y)=\sum_i\sum_j I(x+i,y+j)K(i,j)
 <tr>
 <td>输出和 <code>cv2.filter2D</code> 默认结果在边界一圈对不上（约 12% 像素有差）</td>
 <td>用了 <code>symmetric</code>（<code>BORDER_REFLECT</code>）而不是作业要求的 <code>reflect</code>（<code>BORDER_REFLECT_101</code>）</td>
-<td>拿一个 5×5 随机核在随机图上比，内部应完全一致、只有外圈不同，差超 0.001 就查填充</td>
+<td>拿一个 5×5 随机核在随机图上比，内部应完全一致、只有外圈不同，差超 0.001 就查填充。验收的“reflect 边界（手算）”一项会说出边界外取到的是哪个像素</td>
 </tr>
 <tr>
 <td>一条线用 Sobel 求导后只剩半边</td>
@@ -806,7 +806,7 @@ O(x,y)=\sum_i\sum_j I(x+i,y+j)K(i,j)
 <tr>
 <td>手写相关测出的边位置和 <code>filter2D</code> 差大约一个像素，还反号</td>
 <td>把核翻转了，算成了卷积</td>
-<td>用冲激图测：相关的输出是核翻转后的样子，卷积是核本身</td>
+<td>用冲激图测：相关的输出是核翻转后的样子，卷积是核本身。验收的“核不翻转（冲激响应）”一项用的就是这个办法</td>
 </tr>
 <tr>
 <td>恒等核（中心为 1）作用后图像变了</td>
@@ -816,7 +816,22 @@ O(x,y)=\sum_i\sum_j I(x+i,y+j)K(i,j)
 <tr>
 <td>归一化的均值核作用在常量图上，边界一圈不等于常量</td>
 <td>补零填充把边界拉低</td>
-<td>用一张常量图加均值核测，<code>reflect</code> 填充下应处处等于常量（验收脚本的 FAIL 就是补零触发的）</td>
+<td>用一张常量图加均值核测，<code>reflect</code> 填充下应处处等于常量（验收脚本第一项也测这个）</td>
+</tr>
+<tr>
+<td>3×3 的核没问题，换成 1×5 或 5×1 的核就报形状错误，或者输出变成空数组</td>
+<td>两个方向的半径都按核的行数算；或者用 <code>[r:-r]</code> 裁剪，半径为 0 时裁成了空的</td>
+<td>分别用 1×5、5×1、3×5 的核测，输出的 shape 应和输入相同，并和 <code>cv2.filter2D</code> 一致</td>
+</tr>
+<tr>
+<td><code>uint8</code> 的图配整数的核，结果是一些很小的数，或者负的响应没有了</td>
+<td>没有先转成浮点，<code>uint8</code> 相乘、相加时回绕（第 1 章 1.1 节）</td>
+<td>用 <code>uint8</code> 的图配和为 16 的整数平滑核测，再和先转成 <code>float32</code> 的结果比</td>
+</tr>
+<tr>
+<td>调用之后传进去的图也变了</td>
+<td>输入已经是 <code>float32</code> 时 <code>np.asarray</code> 不复制，结果被写回了输入</td>
+<td>调用前留一份副本，调用后用 <code>np.array_equal</code> 比较</td>
 </tr>
 <tr>
 <td>大核卷积慢得离谱</td>
@@ -835,7 +850,7 @@ O(x,y)=\sum_i\sum_j I(x+i,y+j)K(i,j)
 </tr>
 </tbody>
 </table></div>
-<div class="callout callout-note"><div class="callout-title">说明</div><p>本章作业的验收脚本（<code>tests/check_progress.py</code>）只查三件事：恒等核保持图像、常量图在归一化核下不变、输出是同 shape 的 float32。它能抓出“用了补零”（常量图测试会 FAIL），但<strong>抓不出“把核翻转成了卷积”，也抓不出用 <code>symmetric</code>、<code>edge</code> 当填充</strong>——这几种写法都能 PASS（实测如此）。所以作业要求的 <code>reflect</code> 填充和“不翻核”，得靠自己和 <code>cv2.filter2D</code> 对照，容差取 0.001 左右（差异来自 float32 舍入）。</p>
+<div class="callout callout-note"><div class="callout-title">说明</div><p>本章作业的验收脚本（<code>tests/check_progress.py</code>）有五项：输出契约加恒等核和常量图；冲激响应（核不翻转）；手算的 <code>reflect</code> 边界；七种形状的非对称核与 <code>cv2.filter2D</code> 对照；整数类型的输入、符号和不修改输入。把核翻转成卷积，或者用 <code>symmetric</code>、<code>edge</code>、<code>wrap</code>、补零当填充，实测都会 FAIL，各自没通过哪几项记在 <code>实测数字.json</code> 的“验收脚本能分辨哪些错误”里。早先的版本只查恒等核、常量图和 dtype，翻核和这几种填充都能 PASS，现在已经补上。验收只用了几张小图，换成你自己的核和图时，仍然建议和 <code>cv2.filter2D</code> 对照一遍，容差取 0.001 左右（差异来自 float32 舍入）。</p>
 </div>
 <hr />
 <h2 id="212-opencv-api-速查">2.12 OpenCV API 速查</h2>
@@ -891,7 +906,7 @@ O(x,y)=\sum_i\sum_j I(x+i,y+j)K(i,j)
 </tbody>
 </table></div>
 <h2 id="213-破坏实验">2.13 破坏实验</h2>
-<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做，都能在 Notebook 里做，答案可以和 <code>figures/实测数字.json</code> 对照。</p>
+<p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做，都能在 Notebook 里做，答案可以和 <code>figures/实测数字.json</code> 对照。第 4、6 两个实验的简化版在 Notebook 的实验 A、B 里，用的是你自己写的 <code>correlate2d</code>。</p>
 <ol>
 <li>把 Notebook 场景的噪声调到 40、平滑降到 0.5，不平滑直接 Canny 又会怎样？先预测边缘点数和连通段数，再运行，和平滑到 σ=1 比。对照 <code>实测数字.json</code> 里“Notebook 场景与 2.5 节”。</li>
 <li>把平滑 σ 从 1 提高到 3，那条 2 px 宽的斜线会发生什么？先预测它在矩形内部的一段还在不在，再数矩形内部的边缘像素（对照“矩形内部的边缘像素数，按 sigma”，σ=2 时应为 0）。</li>
@@ -948,7 +963,7 @@ O(x,y)=\sum_i\sum_j I(x+i,y+j)K(i,j)
 <h2 id="与配套练习怎么连接">与配套练习怎么连接</h2>
 <p>本章有两类练习，编号容易混：自动验收的作业是 <code>2-1_手写相关运算.py</code>（原讲义写作 <code>2-1_手写卷积.py</code>）；<code>2-2_Sobel方向可视化.py</code> 和 <code>2-3_Canny拆解.py</code> 是 <a href="../../视觉算法学习计划.md"><code>视觉算法学习计划.md</code></a>“第 2 天”一节的题 2-2 和题 2-3，章节目录里没有现成的文件，也没有自动验收，需要自己新建文件完成。</p>
 <ul>
-<li><strong><code>2-1_手写相关运算.py</code></strong>（自动验收，对应学习计划的题 2-1）：先固定一个小矩阵和非对称核，手算中心像素，再决定你的函数实现卷积还是互相关（作业要求的是相关，不翻核）。重点检查 padding（作业要求 <code>np.pad</code> 的 <code>reflect</code>，对应 <code>BORDER_REFLECT_101</code>）、输出尺寸（保持同 shape）和浮点精度（输出 float32），不要直接调用 <code>filter2D</code> 代替核心循环；核心循环按核元素写、不要按像素写（第 2.1 节）。验收脚本只查恒等核、常量图和 dtype，翻核和填充方式得自己和 <code>cv2.filter2D</code> 对照（第 2.11 节）。</li>
+<li><strong><code>2-1_手写相关运算.py</code></strong>（自动验收，对应学习计划的题 2-1）：先固定一个小矩阵和非对称核，手算中心像素，再决定你的函数实现卷积还是互相关（作业要求的是相关，不翻核）。重点检查 padding（作业要求 <code>np.pad</code> 的 <code>reflect</code>，对应 <code>BORDER_REFLECT_101</code>）、输出尺寸（保持同 shape）和浮点精度（输出 float32），不要直接调用 <code>filter2D</code> 代替核心循环；核心循环按核元素写、不要按像素写（第 2.1 节）。验收脚本除了恒等核、常量图和 dtype，还用冲激图查翻核、用手算的小图查填充方式、用非方形核和整数输入查下标与类型（第 2.11 节）；FAIL 的说明会指出是哪一类问题。通过之后，做 Notebook 里“用你的 <code>correlate2d</code> 做三个实验”一节。</li>
 <li><strong><code>2-2_Sobel方向可视化.py</code></strong>（学习计划的题 2-2，自己新建）：分别保留 <code>gx</code>、<code>gy</code>、幅值和角度。尝试竖线、横线、斜线等合成图，解释颜色与方向的对应关系，而不只是生成一张彩色图。补充：动手前可以先跑 Notebook <code>实验_卷积与边缘.ipynb</code>，它保留了带符号的 <code>gx</code>、幅值、Canny 的并排显示，可以拖动噪声、平滑尺度和 Canny 阈值。Notebook 里没有方向着色，把方向映射到 HSV 的 H、幅值映射到亮度这一步要在这道题里自己做，做出来可以直观看到矩形的四条边方向不同。</li>
 <li><strong><code>2-3_Canny拆解.py</code></strong>（学习计划的题 2-3，自己新建）：把四步中间结果都保存。NMS 可先用四方向量化，再思考插值版本；滞后连接可考虑栈或队列。最后与 OpenCV 输出比较差异原因，而不是追求逐像素完全相同。补充：这道题可以放在 <code>2-1</code> 之后，在自己写的相关运算的基础上接着做。</li>
 </ul></article><nav class="prev-next"><a href="01.html">← 第 1 章 像素与色彩</a><a href="03.html">第 3 章 形态学 →</a></nav>

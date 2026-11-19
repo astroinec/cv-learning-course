@@ -17,9 +17,9 @@
 | `教程_卷积与边缘.md` | 原理与方法边界 |
 | `figures/` | 教程配图和 `实测数字.json`（教程里所有数字的来源） |
 | `../demos/卷积核与边缘响应.html` | 交互演示，浏览器直接打开 |
-| `实验_卷积与边缘.ipynb` | 合成阶跃图上的 Sobel/Canny 互动实验 |
+| `实验_卷积与边缘.ipynb` | 合成阶跃图上的 Sobel/Canny 互动实验，以及用你写的 `correlate2d` 做的三个实验 |
 | `2-1_手写相关运算.py` | 手写二维相关作业 |
-| `tests/check_progress.py` | shape、dtype、恒等核与常量响应检查 |
+| `tests/check_progress.py` | 自动验收，共 5 项：输出契约与恒等核、冲激响应（核不翻转）、reflect 边界、非方形核与 OpenCV 对照、整数输入与符号 |
 | `data/README.md` | 数据与许可说明 |
 | `实验记录.md` | 参数、结果和失败分析模板 |
 
@@ -31,7 +31,7 @@
 python tests/check_progress.py
 ```
 
-未完成时显示 `TODO`；错误显示 `FAIL`；满足基本不变量显示 `PASS`。自动测试只是底线。
+未完成时显示 `TODO`；错误显示 `FAIL`，并说明哪里不对、该查什么；符合作业文档字符串的约定显示 `PASS`。全部完成时最后一行是“通过 5/5”。自动测试只是底线。
 
 ## 通过标准
 

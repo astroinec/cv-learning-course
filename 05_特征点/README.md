@@ -17,9 +17,9 @@
 | `教程_特征点与描述子.md` | Harris、SIFT、ORB 和匹配教程 |
 | `figures/` | 教程配图和 `实测数字.json`（教程里所有数字的来源） |
 | `../demos/Harris响应.html` | 交互演示：两个特征值、k 和窗口大小，浏览器直接打开 |
-| `实验_特征点.ipynb` | 合成棋盘上的角点重复性实验 |
+| `实验_特征点.ipynb` | 合成棋盘上的角点重复性实验；和 `cornerHarris` 对照、亮度与阈值、k 与窗口三个实验 |
 | `5-1_Harris响应.py` | 手写 Harris 响应作业 |
-| `tests/check_progress.py` | shape、有限值、平坦区与角点不变量检查 |
+| `tests/check_progress.py` | 输出契约与平坦区、方块顶点、直边、亮度缩放、参数 k、参数 window_size 六项检查 |
 | `data/README.md` | 数据说明 |
 | `实验记录.md` | 实验记录模板 |
 

@@ -3,6 +3,7 @@
 用法（在仓库根目录运行）：
     python scripts/check_chapter.py 17
     python scripts/check_chapter.py 17 --solutions ../cv-solutions-wt/solutions
+    python scripts/check_chapter.py 25 --solutions ../cv-solutions-wt/solutions --allow-changes   # 新写的章，或者正在改作业和测试
 
 检查内容：
 1. 讲义能否转成网页（小测格式、提示框、链接和配图文件是否存在）。
@@ -153,6 +154,14 @@ def run_tests(ch: dict, solutions: str | None) -> None:
 
     first = run({})
     print("初始作业：", first)
+    try:
+        raw = subprocess.run([sys.executable, str(script)], cwd=ROOT, capture_output=True, text=True, timeout=900,
+                             env={k: v for k, v in os.environ.items() if k != "COURSE_IMPL_DIR"}).stdout
+        bad = [l for l in raw.splitlines() if l.lstrip().startswith(("[PASS", "[FAIL", "[ OK"))]
+        if bad:
+            ERRORS.append(f"初始作业的输出里出现了 PASS 或 FAIL（应全部是 TODO）：{bad[:2]}")
+    except subprocess.TimeoutExpired:
+        pass
     if isinstance(first, tuple) and first[0] != 0:
         ERRORS.append(f"初始作业不应有测试通过（{first[0]}/{first[1]}），检查是否把答案写进了作业文件")
     if solutions:
@@ -193,7 +202,8 @@ def main() -> int:
     ERRORS.extend(B.WARNINGS)
     check_math(body)
     check_structure(text, body, ch)
-    check_untouched(ch)
+    if "--allow-changes" not in sys.argv:
+        check_untouched(ch)
     run_tests(ch, solutions)
     for msg in NOTES:
         print("提醒：", msg)

@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -64,9 +64,9 @@
 
 <blockquote>
 <p>配套练习：<code>DL-3 卷积核可视化</code> | <code>DL-4 CIFAR-10 从零训练</code><br />
-本章目标：不把 CNN 当成一串层名。你将能手算每层张量 shape、参数量和感受野，理解池化、BatchNorm 与残差连接的作用，并在 Apple Silicon 的 MPS 上跑通一套可检查的训练流程。</p>
+本章目标：不把 CNN 当成一串层名。你将能手算每层张量 shape、参数量和感受野，理解池化、BatchNorm 与残差连接的作用，并在自己的显卡上（NVIDIA 显卡用 CUDA，Apple Silicon 用 MPS，都没有就用 CPU）跑通一套可检查的训练流程。</p>
 </blockquote>
-<p>自动验收的作业是 <a href="../../09_CNN核心/作业_卷积shape与残差块.py"><code>作业_卷积shape与残差块.py</code></a>（输出尺寸公式和一个残差块的 <code>forward</code>）。上面写的 DL-3 和 DL-4 是扩展练习，章节目录里没有现成的文件，题目在 <a href="../../视觉算法学习计划.md"><code>视觉算法学习计划.md</code></a> 的“第 2 天：CNN 核心理解”一节（题 DL-3、题 DL-4），需要自己新建文件完成。原讲义面向 Apple Silicon 的 MPS；用 NVIDIA 显卡时设备怎么选、显存怎么看，见 9.9 节新增的小节。</p>
+<p>自动验收的作业是 <a href="../../09_CNN核心/作业_卷积shape与残差块.py"><code>作业_卷积shape与残差块.py</code></a>（输出尺寸公式和一个残差块的 <code>forward</code>）。上面写的 DL-3 和 DL-4 是扩展练习，章节目录里没有现成的文件，题目在 <a href="../../视觉算法学习计划.md"><code>视觉算法学习计划.md</code></a> 的“第 2 天：CNN 核心理解”一节（题 DL-3、题 DL-4），需要自己新建文件完成。设备怎么选、显存怎么看在 9.9 节：先讲 NVIDIA 显卡的 CUDA，Apple Silicon 的 MPS 作为另一种情况放在后面。</p>
 <hr />
 <h2 id="0-本章怎么学">0. 本章怎么学</h2>
 <p><strong>应用场景</strong>：分类、检测、分割骨干网络的共同基础。第 10 章的迁移学习、第 11 章的检测、第 12 章的分割、第 19 章的 PatchCore，用的都是卷积骨干网络。看懂一个骨干每层输出多大、一个位置能看多大范围、BN 在训练和推理时差在哪、网络加深后为什么要有捷径，是用好它们的前提。</p>
@@ -90,8 +90,8 @@
 <tr>
 <td>标准</td>
 <td style="text-align: right;">10 小时</td>
-<td>读完全章，跑 Notebook，完成 <code>作业_卷积shape与残差块.py</code> 并验收通过，按 9.10 节做两项自检，做 9.13 节前三个破坏实验，填实验记录；按 9.9 节在自己机器上确认显卡可用，量一次训练时的显存峰值</td>
-<td>验收 PASS，两项自检通过；实验记录里有一组手算和实际输出尺寸的对照、一个边界失败案例；自测问题都能答</td>
+<td>读完全章，跑 Notebook，完成 <code>作业_卷积shape与残差块.py</code> 并验收通过，把 9.10 节的两项检查自己动手复现一遍，做 9.13 节前三个破坏实验，填实验记录；按 9.9 节在自己机器上确认显卡可用，量一次训练时的显存峰值</td>
+<td>验收 8 项全部 PASS，9.10 节的两项检查自己复现过；实验记录里有一组手算和实际输出尺寸的对照、一个边界失败案例；自测问题都能答</td>
 </tr>
 <tr>
 <td>深挖</td>
@@ -195,7 +195,7 @@ W_out 同理
 <p>两个和作业直接有关的细节：</p>
 <ul>
 <li><strong>向下取整要对负数也成立</strong>。输入 2、核 3、步长 2、无填充时，分子是 -1，正确的做法是拒绝。如果写成先做浮点除法再 <code>int()</code>，<code>int(-0.5)</code> 是 0，加 1 之后返回 1，一个放不下的卷积被算成了“输出 1 个像素”。上面的组合里，这种写法在 223 种本该拒绝的情况下返回了正数。</li>
-<li><strong>验收脚本的三个算例都能整除</strong>（32 到 32、31 到 16、15 到 15），所以向上取整、四舍五入、向零取整的写法都能通过验收（实测如此）。要自己多试两个：输入 32、核 3、步长 2、无填充应得 15（向上取整会得 16）；输入 32、核 3、步长 3、无填充应得 10（四舍五入会得 11）。</li>
+<li><strong>能整除的算例分不出取整方式</strong>。32 到 32、31 到 16、15 到 15 这三个算例都能整除，向上取整、四舍五入、向零取整的写法在这三个算例上和正确写法结果相同（实测如此）。要用除不尽的算例才分得开：输入 32、核 3、步长 2、无填充应得 15（向上取整会得 16）；输入 32、核 3、步长 3、无填充应得 10（四舍五入会得 11）。验收脚本里这两类算例都有，另外把 1890 种参数组合和 PyTorch 卷积的实际输出逐个比，这三种取整写法分别有 659、330、75 种对不上。</li>
 </ul>
 <h3 id="实测二向下取整丢掉了什么">实测二：向下取整丢掉了什么</h3>
 <p>公式里除以步长有余数时，多出来的那几行几列放不下一个完整的窗口，直接被丢掉。把核换成全 1，对输出的总和求梯度，梯度为 0 的输入像素就是没有被任何窗口读到的像素。</p>
@@ -1022,10 +1022,19 @@ y = ReLU(F(x) + x)
                                    <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">c_out</span><span class="p">)))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">z</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="c1"># 自己写。步骤见下面的文字说明，这也是本章作业要你完成的部分。</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 </code></pre></div>
+<p><code>forward</code> 这里不给代码。它和本章作业 <code>BasicResidualBlock.forward</code> 做的是同一件事，只多了一个 <code>self.skip</code>，照下面四步自己写一遍：</p>
+<ol>
+<li><strong>残差分支的前半段</strong>：<code>x</code> 依次经过 <code>conv1</code>、<code>bn1</code>，再过一次 ReLU，得到中间结果，下面叫它 <code>z</code>。</li>
+<li><strong>残差分支的后半段</strong>：<code>z</code> 依次经过 <code>conv2</code>、<code>bn2</code>。这里先不过 ReLU。</li>
+<li><strong>捷径</strong>：<code>x</code> 经过 <code>self.skip</code>。尺寸和通道都没变时它是恒等映射，变了时它是 1×1 卷积加 BN 的投影，作用是把 <code>x</code> 变成和 <code>z</code> 一样的 shape。</li>
+<li><strong>相加</strong>：把第 2 步的 <code>z</code> 和第 3 步的结果加起来，相加之后再过一次 ReLU，作为这个块的输出。</li>
+</ol>
+<p>容易写错的地方有三处：第 2 步之后多加一次 ReLU；第 4 步忘了加捷径，或者忘了最后的 ReLU；把某一层写成了另一层的名字。作业的验收脚本对这三处都有检查。</p>
+<div class="callout callout-note"><div class="callout-title">说明</div><p>原讲义在这里给了 <code>forward</code> 的完整代码，它等于本章作业的答案，所以换成了上面的文字步骤。完整实现在你完成作业并通过验收之后，可以对照参考答案分支（<code>solutions</code> 分支）里 <code>solutions/09_CNN核心/作业_卷积shape与残差块.py</code> 的 <code>forward</code>；torchvision 的 <code>torchvision.models.resnet.BasicBlock</code> 源码也是同样的结构，多一个下采样的捷径。</p>
+</div>
 <p>调试残差块时，先分别打印 <code>z.shape</code> 与 <code>self.skip(x).shape</code>；报错常常不是残差思想有问题，而是 stride 或通道没对齐。</p>
 <h3 id="更正外层的-relu-也在恒等路径上">更正：外层的 ReLU 也在恒等路径上</h3>
 <p>上面写 <code>y = ReLU(F(x) + x)</code>，接着写 <code>∂y/∂x = ∂F/∂x + 1</code>。后一个式子漏了外层 ReLU 的导数，按前一个式子应该是</p>
@@ -1268,12 +1277,20 @@ y = ReLU(F(x) + x)
 <li><strong>有 8 个核几乎是 0</strong>，范数不到最大核的 5%，最小的只有最大核的 2e-08。上面那段可视化代码是按每个核各自的最小、最大值归一化的，这 8 个核会被拉到和别的核一样的对比度，画出来像有内容的纹理。这正是上面说的“各自归一化会夸大微弱噪声”。画的时候加一张整层统一归一化的图，或者把每个核的范数一起打印出来。</li>
 </ol>
 <hr />
-<h2 id="99-在-apple-silicon-mps-上训练-cifar-10">9.9 在 Apple Silicon / MPS 上训练 CIFAR-10</h2>
-<p>先建立一个能在 CPU 与 MPS 间切换的最小闭环：</p>
+<h2 id="99-在自己的显卡上训练-cifar-10先-cuda再-mps">9.9 在自己的显卡上训练 CIFAR-10（先 CUDA，再 MPS）</h2>
+<p>这门课默认你用的是 Windows 加 NVIDIA 显卡的机器，所以这一节先按 CUDA 讲：设备怎么选、怎样确认显卡真的在用、显存怎么看、批大小怎么定。Apple Silicon 的 MPS 是另一种情况，原讲义针对它写的内容保留在本节最后的小节里。训练循环本身和设备无关，下面的代码在三种机器上都能跑，有 NVIDIA 显卡时用 CUDA，Apple Silicon 上用 MPS，都没有就用 CPU。</p>
+<p>先建立一个能在 CUDA、MPS 与 CPU 间切换的最小闭环：</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
-<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mps"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>                  <span class="c1"># NVIDIA 显卡</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>        <span class="c1"># Apple Silicon</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mps"</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_name</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span>
+
 <span class="n">model</span> <span class="o">=</span> <span class="n">SmallCNN</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 <span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
 <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)</span>
@@ -1287,26 +1304,10 @@ y = ReLU(F(x) + x)
     <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
 </code></pre></div>
 <p>CIFAR-10 输入应为 <code>[B,3,32,32]</code>，标签为 <code>[B]</code> 的 <code>torch.long</code>，模型输出 <code>[B,10]</code>。<code>CrossEntropyLoss</code> 直接接 logits，不要先手动 softmax。训练集可做随机裁剪、水平翻转和归一化；验证集只能做确定性变换与同样的归一化。</p>
-<p>MPS 实践建议按以下顺序：</p>
-<ol>
-<li>先用 <code>num_workers=0</code>、小 batch 跑通一个 batch，再逐步增大；</li>
-<li>模型、输入、标签必须在同一设备，调试时打印它们的 <code>.device</code>；</li>
-<li>教学阶段先用 <code>float32</code>，不要一开始就混合精度；</li>
-<li>遇到 MPS 不支持的算子，先定位具体算子和 PyTorch 版本，不要让整套实验静默切回 CPU；</li>
-<li>每轮验证前调用 <code>model.eval()</code>，配合 <code>torch.no_grad()</code>，下一轮训练再 <code>model.train()</code>；</li>
-<li>保存验证集最佳 <code>state_dict</code>，同时记录随机种子、学习率、batch size 和数据变换。</li>
-</ol>
+<p><code>train_loader</code> 在 Windows 上先用 <code>DataLoader(..., num_workers=0)</code>，并且把训练脚本的入口写在 <code>if __name__ == "__main__":</code> 里。Windows 启动数据加载的子进程时会重新导入一遍脚本，入口不这样写、<code>num_workers</code> 又大于 0 时会报错。跑通之后再考虑加大 <code>num_workers</code>。</p>
 <p>正式训练前一定做“小样本过拟合测试”：固定 16～32 张图，关闭强增强，让模型把训练准确率推到接近 100%。如果做不到，优先检查标签、输出 shape、参数是否更新、学习率和 loss，而不是先换更大的网络。</p>
 <h3 id="用-nvidia-显卡时确认可用看显存定批大小">用 NVIDIA 显卡时：确认可用、看显存、定批大小</h3>
-<p>上面的代码只在 MPS 和 CPU 之间选。用 NVIDIA 显卡时把设备那一行换成三选一，代码在三种机器上都能跑：</p>
-<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
-    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">)</span>
-<span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
-    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mps"</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_device_name</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span> <span class="k">else</span> <span class="s2">""</span><span class="p">)</span>
-</code></pre></div>
+<p>上面的代码已经是三选一的写法，有 NVIDIA 显卡时第一行打印出来的应该是 <code>cuda</code> 和显卡的名字。打印的是 <code>cpu</code> 就先按下面的第一步排查，不要急着训练。</p>
 <p>本章的实验都是在没有 CUDA 的机器上用 CPU 跑的，下面只写通用的做法，没有任何显卡上的数字，表格留给你自己填。</p>
 <p><strong>第一步：确认显卡可用</strong>。<code>torch.cuda.is_available()</code> 返回 <code>False</code> 时先不要训练，否则会不知不觉在 CPU 上跑。常见原因是装的是不带 CUDA 的 PyTorch，或者显卡驱动有问题。在终端运行 <code>nvidia-smi</code>，能看到显卡型号和驱动版本说明驱动正常；再按 PyTorch 官网的安装选择器重装带 CUDA 的版本。</p>
 <p><strong>第二步：知道显存花在哪</strong>。训练时的显存大致分三块：</p>
@@ -1422,6 +1423,20 @@ y = ReLU(F(x) + x)
 </tbody>
 </table></div>
 <p>显存不够时 PyTorch 抛出的是 <code>torch.cuda.OutOfMemoryError</code>。出现之后先减小批再重跑；如果在交互环境里，删掉不用的张量再调用 <code>torch.cuda.empty_cache()</code>，否则已经占住的显存不会还回去。</p>
+<h3 id="另一种情况apple-silicon-的-mps">另一种情况：Apple Silicon 的 MPS</h3>
+<p>原讲义是按 Apple Silicon 写的，设备那一行只在 MPS 和 CPU 之间选：</p>
+<div class="highlight"><pre><span></span><code><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"mps"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
+</code></pre></div>
+<p>本节开头三选一的写法已经包含了它，用 Mac 学的时候不用改代码。上面“看显存”那几步用的是 <code>torch.cuda</code> 的接口，只对 NVIDIA 显卡有效，在 MPS 上不适用。</p>
+<p>MPS 实践建议按以下顺序（除了第 4 条只和 MPS 有关，其余几条用 CUDA 时同样适用）：</p>
+<ol>
+<li>先用 <code>num_workers=0</code>、小 batch 跑通一个 batch，再逐步增大；</li>
+<li>模型、输入、标签必须在同一设备，调试时打印它们的 <code>.device</code>；</li>
+<li>教学阶段先用 <code>float32</code>，不要一开始就混合精度；</li>
+<li>遇到 MPS 不支持的算子，先定位具体算子和 PyTorch 版本，不要让整套实验静默切回 CPU；</li>
+<li>每轮验证前调用 <code>model.eval()</code>，配合 <code>torch.no_grad()</code>，下一轮训练再 <code>model.train()</code>；</li>
+<li>保存验证集最佳 <code>state_dict</code>，同时记录随机种子、学习率、batch size 和数据变换。</li>
+</ol>
 <hr />
 <h2 id="910-与-dl-3dl-4-的连接">9.10 与 DL-3、DL-4 的连接</h2>
 <h3 id="dl-3从看图升级为可比较实验">DL-3：从“看图”升级为可比较实验</h3>
@@ -1431,11 +1446,13 @@ y = ReLU(F(x) + x)
 <p>先做一个小型基线：两到三个 <code>Conv-BN-ReLU</code> 模块，逐步下采样，最后全局平均池化加线性分类器。然后一次只改一个因素：有无 BN、MaxPool 与 stride 卷积、普通块与残差块。记录参数量、最好验证准确率、训练/验证 loss 曲线和单轮耗时。</p>
 <p>实验结论不能只写“ResNet 更好”。应回答：训练误差是否更低，说明优化更容易？验证提升是否只是参数更多？加入 BN 后是否允许更大学习率？若训练准确率上升而验证下降，那是过拟合，不是架构一定更强。</p>
 <h3 id="作业卷积输出尺寸与残差块自动验收">作业：卷积输出尺寸与残差块（自动验收）</h3>
-<p><code>作业_卷积shape与残差块.py</code> 里有两个 TODO：<code>conv_output_size</code> 按 9.2 节的公式算单个方向的输出长度，要带膨胀、向下取整、拒绝非正的输出；<code>BasicResidualBlock.forward</code> 按文档字符串的顺序把已经定义好的四层接起来，加上输入，再过 ReLU。完成后运行 <code>python tests/check_progress.py</code>。</p>
-<p>验收脚本查得很松：尺寸只查三个都能整除的算例，残差块只查输出的 shape、数值有限、梯度能传回输入。实测下来，向上取整或四舍五入的尺寸函数、去掉了捷径和最后的 ReLU 的块，都能得到 2/2 PASS。所以通过验收之后再做两项自检：</p>
+<p><code>作业_卷积shape与残差块.py</code> 里有两个 TODO：<code>conv_output_size</code> 按 9.2 节的公式算单个方向的输出长度，要带膨胀、向下取整、拒绝非正的输出（抛出 <code>ValueError</code>）；<code>BasicResidualBlock.forward</code> 按文档字符串的顺序把已经定义好的四层接起来，加上输入，再过 ReLU，并且不能原地修改输入。完成后运行 <code>python tests/check_progress.py</code>。</p>
+<p>验收一共 8 项。前 4 项查尺寸函数：能整除的算例和输出正好是 1 的边界、除不尽时的取整、放不下时抛出 <code>ValueError</code>、和 PyTorch 卷积的实际输出逐个比。后 4 项查残差块：shape、输出非负、梯度和不改输入；关掉残差分支后只剩捷径；<code>bn1</code> 之后的激活；和 torchvision 自带的 <code>BasicBlock</code> 用同一组权重逐元素对照。某一项 FAIL 时，提示里会写是哪组参数、差多少、该查哪里。</p>
+<p>这份验收最早只有两项：尺寸只查三个都能整除的算例，残差块只查输出的 shape、数值有限、梯度能传回输入。那时向上取整或四舍五入的尺寸函数、去掉了捷径和最后的 ReLU 的块，都能全部 PASS。现在把参考实现改成这些写法再运行验收，每一种都至少有 2 项 FAIL（实测：向上取整 3 项，不拒绝非正输出 2 项，去掉捷径 3 项，去掉捷径和最后的 ReLU 4 项）。</p>
+<p>下面两项检查就是验收里做的事。通过验收之后自己在交互环境里各复现一遍，以后调别的网络结构时用的是同样的办法：</p>
 <ol>
 <li><strong>尺寸</strong>：输入 32、核 3、步长 2、无填充应得 15；输入 32、核 3、步长 3、无填充应得 10；输入 2、核 3、步长 2、无填充应该拒绝（参考实现抛出 <code>ValueError</code>）。有空的话像 9.2 节那样，用一批随机的参数组合和 <code>torch.nn.functional.conv2d</code> 的实际输出逐个比。</li>
-<li><strong>残差块</strong>：把第二个 BN 的 γ 置 0（<code>nn.init.zeros_(block.bn2.weight)</code>），切到推理模式，这时残差分支的输出是 0，整个块的输出应该和 <code>torch.relu(x)</code> 完全相同。参考实现的最大差是 0；去掉捷径的块差 3.35。再看一眼输出里有没有负数：正确的块没有，漏了最后的 ReLU 的块有 41.3% 是负数。</li>
+<li><strong>残差块</strong>：把第二个 BN 的 γ 置 0（<code>nn.init.zeros_(block.bn2.weight)</code>），切到推理模式，这时残差分支的输出是 0，整个块的输出应该和 <code>torch.relu(x)</code> 完全相同。参考实现的最大差是 0；去掉捷径的块差 3.35。再看一眼输出里有没有负数：正确的块没有，漏了最后的 ReLU 的块有 41.3% 是负数。验收里还把 BN 的偏移设成了逐通道的常数，这样相加之前多做一次 ReLU 的写法也分得出来。</li>
 </ol>
 <h3 id="给题-dl-4-的两个数">给题 DL-4 的两个数</h3>
 <p><code>视觉算法学习计划.md</code> 里题 DL-4 推荐的起点结构是三个 Conv-BN-ReLU-MaxPool 块，展平后接两层全连接（上面的基线用的是全局平均池化加线性分类器，两种都可以当起点）。只数个数：推荐结构的总参数是 620810 个，其中第一个全连接层 524544 个，占 84.5%；乘加次数里卷积占 95.1%（10.32 百万对 0.53 百万）。把展平加两层全连接换成全局平均池化加一层 128 到 10 的全连接，总参数降到 94986 个。“展平还是全局池化”值得作为 DL-4 的一个对照因素，9.1 节图 1 说明了它们在位置泛化上的差别，在 CIFAR-10 上差多少要你自己测。</p>
@@ -1450,11 +1467,11 @@ y = ReLU(F(x) + x)
 <li><strong>batch 太小却强依赖 BN</strong>：观察 running statistics，必要时冻结 BN 或换 GroupNorm。</li>
 <li><strong>残差两支 shape 不同</strong>：检查通道数、stride，并用 <code>1×1</code> 投影对齐。</li>
 <li><strong>只看参数量判断速度</strong>：高分辨率激活与内存访问也可能是瓶颈，应实测延迟。</li>
-<li><strong>MPS device mismatch</strong>：模型、输入、标签和临时新建张量都要在同一设备。</li>
+<li><strong>MPS device mismatch</strong>：模型、输入、标签和临时新建张量都要在同一设备。用 CUDA 时是同一个问题，报错信息里写的是 <code>cuda:0</code> 和 <code>cpu</code>。</li>
 <li><strong>一开始就跑完整数据</strong>：先过拟合极小样本；这个测试失败时，长时间训练没有意义。</li>
 </ol>
 <p>推荐排查顺序：先确认一个 batch 的输入、标签和输出 shape；再确认 loss 有限且参数梯度非零；然后做小样本过拟合；最后才扩大数据、加增强和比较架构。</p>
-<p>把上面的条目和本章实测到的情况合起来，按现象查。前六行是做作业时最容易遇到的。</p>
+<p>把上面的条目和本章实测到的情况合起来，按现象查。前七行是做作业时最容易遇到的，验收脚本对每一行都有对应的检查。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1465,14 +1482,14 @@ y = ReLU(F(x) + x)
 </thead>
 <tbody>
 <tr>
-<td>尺寸函数验收通过，换个输入就和 PyTorch 差 1</td>
-<td>用了向上取整或四舍五入。验收的三个算例都能整除，查不出来</td>
+<td>验收的“除不尽时的取整”一项 FAIL，结果和 PyTorch 差 1</td>
+<td>用了向上取整或四舍五入。能整除的算例上看不出来</td>
 <td>输入 32、核 3、步长 2、无填充应得 15；步长 3 应得 10</td>
 </tr>
 <tr>
-<td>本该报错的组合返回了 1</td>
+<td>验收的“放不下时抛出 ValueError”一项 FAIL，本该报错的组合返回了 1 或 0</td>
 <td>写成 <code>int(x / stride) + 1</code>，负数向零取整；或者没有拒绝非正的输出</td>
-<td>输入 2、核 3、步长 2、无填充，应该抛出异常</td>
+<td>输入 2、核 3、步长 2、无填充，应该抛出 <code>ValueError</code></td>
 </tr>
 <tr>
 <td>带膨胀时算出来偏大</td>
@@ -1480,14 +1497,19 @@ y = ReLU(F(x) + x)
 <td>输入 15、核 3、填充 2、膨胀 2 应得 15</td>
 </tr>
 <tr>
-<td>残差块验收通过，堆深之后训练损失降不下去</td>
-<td><code>forward</code> 里没有加上输入。验收只查 shape 和梯度</td>
-<td>9.10 节的自检：γ 置 0 后输出应等于 <code>torch.relu(x)</code></td>
+<td>验收的“关掉残差分支后只剩捷径”一项 FAIL；不改的话堆深之后训练损失降不下去</td>
+<td><code>forward</code> 里没有加上输入。只查 shape 和梯度是查不出来的</td>
+<td>9.10 节的检查：γ 置 0 后输出应等于 <code>torch.relu(x)</code></td>
 </tr>
 <tr>
 <td>残差块的输出里有负数</td>
 <td>相加之后漏了 ReLU</td>
 <td><code>(y &lt; 0).any()</code> 应为 <code>False</code></td>
+</tr>
+<tr>
+<td>验收报 forward 原地修改了输入，或者反向传播时报 in-place 的错</td>
+<td>相加时写成了 <code>x += ...</code>，或者把原地的 ReLU 作用在了 <code>x</code> 上</td>
+<td>前向之前先 <code>x.clone()</code> 存一份，前向之后比较两者是否相同</td>
 </tr>
 <tr>
 <td>相加时报 shape 不一致</td>
@@ -1575,8 +1597,8 @@ y = ReLU(F(x) + x)
 <h2 id="913-破坏实验">9.13 破坏实验</h2>
 <p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
 <ol>
-<li>Notebook 里把 <code>stride</code> 改成 2、<code>padding</code> 改成 0，先用公式预测输出尺寸，以及有几行几列没有被读到，再运行。然后把图像边长从 32 改成 31（<code>formula</code> 那一行里的 32 也要跟着改），输出尺寸变不变？</li>
-<li>在自己的作业文件旁边另存一份，把 <code>BasicResidualBlock.forward</code> 里“加上输入”去掉，运行验收，预测它是 PASS 还是 FAIL。再做 9.10 节的 γ 置 0 自检，看哪一个能查出来。</li>
+<li>Notebook 里把 <code>stride</code> 改成 2、<code>padding</code> 改成 0，先用公式预测输出尺寸，以及有几行几列没有被读到，再运行。然后把参数格里的图像边长 <code>size</code> 从 32 改成 31，输出尺寸变不变？</li>
+<li>把自己的作业文件先备份一份，再把 <code>BasicResidualBlock.forward</code> 里“加上输入”去掉，运行验收。先预测残差块的 4 项里哪几项变成 FAIL，“shape、输出非负、梯度、不改输入”那一项为什么查不出来。再做 9.10 节的 γ 置 0 检查，看差多少。做完把备份恢复回去。</li>
 <li>用你的残差块搭一个小网络，固定 16 张图训练 30 步，分别在 <code>model.train()</code> 和 <code>model.eval()</code> 下算这 16 张图的准确率，先预测哪个高。再训练到 100 步重复一次，和图 5 右栏对照。</li>
 <li>在 <code>CrossEntropyLoss</code> 前面多加一个 softmax，训练一个 10 类的小网络，预测损失会停在多少。和 9.11 节的 1.461 对照。</li>
 <li>搭一个三层步长 2 的小 CNN（随机初始化即可），把输入循环平移 1 px，比较全局平均之后的特征变化了百分之几。把步长 2 的卷积换成步长 1 的卷积加 2×2 平均池化，再测一次，和图 3 对照。</li>
@@ -1616,13 +1638,13 @@ y = ReLU(F(x) + x)
 <li>[ ] 我能解释 BN 在 train/eval 模式下为何不同，以及小 batch 的风险。</li>
 <li>[ ] 我能解释残差连接为什么缓解退化，并判断何时需要投影捷径。</li>
 <li>[ ] 我不会把高层卷积核直接当 RGB 图解释，也会标注可视化归一化方式。</li>
-<li>[ ] 我能在 MPS 上跑通一个 batch，并确认所有张量位于同一设备。</li>
+<li>[ ] 我能在自己的设备上（CUDA、MPS 或 CPU）跑通一个 batch，并确认所有张量位于同一设备。</li>
 <li>[ ] 我会先做 16～32 张图的小样本过拟合测试。</li>
 <li>[ ] DL-3 会比较训练前后和不同层，而不是只保存一张“好看的图”。</li>
 <li>[ ] DL-4 会固定数据划分，一次只改变一个因素，并保存验证集最佳权重。</li>
 </ul>
 <p>确认完了，打开 <code>09_CNN核心/</code>，先完成 DL-3 的可视化，再用 DL-4 把 shape、BN、残差与训练曲线串成一个完整实验。</p>
-<p>动手的顺序：先完成自动验收的 <code>作业_卷积shape与残差块.py</code> 并做 9.10 节的两项自检；DL-3 和 DL-4 是扩展练习，题目在 <code>视觉算法学习计划.md</code>。</p>
+<p>动手的顺序：先完成自动验收的 <code>作业_卷积shape与残差块.py</code>，并把 9.10 节的两项检查自己复现一遍；DL-3 和 DL-4 是扩展练习，题目在 <code>视觉算法学习计划.md</code>。</p>
 <hr />
 <h2 id="自测问题">自测问题</h2>
 <p>速通档答小测，标准档把下面的问题答一遍。</p>
@@ -1637,7 +1659,7 @@ y = ReLU(F(x) + x)
 </ol></article><nav class="prev-next"><a href="08.html">← 第 8 章 神经网络基础</a><a href="10.html">第 10 章 迁移学习与模型分析 →</a></nav>
   </main>
   <aside class="toc" aria-label="本页目录">
-<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#91-为什么图像更适合卷积而不是全连接">9.1 为什么图像更适合卷积，而不是全连接</a></li><li class="sub"><a href="#实测换个位置还认不认得">实测：换个位置还认不认得</a></li><li><a href="#92-三项基本功shape参数量计算量">9.2 三项基本功：shape、参数量、计算量</a></li><li class="sub"><a href="#输出-shape-怎么算">输出 shape 怎么算</a></li><li class="sub"><a href="#参数量怎么算">参数量怎么算</a></li><li class="sub"><a href="#参数少不等于计算少">参数少不等于计算少</a></li><li class="sub"><a href="#实测一公式和-pytorch-逐个比">实测一：公式和 PyTorch 逐个比</a></li><li class="sub"><a href="#实测二向下取整丢掉了什么">实测二：向下取整丢掉了什么</a></li><li class="sub"><a href="#实测三参数量乘加次数和耗时">实测三：参数量、乘加次数和耗时</a></li><li><a href="#93-paddingstride-与-pooling如何改变空间信息">9.3 padding、stride 与 pooling：如何改变空间信息</a></li><li class="sub"><a href="#padding边界也值得被看见">Padding：边界也值得被看见</a></li><li class="sub"><a href="#stride跳着看">Stride：跳着看</a></li><li class="sub"><a href="#pooling固定规则的局部汇总">Pooling：固定规则的局部汇总</a></li><li class="sub"><a href="#实测边上的像素被读到几次">实测：边上的像素被读到几次</a></li><li class="sub"><a href="#实测步长和补边怎样破坏平移等变">实测：步长和补边怎样破坏平移等变</a></li><li><a href="#94-感受野一个高层神经元到底看了多大范围">9.4 感受野：一个高层神经元到底看了多大范围</a></li><li class="sub"><a href="#实测公式和梯度对得上吗">实测：公式和梯度对得上吗</a></li><li class="sub"><a href="#实测有效感受野有多大">实测：有效感受野有多大</a></li><li class="sub"><a href="#一个真实的骨干resnet-18">一个真实的骨干：ResNet-18</a></li><li class="sub"><a href="#交互演示卷积尺寸与感受野计算器">交互演示：卷积尺寸与感受野计算器</a></li><li><a href="#95-batchnorm稳定的尺度而不是魔法加速器">9.5 BatchNorm：稳定的尺度，而不是魔法加速器</a></li><li class="sub"><a href="#实测同一张图换一批同伴">实测：同一张图，换一批同伴</a></li><li class="sub"><a href="#实测running-统计要多少步才跟上">实测：running 统计要多少步才跟上</a></li><li class="sub"><a href="#实测小样本过拟合时推理模式来得晚">实测：小样本过拟合时，推理模式来得晚</a></li><li class="sub"><a href="#实测卷积的偏置接-bn-是多余的">实测：卷积的偏置接 BN 是多余的</a></li><li><a href="#96-从-lenet-到-efficientnet架构是在解决什么问题">9.6 从 LeNet 到 EfficientNet：架构是在解决什么问题</a></li><li class="sub"><a href="#数一数这些结构的参数和计算量在哪">数一数：这些结构的参数和计算量在哪</a></li><li><a href="#97-resnet让网络至少学会什么也不改">9.7 ResNet：让网络至少学会“什么也不改”</a></li><li class="sub"><a href="#更正外层的-relu-也在恒等路径上">更正：外层的 ReLU 也在恒等路径上</a></li><li class="sub"><a href="#实测初始化时梯度随深度怎么变">实测：初始化时，梯度随深度怎么变</a></li><li class="sub"><a href="#实测能不能训练起来">实测：能不能训练起来</a></li><li class="sub"><a href="#投影捷径丢掉了多少输入">投影捷径丢掉了多少输入</a></li><li><a href="#98-卷积核与特征图可视化网络学到了什么">9.8 卷积核与特征图可视化：网络学到了什么</a></li><li class="sub"><a href="#实测像不像-sobel要先有基线">实测：像不像 Sobel，要先有基线</a></li><li><a href="#99-在-apple-silicon-mps-上训练-cifar-10">9.9 在 Apple Silicon / MPS 上训练 CIFAR-10</a></li><li class="sub"><a href="#用-nvidia-显卡时确认可用看显存定批大小">用 NVIDIA 显卡时：确认可用、看显存、定批大小</a></li><li><a href="#910-与-dl-3dl-4-的连接">9.10 与 DL-3、DL-4 的连接</a></li><li class="sub"><a href="#dl-3从看图升级为可比较实验">DL-3：从“看图”升级为可比较实验</a></li><li class="sub"><a href="#dl-4每次改动都要能解释">DL-4：每次改动都要能解释</a></li><li class="sub"><a href="#作业卷积输出尺寸与残差块自动验收">作业：卷积输出尺寸与残差块（自动验收）</a></li><li class="sub"><a href="#给题-dl-4-的两个数">给题 DL-4 的两个数</a></li><li><a href="#911-常见坑与排查顺序常见错误">9.11 常见坑与排查顺序（常见错误）</a></li><li><a href="#912-怎样评估一个网络结构">9.12 怎样评估一个网络结构</a></li><li><a href="#913-破坏实验">9.13 破坏实验</a></li><li><a href="#914-扩展深挖档">9.14 扩展（深挖档）</a></li><li><a href="#915-和后续章节的关系">9.15 和后续章节的关系</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li><li><a href="#自测问题">自测问题</a></li></ul>
+<div class="toc-title">本页目录</div><ul><li><a href="#0-本章怎么学">0. 本章怎么学</a></li><li><a href="#91-为什么图像更适合卷积而不是全连接">9.1 为什么图像更适合卷积，而不是全连接</a></li><li class="sub"><a href="#实测换个位置还认不认得">实测：换个位置还认不认得</a></li><li><a href="#92-三项基本功shape参数量计算量">9.2 三项基本功：shape、参数量、计算量</a></li><li class="sub"><a href="#输出-shape-怎么算">输出 shape 怎么算</a></li><li class="sub"><a href="#参数量怎么算">参数量怎么算</a></li><li class="sub"><a href="#参数少不等于计算少">参数少不等于计算少</a></li><li class="sub"><a href="#实测一公式和-pytorch-逐个比">实测一：公式和 PyTorch 逐个比</a></li><li class="sub"><a href="#实测二向下取整丢掉了什么">实测二：向下取整丢掉了什么</a></li><li class="sub"><a href="#实测三参数量乘加次数和耗时">实测三：参数量、乘加次数和耗时</a></li><li><a href="#93-paddingstride-与-pooling如何改变空间信息">9.3 padding、stride 与 pooling：如何改变空间信息</a></li><li class="sub"><a href="#padding边界也值得被看见">Padding：边界也值得被看见</a></li><li class="sub"><a href="#stride跳着看">Stride：跳着看</a></li><li class="sub"><a href="#pooling固定规则的局部汇总">Pooling：固定规则的局部汇总</a></li><li class="sub"><a href="#实测边上的像素被读到几次">实测：边上的像素被读到几次</a></li><li class="sub"><a href="#实测步长和补边怎样破坏平移等变">实测：步长和补边怎样破坏平移等变</a></li><li><a href="#94-感受野一个高层神经元到底看了多大范围">9.4 感受野：一个高层神经元到底看了多大范围</a></li><li class="sub"><a href="#实测公式和梯度对得上吗">实测：公式和梯度对得上吗</a></li><li class="sub"><a href="#实测有效感受野有多大">实测：有效感受野有多大</a></li><li class="sub"><a href="#一个真实的骨干resnet-18">一个真实的骨干：ResNet-18</a></li><li class="sub"><a href="#交互演示卷积尺寸与感受野计算器">交互演示：卷积尺寸与感受野计算器</a></li><li><a href="#95-batchnorm稳定的尺度而不是魔法加速器">9.5 BatchNorm：稳定的尺度，而不是魔法加速器</a></li><li class="sub"><a href="#实测同一张图换一批同伴">实测：同一张图，换一批同伴</a></li><li class="sub"><a href="#实测running-统计要多少步才跟上">实测：running 统计要多少步才跟上</a></li><li class="sub"><a href="#实测小样本过拟合时推理模式来得晚">实测：小样本过拟合时，推理模式来得晚</a></li><li class="sub"><a href="#实测卷积的偏置接-bn-是多余的">实测：卷积的偏置接 BN 是多余的</a></li><li><a href="#96-从-lenet-到-efficientnet架构是在解决什么问题">9.6 从 LeNet 到 EfficientNet：架构是在解决什么问题</a></li><li class="sub"><a href="#数一数这些结构的参数和计算量在哪">数一数：这些结构的参数和计算量在哪</a></li><li><a href="#97-resnet让网络至少学会什么也不改">9.7 ResNet：让网络至少学会“什么也不改”</a></li><li class="sub"><a href="#更正外层的-relu-也在恒等路径上">更正：外层的 ReLU 也在恒等路径上</a></li><li class="sub"><a href="#实测初始化时梯度随深度怎么变">实测：初始化时，梯度随深度怎么变</a></li><li class="sub"><a href="#实测能不能训练起来">实测：能不能训练起来</a></li><li class="sub"><a href="#投影捷径丢掉了多少输入">投影捷径丢掉了多少输入</a></li><li><a href="#98-卷积核与特征图可视化网络学到了什么">9.8 卷积核与特征图可视化：网络学到了什么</a></li><li class="sub"><a href="#实测像不像-sobel要先有基线">实测：像不像 Sobel，要先有基线</a></li><li><a href="#99-在自己的显卡上训练-cifar-10先-cuda再-mps">9.9 在自己的显卡上训练 CIFAR-10（先 CUDA，再 MPS）</a></li><li class="sub"><a href="#用-nvidia-显卡时确认可用看显存定批大小">用 NVIDIA 显卡时：确认可用、看显存、定批大小</a></li><li class="sub"><a href="#另一种情况apple-silicon-的-mps">另一种情况：Apple Silicon 的 MPS</a></li><li><a href="#910-与-dl-3dl-4-的连接">9.10 与 DL-3、DL-4 的连接</a></li><li class="sub"><a href="#dl-3从看图升级为可比较实验">DL-3：从“看图”升级为可比较实验</a></li><li class="sub"><a href="#dl-4每次改动都要能解释">DL-4：每次改动都要能解释</a></li><li class="sub"><a href="#作业卷积输出尺寸与残差块自动验收">作业：卷积输出尺寸与残差块（自动验收）</a></li><li class="sub"><a href="#给题-dl-4-的两个数">给题 DL-4 的两个数</a></li><li><a href="#911-常见坑与排查顺序常见错误">9.11 常见坑与排查顺序（常见错误）</a></li><li><a href="#912-怎样评估一个网络结构">9.12 怎样评估一个网络结构</a></li><li><a href="#913-破坏实验">9.13 破坏实验</a></li><li><a href="#914-扩展深挖档">9.14 扩展（深挖档）</a></li><li><a href="#915-和后续章节的关系">9.15 和后续章节的关系</a></li><li><a href="#动手前的检查清单">动手前的检查清单</a></li><li><a href="#自测问题">自测问题</a></li></ul>
   </aside>
 </div>
 <div class="mask"></div>

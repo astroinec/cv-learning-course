@@ -18,7 +18,7 @@
 | `../demos/Dice与IoU.html` | 交互演示：调目标大小、预测的偏移和胖瘦，看 Dice 和 IoU 怎么变，浏览器直接打开 |
 | `实验_合成圆形U-Net.ipynb` | 合成 mask、极小 U-Net 与预测可视化 |
 | `作业_Dice与跳跃连接.py` | Dice loss 和 skip 对齐拼接 |
-| `tests/check_progress.py` | 检查 shape、范围、空掩码与梯度 |
+| `tests/check_progress.py` | 检查 Dice 的数值、逐样本平均、空掩码与 eps 的约定、梯度，以及对齐拼接的位置 |
 | `data/README.md` | Oxford-IIIT Pet、ISBI 等来源与许可提示 |
 
 ## 通过标准

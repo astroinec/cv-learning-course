@@ -19,7 +19,7 @@
 | `../demos/IoU与NMS.html` | 交互演示，浏览器直接打开 |
 | `实验_IoU与NMS阈值.ipynb` | 标量 IoU 与贪心抑制的可视化直觉 |
 | `作业_批量IoU与类别NMS.py` | 向量化两两 IoU 与类别感知 NMS |
-| `tests/check_progress.py` | 检查空输入、重合、分离及跨类别情况 |
+| `tests/check_progress.py` | 检查两两 IoU（空输入、面积为 0 的框、小框）和 NMS（原始下标、链式重叠、阈值边界、跨类别） |
 | `data/README.md` | COCO、VOC 等官方来源与许可提示 |
 
 Notebook 只给小规模标量演示；作业要求独立完成批量、空输入和类别隔离逻辑。

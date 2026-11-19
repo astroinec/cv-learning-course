@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -321,7 +321,7 @@ a = \frac{l + r - 2c}{2}, \qquad b = \frac{r - l}{2}
 </table></div>
 <p>偏差的大小和图像内容有关（0.087 对 0.122），所以不能用一个固定的修正量把它减掉。</p>
 <h3 id="63-三种改进">6.3 三种改进</h3>
-<p><strong>迭代</strong>：按当前估计把图移回去，对残差再做一次相位相关，把两次结果相加。残差越接近 0，抛物线的偏差越小。两轮后最大误差从 0.087 降到 0.012。第 24 章的参考流水线用的就是这个办法。</p>
+<p><strong>迭代</strong>：按当前估计把图移回去，对残差再做一次相位相关，把两次结果相加。残差越接近 0，抛物线的偏差越小。两轮后最大误差从 0.087 降到 0.012。第 24 章的参考流水线用的就是这个办法。Notebook 实验 6 用你自己的 <code>phase_correlation</code> 重做这条曲线。</p>
 <p><strong>频谱加权</strong>：白化之后再乘一个权重，把没有信号的频率压下去。最简单的是幅度掩膜，只保留参考图频谱幅度高于最大值 10% 的频率。峰变宽、变光滑，更接近抛物线，最大误差降到 0.014。</p>
 <p><strong>上采样</strong>（Guizar-Sicairos）：在峰值附近用矩阵 DFT 做 10 到 100 倍的局部上采样，直接在更密的网格上找峰。<code>skimage.registration.phase_cross_correlation</code> 用的是这个方法。本章不要求实现，第 13 节有对照实验。</p>
 <h3 id="64-噪声下谁先垮">6.4 噪声下谁先垮</h3>
@@ -415,9 +415,10 @@ a = \frac{l + r - 2c}{2}, \qquad b = \frac{r - l}{2}
 <p>两种数据上的结论相反：</p>
 <ul>
 <li><strong>裁剪视场</strong>（真实相机的情况）：不加窗约有三分之一的样本直接对错，而且 72 次失败里每一次都至少有一个方向的估计值落在 0 附近，正是假边缘在起作用。加窗后全部正确。</li>
-<li><strong>循环平移</strong>（本章测试和第 24 章合成数据的情况）：信号本来就是周期的，没有断口。加窗反而破坏了“两张图互为循环平移”这个关系，误差大了约 9 倍。第 24 章开发时测到的也是这个方向：不加窗残差约 0.15 px，加窗约 0.35 px。</li>
+<li><strong>循环平移</strong>（本章测试和第 24 章合成数据的情况）：信号本来就是周期的，没有断口。加窗反而破坏了“两张图互为循环平移”这个关系，误差大了约 9 倍。第 24 章的数据上也是这个方向：不加窗误差约 0.150 px，加窗约 0.466 px。第 24 章讲义实测，那里加窗变差的主因是对位标记在图像角落、被窗压低了权重，把标记移到中心后加窗和不加窗一样。</li>
 </ul>
 <p>所以 <code>use_window</code> 是一个需要按数据决定的参数。验证算法时用循环平移的合成数据很方便，但它会掩盖边界问题，结论不能直接搬到真实图像上。</p>
+<p>作业的验收两种数据都用：循环平移的用例传 <code>use_window=False</code>，要求整数平移精确；裁剪视场的用例传 <code>use_window=True</code>，不加窗就对不上。所以这个开关必须真的起作用，两幅图都要乘窗。Notebook 实验 5 把上面这张表的四种组合各跑一遍。</p>
 <h2 id="8-周期图案最重要的失败模式">8. 周期图案：最重要的失败模式</h2>
 <p>半导体版图大量是周期结构（存储阵列、金属线）。周期为 <span class="arithmatex">\(P\)</span> 的图案平移 <span class="arithmatex">\(P\)</span> 之后和原图一模一样，所以平移 <span class="arithmatex">\(d\)</span> 和平移 <span class="arithmatex">\(d + kP\)</span> 没法区分。</p>
 <p>下面的实验用一张 144×144 的合成版图，x 方向周期 24 px，y 方向周期 16 px。真实平移在 ±5 px 内随机，每张图加标准差 0.01 的噪声，各做 200 次。</p>
@@ -468,7 +469,7 @@ a = \frac{l + r - 2c}{2}, \qquad b = \frac{r - l}{2}
 <p><strong>第二种：白化把相关面淹没</strong>。严格周期的图案，能量只落在少数几个谐波频率上，其余绝大多数频率是空的。白化把这些空频率里的噪声拉到和谐波同样的权重，真正的峰被噪声盖住。所以相位相关即使限制了搜索范围仍然失败 182/200。只保留有信号的频率（幅度掩膜）之后，才降到 0/200。</p>
 <p>工程上的对策，按可靠程度排：</p>
 <ol>
-<li><strong>对位标记</strong>（alignment mark）：在版图上放非周期的十字或 L 形标记。它的频谱是宽带的，同时解决上面两种失败。实验里不需要限制搜索范围也是 0/200。</li>
+<li><strong>对位标记</strong>（alignment mark）：在版图上放非周期的十字或 L 形标记。它的频谱是宽带的，同时解决上面两种失败。实验里不需要限制搜索范围也是 0/200。Notebook 实验 7 在另一张周期图案上加一个十字，用你的实现看有没有标记的差别。</li>
 <li><strong>限制搜索范围，并且不让空频率参与</strong>：用普通互相关或 ZNCC，或者给相位相关加频谱掩膜。</li>
 <li><strong>先粗后精</strong>：用低分辨率或者大视场先定到整周期，再精修。</li>
 <li><strong>用设计数据</strong>（die-to-database）：拿版图渲染图做参考，参考图里有全局结构。</li>
@@ -504,14 +505,64 @@ a = \frac{l + r - 2c}{2}, \qquad b = \frac{r - l}{2}
 <td>用 <code>np.roll(ref, (3, -5))</code> 测，应返回 (3, -5)</td>
 </tr>
 <tr>
+<td>dy 和 dx 互换</td>
+<td>返回值写成了 (dx, dy)，或者把展平后的峰值下标拆反了</td>
+<td>同上，两个方向给不同的平移</td>
+</tr>
+<tr>
 <td>平移 -3 被估计成 N-3</td>
 <td>没做循环卷绕换算</td>
 <td>测一个负的平移</td>
 </tr>
 <tr>
+<td>方形图上都对，长方形的图上出错</td>
+<td>卷绕或加窗时把高和宽用混了</td>
+<td>用高、宽不相等的图测，两个方向各给一个超过半幅的平移</td>
+</tr>
+<tr>
+<td>两幅图有共同的明暗起伏时，估计值被拉向 (0, 0)</td>
+<td>互功率谱没有除以模长，做成了普通互相关</td>
+<td>给两幅图加同一个不随内容移动的低频背景再测</td>
+</tr>
+<tr>
 <td>亚像素部分总是 0</td>
-<td>邻点取错了行列，或者把整数下标当成了偏移</td>
+<td>算出了偏移但没有加到整数峰上，或者把整数下标当成了偏移</td>
 <td>打印 <span class="arithmatex">\(l\)</span>、<span class="arithmatex">\(c\)</span>、<span class="arithmatex">\(r\)</span> 三个值</td>
+</tr>
+<tr>
+<td>一个方向的小数部分跑到了另一个方向</td>
+<td>沿 y 和沿 x 的邻点取反了</td>
+<td>只让一个方向有小数平移，看小数出现在哪个返回值上</td>
+</tr>
+<tr>
+<td>亚像素偏移大了一倍，或者超出半个像素</td>
+<td>抛物线公式的分母漏了系数，或者结果没有限制范围</td>
+<td>从一条真抛物线上取三个点测，应精确恢复顶点</td>
+</tr>
+<tr>
+<td>峰值落在最后一行或最后一列时报下标越界</td>
+<td>取邻点时没有循环取下标</td>
+<td>测一个略小于 0 的小数平移</td>
+</tr>
+<tr>
+<td>循环平移的整数平移，不加窗也差零点零几个像素</td>
+<td><code>use_window=False</code> 时仍然加了窗</td>
+<td>用 <code>np.roll</code> 造的数据不加窗应当精确</td>
+</tr>
+<tr>
+<td>裁剪视场的数据加了窗还是对不上</td>
+<td>开关没有接上，或者只给一幅图加了窗、只沿一个方向加了窗</td>
+<td>把加窗后的两幅图画出来看四条边（第 7 节）</td>
+</tr>
+<tr>
+<td>常数图上返回 nan</td>
+<td>互功率谱归一化的分母为 0</td>
+<td>用两张全零的图测</td>
+</tr>
+<tr>
+<td>调用之后输入图像变了</td>
+<td>加窗时原地相乘</td>
+<td>调用前后比较输入数组</td>
 </tr>
 <tr>
 <td>小数平移的测试数据本身不准</td>

@@ -1,0 +1,576 @@
+"""生成第 30 章的互动实验 Notebook。
+
+用法（在仓库根目录运行）：
+    python scripts/part3_notebooks/ch30.py
+修改实验内容时改本文件再重新生成，不要直接手改 .ipynb，避免两边不一致。
+Notebook 只调用学员自己在作业文件里的实现，不包含参考答案；
+设置环境变量 COURSE_IMPL_DIR 可以让 Notebook 改用另一份实现（维护者验证用）。
+
+本文件自成一体：HELPER 和 notebook() 抄自 scripts/build_track2_notebooks.py，不 import 那个文件。
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import nbformat as nbf
+
+ROOT = Path(__file__).resolve().parents[2]
+CHAPTER = "30_神经渲染"
+ASSIGNMENT = "30-1_体渲染与高斯泼溅.py"
+OUTPUT = "实验_神经渲染.ipynb"
+
+HELPER = '''%matplotlib inline
+import importlib.util, os
+from pathlib import Path
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "PingFang SC", "Heiti SC", "Noto Sans CJK SC", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
+
+CHAPTER_NAME = "{chapter}"
+ASSIGNMENT = "{assignment}"
+
+def find_chapter(name):
+    here = Path.cwd().resolve()
+    for p in [here, *here.parents]:
+        if p.name == name:
+            return p
+        if (p / name).is_dir():
+            return p / name
+    raise FileNotFoundError("请在课程目录内启动 Jupyter")
+
+CHAPTER = find_chapter(CHAPTER_NAME)
+COURSE_ROOT = CHAPTER.parent
+
+def load_module(chapter_dir, filename):
+    override = os.environ.get("COURSE_IMPL_DIR")
+    base = Path(override) / chapter_dir.name if override else chapter_dir
+    spec = importlib.util.spec_from_file_location(Path(filename).stem, base / filename)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+mod = load_module(CHAPTER, ASSIGNMENT)
+
+def attempt(fn, *args, **kwargs):
+    """调用作业函数；还没实现时打印提示并返回 None，而不是中断整个 Notebook。"""
+    try:
+        return fn(*args, **kwargs)
+    except NotImplementedError as exc:
+        print(f"先完成作业里的 {{fn.__name__}}：{{exc}}")
+        return None
+
+try:
+    import cv2  # 可选，用于和 OpenCV 对照
+except ImportError:
+    cv2 = None
+print("作业文件：", CHAPTER / ASSIGNMENT, "｜OpenCV：", "可用" if cv2 else "未安装（对照实验会跳过）")
+'''
+
+
+def notebook(title, intro, chapter, assignment, cells, outro):
+    nb = nbf.v4.new_notebook()
+    nb.metadata = {
+        "kernelspec": {"display_name": "Python 3 (cv-learning)", "language": "python", "name": "cv-learning"},
+        "language_info": {"name": "python", "version": "3"},
+    }
+    nb.cells = [nbf.v4.new_markdown_cell(f"# {title}\n\n{intro}")]
+    nb.cells.append(nbf.v4.new_code_cell(HELPER.format(chapter=chapter, assignment=assignment)))
+    for kind, src in cells:
+        nb.cells.append(nbf.v4.new_markdown_cell(src) if kind == "md" else nbf.v4.new_code_cell(src))
+    nb.cells.append(nbf.v4.new_markdown_cell(outro))
+    return nb
+
+
+SETUP = '''import math, time
+import torch
+import torch.nn.functional as F
+from torch import nn
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.manual_seed(0)
+print("设备：", device, "｜", torch.cuda.get_device_name(0) if device.type == "cuda" else "没有检测到 CUDA，用 CPU（这里的小模型在 CPU 上一两分钟能跑完）")
+
+def implemented(fn, *args, **kwargs):
+    """试着调用一次作业函数，返回它是否已经实现。"""
+    try:
+        fn(*args, **kwargs)
+        return True
+    except NotImplementedError as exc:
+        print(f"先完成作业里的 {fn.__name__}：{exc}")
+        return False
+
+SIZE, FX, RADIUS = 32, 44.0, 3.2          # 32x32 的图，焦距 44 px，相机离原点 3.2
+CX = CY = (SIZE - 1) / 2                   # 像素中心在整数坐标，画面中心是 15.5
+BG = torch.tensor([1.0, 1.0, 1.0])
+LIGHT = F.normalize(torch.tensor([0.4, 0.8, 0.6]), dim=0)
+AABB = (torch.tensor([-1.05, -0.70, -1.05]), torch.tensor([1.05, 0.45, 1.05]))     # 场景包围盒
+SPHERES = [(torch.tensor([-0.38, -0.10, 0.15]), 0.45), (torch.tensor([0.48, -0.25, -0.25]), 0.30)]
+BOX = (torch.tensor([0.05, -0.55, 0.30]), torch.tensor([0.60, 0.05, 0.80]))
+GROUND = (torch.tensor([-1.0, -0.65, -1.0]), torch.tensor([1.0, -0.55, 1.0]))
+BASE_COLORS = torch.tensor([[0.85, 0.20, 0.15], [0.15, 0.35, 0.85], [0.95, 0.75, 0.10], [0.25, 0.55, 0.30]])
+
+def ray_box(o, d, lo, hi):
+    """光线和轴对齐盒子求交：进入、离开的距离和进入面的法线。"""
+    lo, hi = lo.to(o.device), hi.to(o.device)
+    inv = 1.0 / torch.where(d.abs() < 1e-9, torch.full_like(d, 1e-9), d)
+    t0, t1 = (lo - o) * inv, (hi - o) * inv
+    tn, axis = torch.minimum(t0, t1).max(dim=1)
+    tf = torch.maximum(t0, t1).min(dim=1).values
+    nrm = torch.zeros_like(o)
+    rows = torch.arange(len(o), device=o.device)
+    nrm[rows, axis] = -torch.sign(d[rows, axis])
+    return tn, tf, nrm
+
+def trace(o, d):
+    """真值渲染（在 CPU 上做）：光线和四个物体求交，漫反射着色。返回颜色和到表面的距离（没打到是 inf）。"""
+    P = o.shape[0]
+    best, obj, nrm = torch.full((P,), float("inf")), torch.full((P,), -1, dtype=torch.long), torch.zeros(P, 3)
+    for i, (c, r) in enumerate(SPHERES):
+        oc = o - c
+        b = (oc * d).sum(1)
+        disc = b * b - (oc * oc).sum(1) + r * r
+        t = -b - torch.sqrt(disc.clamp_min(0))
+        ok = (disc > 0) & (t > 0) & (t < best)
+        best, obj = torch.where(ok, t, best), torch.where(ok, torch.full_like(obj, i), obj)
+        nrm = torch.where(ok[:, None], F.normalize(o + t[:, None] * d - c, dim=1), nrm)
+    for i, (lo, hi) in ((2, BOX), (3, GROUND)):
+        tn, tf, n = ray_box(o, d, lo, hi)
+        ok = (tn < tf) & (tn > 0) & (tn < best)
+        best, obj = torch.where(ok, tn, best), torch.where(ok, torch.full_like(obj, i), obj)
+        nrm = torch.where(ok[:, None], n, nrm)
+    pts = o + torch.where(torch.isfinite(best), best, torch.zeros_like(best))[:, None] * d
+    alb = torch.zeros(P, 3)
+    m = obj == 0
+    stripe = (torch.sin(2 * math.pi * pts[m, 1] / 0.3) > 0).float()[:, None]
+    alb[m] = stripe * BASE_COLORS[0] + (1 - stripe) * torch.tensor([0.95, 0.85, 0.75])
+    alb[obj == 1], alb[obj == 2] = BASE_COLORS[1], BASE_COLORS[2]
+    m = obj == 3
+    chk = ((torch.floor(pts[m, 0] / 0.5) + torch.floor(pts[m, 2] / 0.5)) % 2)[:, None]
+    alb[m] = chk * BASE_COLORS[3] + (1 - chk) * torch.tensor([0.80, 0.85, 0.80])
+    col = alb * (0.35 + 0.65 * (nrm @ LIGHT).clamp_min(0))[:, None]
+    return torch.where((obj >= 0)[:, None], col, BG.expand(P, 3)), best
+
+def orbit(az_deg, el_deg):
+    """OpenCV 约定的外参（P_c = R P_w + t，看向 +Z，y 向下）：相机在球面上看向原点。"""
+    az, el = math.radians(az_deg), math.radians(el_deg)
+    eye = torch.tensor([RADIUS * math.cos(el) * math.sin(az), RADIUS * math.sin(el), RADIUS * math.cos(el) * math.cos(az)])
+    fwd = F.normalize(-eye, dim=0)
+    right = F.normalize(torch.linalg.cross(fwd, torch.tensor([0.0, 1.0, 0.0])), dim=0)
+    R = torch.stack([right, torch.linalg.cross(fwd, right), fwd])
+    return R, -R @ eye
+
+def rays(R, t, size=SIZE, sub=1):
+    """每个像素 sub x sub 条光线：起点（相机中心）和单位方向，都在世界坐标里。"""
+    offs = (torch.arange(sub, dtype=torch.float32) + 0.5) / sub - 0.5
+    v, u = torch.meshgrid(torch.arange(size, dtype=torch.float32), torch.arange(size, dtype=torch.float32), indexing="ij")
+    u = (u[..., None, None] + offs[None, None, None, :]).expand(size, size, sub, sub)
+    v = (v[..., None, None] + offs[None, None, :, None]).expand(size, size, sub, sub)
+    f, c = FX * size / SIZE, (size - 1) / 2
+    dc = torch.stack([(u - c) / f, (v - c) / f, torch.ones_like(u)], -1).reshape(-1, 3)
+    d = F.normalize(dc @ R, dim=1)             # 行向量右乘 R，就是把相机坐标里的方向转回世界坐标
+    return (-R.T @ t).expand_as(d), d
+
+def render_gt(R, t, size=SIZE, sub=4):
+    img = trace(*rays(R, t, size, sub))[0].reshape(size, size, sub * sub, 3).mean(2)       # 每个像素 4x4 条光线取平均
+    return img, trace(*rays(R, t, size, 1))[1].reshape(size, size)
+
+def make_views(azs, els):
+    cams = [orbit(a, e) for a, e in zip(azs, els)]
+    imgs, deps = zip(*(render_gt(R, t) for R, t in cams))
+    return cams, torch.stack(imgs), torch.stack(deps)
+
+def train_views(n):
+    return make_views([360.0 * i / n + 10.0 for i in range(n)], [(25.0, 40.0)[i % 2] for i in range(n)])
+
+def psnr(a, b):
+    return float(-10 * torch.log10(((a - b) ** 2).mean()))
+
+cams, imgs, deps = train_views(12)
+tcams, timgs, tdeps = make_views([32.0 + 45.0 * i for i in range(8)], [(32.0, 18.0, 48.0)[i % 3] for i in range(8)])
+fig, ax = plt.subplots(2, 6, figsize=(11, 3.9))
+for i, a in enumerate(ax.ravel()):
+    a.imshow(imgs[i].numpy(), interpolation="nearest"); a.set_xticks([]); a.set_yticks([])
+    a.set_title(f"训练视角 {i}", fontsize=9)
+plt.tight_layout(); plt.show()
+print("12 个训练视角、8 个留出的新视角，都是 32x32。")'''
+
+ONE_RAY = '''def sdf_all(p):
+    """四个物体各自的有符号距离（内部为负）。"""
+    out = [(p - c.to(p.device)).norm(dim=1) - r for c, r in SPHERES]
+    for lo, hi in (BOX, GROUND):
+        q = (p - 0.5 * (lo + hi).to(p.device)).abs() - 0.5 * (hi - lo).to(p.device)
+        out.append(q.clamp_min(0).norm(dim=1) + q.max(dim=1).values.clamp_max(0))
+    return torch.stack(out, 1)
+
+def analytic_field(sig0):
+    """解析的密度场：物体内部密度 sig0，外部 0；颜色是各物体的固定颜色。"""
+    def field(pts):
+        dens = sig0 * (sdf_all(pts) < 0).float()
+        sigma = dens.sum(1)
+        return sigma, (dens[:, :, None] * BASE_COLORS.to(pts.device)[None]).sum(1) / sigma.clamp_min(1e-12)[:, None]
+    return field
+
+o, d = rays(*tcams[0])
+k = 21 * SIZE + 12                               # 新视角 0 里第 21 行第 12 列的像素：这条光线依次穿过盒子、条纹球和底板
+tn, tf, _ = ray_box(o[k:k + 1], d[k:k + 1], *AABB)
+t0, t1 = float(tn), float(tf)
+N = 16                                           # 改成 4 或 64 再跑一次
+tv = t0 + (t1 - t0) * (torch.arange(N) + 0.5) / N
+sigma, col = analytic_field(4.0)(o[k] + tv[:, None] * d[k])     # 密度取 4，物体是半透明的
+deltas = torch.full((N,), (t1 - t0) / N)
+w = attempt(mod.volume_weights, sigma, deltas)
+out = attempt(mod.composite_rays, w, col, tv, BG) if w is not None else None
+if out is not None:
+    rgb, depth, acc = out
+    trans = 1 - torch.cumsum(w, 0) + w           # 到达每一段之前的透射率
+    print("权重：", [round(float(v), 3) for v in w])
+    print(f"权重之和 {float(acc):.3f}，剩下的 {1 - float(acc):.3f} 给背景｜合成的颜色 {[round(float(v), 3) for v in rgb]}｜期望深度 {float(depth):.3f}")
+    first = float(tv[sigma > 0][0]) if bool((sigma > 0).any()) else float("nan")
+    print(f"第一个有密度的采样点在 {first:.3f}：半透明时，期望深度落在第一个表面的后面。")
+    fig, ax = plt.subplots(1, 2, figsize=(10.5, 3.3))
+    ax[0].bar(tv.numpy(), sigma.numpy(), width=0.9 * float(deltas[0]), color="#c9cdd4", label="密度")
+    ax2 = ax[0].twinx(); ax2.plot(tv.numpy(), trans.numpy(), "o-", color="#2f6fed", ms=4, label="透射率"); ax2.set_ylim(0, 1.05)
+    ax[0].set_xlabel("沿光线的距离"); ax[0].set_title("密度（灰）和透射率（蓝）")
+    ax[1].bar(tv.numpy(), w.numpy(), width=0.9 * float(deltas[0]), color=col.clamp(0, 1).numpy(), edgecolor="#8f959e")
+    ax[1].set_xlabel("沿光线的距离"); ax[1].set_title("权重（颜色是这个采样点的颜色）")
+    plt.tight_layout(); plt.show()'''
+
+SAMPLES = '''def scene_interval(o, d):
+    tn, tf, _ = ray_box(o, d, *AABB)
+    tn = tn.clamp_min(0)
+    return tn, tf, tf > tn + 1e-6
+
+def render_field(field, o, d, n_samples, jitter=None):
+    """体渲染：只在光线穿过包围盒的那一段里采样。jitter 是一个随机数发生器时，每段里随机取一点；否则取中点。
+    返回颜色 (P, 3)、期望深度 (P,)、累积不透明度 (P,)。用的是你写的 volume_weights 和 composite_rays。"""
+    P, dev = o.shape[0], o.device
+    tn, tf, hit = scene_interval(o, d)
+    rgb, depth, acc = BG.to(dev).expand(P, 3).clone(), torch.zeros(P, device=dev), torch.zeros(P, device=dev)
+    if not bool(hit.any()):
+        return rgb, depth, acc
+    o, d, tn, tf = o[hit], d[hit], tn[hit], tf[hit]
+    u = 0.5 if jitter is None else torch.rand(o.shape[0], n_samples, generator=jitter).to(dev)
+    tv = tn[:, None] + (tf - tn)[:, None] * (torch.arange(n_samples, dtype=torch.float32, device=dev)[None] + u) / n_samples
+    sigma, col = field((o[:, None] + tv[..., None] * d[:, None]).reshape(-1, 3))
+    deltas = torch.cat([tv[:, 1:] - tv[:, :-1], tf[:, None] - tv[:, -1:]], 1)
+    w = mod.volume_weights(sigma.reshape(-1, n_samples), deltas)
+    rgb[hit], depth[hit], acc[hit] = mod.composite_rays(w, col.reshape(-1, n_samples, 3), tv, BG.to(dev))
+    return rgb, depth, acc
+
+vr_ready = (implemented(mod.volume_weights, torch.ones(2, 3), torch.ones(3))
+            and implemented(mod.composite_rays, torch.zeros(2, 3), torch.zeros(2, 3, 3), torch.ones(3), BG))
+if vr_ready:
+    o, d = rays(*tcams[0])
+    field = analytic_field(40.0)                              # 密度 40：物体基本不透明
+    with torch.no_grad():
+        ref = render_field(field, o, d, 2048)[0]
+        ns = (4, 8, 16, 32, 64, 128)
+        outs = {n: render_field(field, o, d, n) for n in ns}
+    m = torch.isfinite(tdeps[0].reshape(-1))
+    print("采样点数   颜色的平均绝对误差   深度的平均绝对误差（和光线求交的真值比）")
+    for n in ns:
+        rgb, dep, acc = outs[n]
+        print(f"{n:6d}      {float((rgb - ref).abs().mean()):.5f}            {float((dep[m] - tdeps[0].reshape(-1)[m]).abs().mean()):.3f}")
+    fig, ax = plt.subplots(1, 4, figsize=(10, 2.8))
+    for a, n in zip(ax, (4, 16, 64)):
+        a.imshow(outs[n][0].reshape(SIZE, SIZE, 3).clamp(0, 1).numpy(), interpolation="nearest"); a.set_title(f"{n} 个采样点", fontsize=10)
+    ax[3].imshow(ref.reshape(SIZE, SIZE, 3).clamp(0, 1).numpy(), interpolation="nearest"); ax[3].set_title("2048 个采样点", fontsize=10)
+    for a in ax: a.set_xticks([]); a.set_yticks([])
+    plt.tight_layout(); plt.show()'''
+
+FIT2D = '''big = render_gt(*tcams[0], size=64, sub=3)[0]                  # 新视角 0 渲染成 64x64，当作一张要拟合的图
+ys, xs = torch.meshgrid(torch.linspace(-1, 1, 64), torch.linspace(-1, 1, 64), indexing="ij")
+xy, target = torch.stack([xs, ys], -1).reshape(-1, 2), big.reshape(-1, 3)
+mask = torch.rand(64 * 64, generator=torch.Generator().manual_seed(3004)) < 0.25      # 只拿四分之一的像素训练
+
+def fit_image(L, steps=500):
+    torch.manual_seed(0)
+    net = nn.Sequential(nn.Linear(2 * (1 + 2 * L), 64), nn.ReLU(), nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 3))
+    opt = torch.optim.Adam(net.parameters(), 5e-3)
+    for _ in range(steps):
+        loss = ((torch.sigmoid(net(mod.positional_encoding(xy[mask], L))) - target[mask]) ** 2).mean()
+        opt.zero_grad(set_to_none=True); loss.backward(); opt.step()
+    with torch.no_grad():
+        return torch.sigmoid(net(mod.positional_encoding(xy, L)))
+
+pe_ready = implemented(mod.positional_encoding, torch.zeros(1, 2), 2)
+if pe_ready:
+    seen = target.clone(); seen[~mask] = 1.0
+    shows = [("目标", big), ("训练用的像素", seen.reshape(64, 64, 3))]
+    for L in (0, 2, 8):                                        # 再加上 4 和 10 试试
+        p = fit_image(L)
+        print(f"L = {L:2d}：训练像素 {psnr(p[mask], target[mask]):.1f} dB，留出像素 {psnr(p[~mask], target[~mask]):.1f} dB")
+        shows.append((f"L = {L}", p.reshape(64, 64, 3)))
+    fig, ax = plt.subplots(1, 5, figsize=(12.5, 2.8))
+    for a, (title, im) in zip(ax, shows):
+        a.imshow(im.clamp(0, 1).numpy(), interpolation="nearest"); a.set_title(title, fontsize=10); a.set_xticks([]); a.set_yticks([])
+    plt.tight_layout(); plt.show()'''
+
+NERF = '''class TinyNeRF(nn.Module):
+    """坐标先做位置编码，再过 3 层宽 64 的全连接网络，输出密度和颜色。不输入视角方向。"""
+    def __init__(self, num_freqs=4, width=64):
+        super().__init__()
+        self.num_freqs = num_freqs
+        self.body = nn.Sequential(nn.Linear(3 * (1 + 2 * num_freqs), width), nn.ReLU(), nn.Linear(width, width), nn.ReLU(), nn.Linear(width, width), nn.ReLU())
+        self.head = nn.Linear(width, 4)
+    def forward(self, x):
+        out = self.head(self.body(mod.positional_encoding(x / 1.5, self.num_freqs)))
+        return 30.0 * F.softplus(out[:, 0] - 3.0), torch.sigmoid(out[:, 1:])
+
+def train_nerf(cams, imgs, num_freqs=4, steps=1000, seed=0, log_every=250):
+    torch.manual_seed(seed)
+    g = torch.Generator().manual_seed(11000 + seed)
+    net = TinyNeRF(num_freqs).to(device)
+    o, d = zip(*(rays(R, t) for R, t in cams))
+    o, d, c = torch.cat(o).to(device), torch.cat(d).to(device), imgs.reshape(-1, 3).to(device)
+    opt = torch.optim.Adam(net.parameters(), lr=0.01)
+    sched = torch.optim.lr_scheduler.ExponentialLR(opt, 0.1 ** (1 / steps))
+    for step in range(steps):
+        idx = torch.randint(0, len(o), (512,), generator=g).to(device)       # 每步随机取 512 条光线
+        rgb, _, _ = render_field(net, o[idx], d[idx], 20, jitter=g)
+        loss = ((rgb - c[idx]) ** 2).mean()
+        opt.zero_grad(set_to_none=True); loss.backward(); opt.step(); sched.step()
+        if log_every and (step % log_every == 0 or step == steps - 1):
+            print(f"  第 {step:4d} 步，损失 {loss.item():.4f}")
+    return net.eval()
+
+@torch.no_grad()
+def render_views(field, cams, n_samples=48):
+    out = [render_field(field, *(x.to(device) for x in rays(R, t)), n_samples) for R, t in cams]
+    return (torch.stack([o[0].reshape(SIZE, SIZE, 3) for o in out]).cpu(), torch.stack([o[1].reshape(SIZE, SIZE) for o in out]).cpu(),
+            torch.stack([o[2].reshape(SIZE, SIZE) for o in out]).cpu())
+
+def report(name, net, train_cams, train_imgs):
+    """打印训练视角和新视角的 PSNR、新视角的深度误差，返回新视角的渲染结果。"""
+    tr = render_views(net, train_cams)
+    te = render_views(net, tcams)
+    fin = torch.isfinite(tdeps)
+    p_tr = float(np.mean([psnr(a, b) for a, b in zip(tr[0], train_imgs)]))
+    p_te = float(np.mean([psnr(a, b) for a, b in zip(te[0], timgs)]))
+    print(f"{name}：训练视角 {p_tr:.1f} dB，新视角 {p_te:.1f} dB，新视角的深度误差 {float((te[1][fin] - tdeps[fin]).abs().mean()):.3f}")
+    return te
+
+def show_views(te, title):
+    fig, ax = plt.subplots(3, 6, figsize=(11, 5.6))
+    for i in range(6):
+        ax[0, i].imshow(timgs[i].numpy(), interpolation="nearest")
+        ax[1, i].imshow(te[0][i].clamp(0, 1).numpy(), interpolation="nearest")
+        ax[2, i].imshow(torch.where(te[2][i] > 0.5, te[1][i], torch.full_like(te[1][i], float("nan"))).numpy(), cmap="viridis_r", vmin=RADIUS - 1.3, vmax=RADIUS + 1.3)
+        for a in ax[:, i]: a.set_xticks([]); a.set_yticks([])
+    ax[0, 0].set_ylabel("真值"); ax[1, 0].set_ylabel(title); ax[2, 0].set_ylabel("深度")
+    plt.tight_layout(); plt.show()
+
+nerf_ready = vr_ready and pe_ready
+nerf = None
+if nerf_ready:
+    t0 = time.perf_counter()
+    nerf = train_nerf(cams, imgs)
+    print(f"训练用时 {time.perf_counter() - t0:.1f} 秒")
+    show_views(report("12 个训练视角", nerf, cams, imgs), "迷你 NeRF")
+else:
+    print("这个实验要用 volume_weights、composite_rays 和 positional_encoding 三个函数。")'''
+
+FEW = '''if nerf_ready:
+    for n in (3, 2):                                           # 再试试 4 和 6
+        few_cams, few_imgs, _ = train_views(n)
+        net = train_nerf(few_cams, few_imgs, log_every=0)
+        te = report(f"{n} 个训练视角", net, few_cams, few_imgs)
+    show_views(te, "2 个训练视角")'''
+
+POSE = '''def perturb(cams, angle_deg, seed=0):
+    """每个相机的朝向绕一根随机的轴转 angle_deg 度，相机中心不动。"""
+    g = torch.Generator().manual_seed(77000 + seed)
+    out = []
+    for R, t in cams:
+        ax = F.normalize(torch.randn(3, generator=g), dim=0)
+        a = math.radians(angle_deg)
+        K = torch.tensor([[0.0, -ax[2], ax[1]], [ax[2], 0.0, -ax[0]], [-ax[1], ax[0], 0.0]])
+        R2 = (torch.eye(3) + math.sin(a) * K + (1 - math.cos(a)) * K @ K) @ R
+        out.append((R2, -R2 @ (-R.T @ t)))
+    return out
+
+if nerf_ready:
+    print(f"朝向偏 1 度，画面中心的像移是 fx x tan(1 度) = {FX * math.tan(math.radians(1.0)):.2f} px（画面宽 32 px）")
+    for angle in (1.0, 4.0):                                   # 再试试 0.5 和 2
+        bad_cams = perturb(cams, angle)
+        net = train_nerf(bad_cams, imgs, log_every=0)           # 训练图不变，只有位姿带误差
+        te = report(f"朝向误差 {angle:g} 度", net, bad_cams, imgs)
+    show_views(te, "朝向误差 4 度")'''
+
+SPLAT = '''PIX = torch.stack(torch.meshgrid(torch.arange(SIZE, dtype=torch.float32), torch.arange(SIZE, dtype=torch.float32), indexing="xy"), -1).reshape(-1, 2)   # 每个像素的 (u, v)
+
+def quat_to_rot(q):
+    w, x, y, z = F.normalize(q, dim=-1).unbind(-1)
+    return torch.stack([torch.stack([1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)], -1),
+                        torch.stack([2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)], -1),
+                        torch.stack([2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)], -1)], -2)
+
+class Splats(nn.Module):
+    """n 个三维高斯：中心、三个轴长（存对数）、朝向（四元数）、不透明度、颜色。"""
+    def __init__(self, n, seed=0):
+        super().__init__()
+        g = torch.Generator().manual_seed(21000 + seed)
+        self.mean = nn.Parameter((torch.rand(n, 3, generator=g) * 2 - 1) * torch.tensor([1.0, 0.7, 1.0]))
+        self.log_scale = nn.Parameter(torch.full((n, 3), math.log(0.12)))
+        self.quat = nn.Parameter(torch.cat([torch.ones(n, 1), torch.zeros(n, 3)], 1))
+        self.opacity = nn.Parameter(torch.full((n,), -1.0))
+        self.color = nn.Parameter(torch.zeros(n, 3))
+    def covs(self):                                            # 协方差 = R S S^T R^T，这样写保证它是半正定的
+        m = quat_to_rot(self.quat) * torch.exp(self.log_scale)[:, None, :]
+        return m @ m.transpose(1, 2)
+
+def render_splats(model, R, t, order=None):
+    """order 为 None 时按真实深度排序；传一个函数时用它返回的值代替深度（用来做“排序错误”的实验）。"""
+    dev = model.mean.device
+    uv, cov2d, depth = mod.project_gaussians(model.mean, model.covs(), R.to(dev), t.to(dev), FX, FX, CX, CY)
+    a, b, c = cov2d[:, 0, 0] + 0.3, cov2d[:, 0, 1], cov2d[:, 1, 1] + 0.3        # 对角线加 0.3：相当于每个高斯至少有一个像素那么大
+    det = (a * c - b * b).clamp_min(1e-8)
+    pix = PIX.to(dev)
+    dx, dy = pix[:, None, 0] - uv[None, :, 0], pix[:, None, 1] - uv[None, :, 1]
+    alphas = torch.sigmoid(model.opacity)[None] * torch.exp(-0.5 * (c * dx * dx - 2 * b * dx * dy + a * dy * dy) / det)   # (像素数, 高斯数)
+    return mod.composite_gaussians(alphas, torch.sigmoid(model.color), depth if order is None else order(depth), BG.to(dev))
+
+def train_splats(cams, imgs, n=128, steps=800, seed=0, log_every=200):
+    torch.manual_seed(seed)
+    g = torch.Generator().manual_seed(31000 + seed)
+    model = Splats(n, seed).to(device)
+    opt = torch.optim.Adam([{"params": [model.mean, model.log_scale, model.quat], "lr": 0.02}, {"params": [model.opacity, model.color], "lr": 0.05}])
+    sched = torch.optim.lr_scheduler.ExponentialLR(opt, 0.1 ** (1 / steps))
+    target = imgs.reshape(len(cams), -1, 3).to(device)
+    for step in range(steps):
+        i = int(torch.randint(0, len(cams), (1,), generator=g))           # 每步随机取一个训练视角，渲染整张图
+        rgb, _ = render_splats(model, *cams[i])
+        loss = (rgb - target[i]).abs().mean()
+        opt.zero_grad(set_to_none=True); loss.backward(); opt.step(); sched.step()
+        if log_every and (step % log_every == 0 or step == steps - 1):
+            print(f"  第 {step:4d} 步，损失 {loss.item():.4f}")
+    return model.eval()
+
+@torch.no_grad()
+def splat_views(model, cams, order=None):
+    return torch.stack([render_splats(model, R, t, order)[0].reshape(SIZE, SIZE, 3) for R, t in cams]).cpu()
+
+eye3 = torch.eye(3)
+gs_ready = (implemented(mod.project_gaussians, torch.tensor([[0.0, 0.0, 2.0]]), eye3[None] * 0.01, eye3, torch.zeros(3), 10.0, 10.0, 0.0, 0.0)
+            and implemented(mod.composite_gaussians, torch.zeros(2, 3), torch.zeros(3, 3), torch.arange(3.0), BG))
+gs = None
+if gs_ready:
+    t0 = time.perf_counter()
+    gs = train_splats(cams, imgs)
+    print(f"训练用时 {time.perf_counter() - t0:.1f} 秒")
+    te = splat_views(gs, tcams)
+    print(f"128 个高斯：训练视角 {np.mean([psnr(a, b) for a, b in zip(splat_views(gs, cams), imgs)]):.1f} dB，新视角 {np.mean([psnr(a, b) for a, b in zip(te, timgs)]):.1f} dB")
+    fig, ax = plt.subplots(2, 6, figsize=(11, 3.8))
+    for i in range(6):
+        ax[0, i].imshow(timgs[i].numpy(), interpolation="nearest"); ax[1, i].imshow(te[i].clamp(0, 1).numpy(), interpolation="nearest")
+        for a in ax[:, i]: a.set_xticks([]); a.set_yticks([])
+    ax[0, 0].set_ylabel("真值"); ax[1, 0].set_ylabel("高斯泼溅")
+    plt.tight_layout(); plt.show()'''
+
+SORT = '''if gs is not None:
+    n = gs.mean.shape[0]
+    with torch.no_grad():
+        dev = gs.mean.device
+        stale = (gs.mean @ cams[0][0].to(dev).T + cams[0][1].to(dev))[:, 2]          # 第 0 个训练视角下的深度
+    orders = {"正确顺序": None, "不排序": lambda dep: torch.arange(n, dtype=dep.dtype, device=dep.device),
+              "排反了": lambda dep: -dep, "沿用训练视角 0 的顺序": lambda dep: stale}
+    fig, ax = plt.subplots(1, 4, figsize=(9, 2.7))
+    for a, (name, fn) in zip(ax, orders.items()):
+        out = splat_views(gs, tcams, fn)
+        val = float(np.mean([psnr(x, y) for x, y in zip(out, timgs)]))
+        print(f"{name}：新视角 {val:.1f} dB")
+        a.imshow(out[2].clamp(0, 1).numpy(), interpolation="nearest"); a.set_title(name, fontsize=10); a.set_xticks([]); a.set_yticks([])
+    plt.tight_layout(); plt.show()
+
+def frame_ms(fn, reps=5, inner=10):
+    best = float("inf")
+    for _ in range(reps):
+        t0 = time.perf_counter()
+        for _ in range(inner):
+            fn()
+        if device.type == "cuda":
+            torch.cuda.synchronize()
+        best = min(best, (time.perf_counter() - t0) / inner)
+    return 1000 * best
+
+if nerf is not None and gs is not None:
+    with torch.no_grad():
+        o, d = (x.to(device) for x in rays(*tcams[0]))
+        t_nerf = frame_ms(lambda: render_field(nerf, o, d, 48))
+        t_gs = frame_ms(lambda: render_splats(gs, *tcams[0]))
+    print(f"渲染一帧 32x32：迷你 NeRF {t_nerf:.2f} 毫秒，128 个高斯 {t_gs:.2f} 毫秒（设备：{device}）。每次运行都会波动，只看量级。")'''
+
+REAL = '''RUN_REAL = False          # 改成 True 再运行这个单元；需要 NVIDIA 显卡，并且已经按官方文档装好 gsplat
+if not RUN_REAL:
+    print("跳过。把 RUN_REAL 改成 True 再运行；做法、显存不够时怎么办、应该看到什么，见教程第 9 节。")
+else:
+    try:
+        from gsplat import rasterization
+        dev = torch.device("cuda")
+        n = 2000
+        g = torch.Generator().manual_seed(0)
+        means = (torch.rand(n, 3, generator=g) * 2 - 1).to(dev)
+        quats = torch.cat([torch.ones(n, 1), torch.zeros(n, 3)], 1).to(dev)            # 四元数，实部在前
+        scales = torch.full((n, 3), 0.05, device=dev)
+        opacities = torch.full((n,), 0.5, device=dev)
+        colors = torch.rand(n, 3, generator=g).to(dev)
+        R, t = orbit(32.0, 32.0)
+        viewmat = torch.eye(4); viewmat[:3, :3] = R; viewmat[:3, 3] = t                 # 世界到相机，OpenCV 约定，和本章的 R、t 是同一个东西
+        W = H = 256
+        K = torch.tensor([[FX * W / SIZE, 0.0, W / 2], [0.0, FX * H / SIZE, H / 2], [0.0, 0.0, 1.0]])
+        torch.cuda.reset_peak_memory_stats()
+        image, alpha, meta = rasterization(means, quats, scales, opacities, colors, viewmat[None].to(dev), K[None].to(dev), W, H)
+        print("图像：", tuple(image.shape), "｜不透明度：", tuple(alpha.shape), "｜显存峰值（MiB）：", round(torch.cuda.max_memory_allocated() / 2 ** 20))
+        plt.imshow(image[0].clamp(0, 1).cpu().numpy()); plt.axis("off"); plt.show()
+    except Exception as exc:
+        print("没有跑通：", type(exc).__name__, exc)'''
+
+CELLS = [
+    ("md", "## 准备：场景、相机和训练图\n\n场景是代码生成的：两个球、一个盒子、一块棋盘格底板，表面是漫反射。相机用 OpenCV 的约定（`P_c = R P_w + t`，看向 +Z），都在一个球面上看向原点。训练图是 32×32 的，用光线和几何体求交直接算出来，同时得到每个像素的深度真值。这个单元不涉及作业，直接运行。"),
+    ("code", SETUP),
+    ("md", "## 实验 1：一条光线上的体渲染\n\n取一条依次穿过盒子、条纹球和底板的光线，把物体内部的密度设成 4（半透明），在光线上取 16 个采样点。用你写的 `volume_weights` 算权重，再用 `composite_rays` 合成颜色和深度。\n\n先预测：三个物体里谁分到的权重最多？期望深度会落在第一个表面上，还是它的后面？对照教程图 2 左边两栏。"),
+    ("code", ONE_RAY),
+    ("md", "## 实验 2：采样点数与误差\n\n把密度提到 40（物体基本不透明），用体渲染把整张图画出来，采样点数从 4 加到 128，和 2048 个采样点的结果比。深度和光线求交的真值比。\n\n先预测：采样点数翻倍，颜色的误差大约变成多少？深度的误差会一直降下去吗？对照教程图 2 右边两栏和 2.3、2.4 节的表。"),
+    ("code", SAMPLES),
+    ("md", "## 实验 3：位置编码，先在一张二维图上看\n\n用一个小网络从像素坐标回归颜色，只拿随机抽出的四分之一像素训练。比较不做位置编码（L = 0）、2 个频率和 8 个频率。\n\n先预测：训练像素上谁的误差最小？留出的像素上呢？对照教程图 3 上排。"),
+    ("code", FIT2D),
+    ("md", "## 实验 4：迷你 NeRF\n\n把三个零件接起来：坐标做位置编码，过一个小网络得到密度和颜色，沿光线做体渲染，和训练图比。12 个训练视角，训练 1000 步，每步随机取 512 条光线。\n\n下面三行图是 6 个留出的新视角：真值、渲染结果、期望深度（越亮越近，累积不透明度不到 0.5 的像素不画）。"),
+    ("code", NERF),
+    ("md", "## 实验 5：训练视角太少\n\n同样的设置，只给 3 个和 2 个训练视角。\n\n先预测：训练视角上的 PSNR 会变低还是变高？新视角呢？深度误差呢？对照教程图 4。"),
+    ("code", FEW),
+    ("md", "## 实验 6：相机位姿有误差\n\n训练图不变，把拿去训练的 12 个相机朝向各转 1 度和 4 度（绕随机的轴）。新视角仍然用正确的位姿渲染。\n\n先预测：1 度的朝向误差在 32 px 宽的图上不到 1 px，新视角的 PSNR 会掉多少？对照教程图 5。"),
+    ("code", POSE),
+    ("md", "## 实验 7：迷你高斯泼溅\n\n用 128 个三维高斯拟合同一个场景。每一步：用你写的 `project_gaussians` 把高斯投影成屏幕上的二维高斯，在每个像素上算出每个高斯的不透明度，再用 `composite_gaussians` 按深度从前到后合成。训练 800 步，每步渲染一个训练视角的整张图。"),
+    ("code", SPLAT),
+    ("md", "## 实验 8：排序错了会怎样，渲染一帧要多久\n\n同一组训练好的高斯，只改合成的顺序。再量一下两种方法渲染一帧的耗时。\n\n先预测：不排序、排反、沿用别的视角的顺序，哪个最糟？对照教程图 7。"),
+    ("code", SORT),
+    ("md", "## 选做：在自己的机器上用 gsplat 渲染一帧\n\n需要 NVIDIA 显卡和额外安装的 `gsplat`。这个单元默认跳过，写课程的机器上没有运行过，接口以 gsplat 的官方文档为准。"),
+    ("code", REAL),
+]
+
+OUTRO = ("## 破坏实验与记录\n\n"
+         "- 实验 1 里把 `N` 改成 4 和 64，看权重怎样重新分配；再把密度从 4 改成 40，看期望深度离第一个表面有多远。\n"
+         "- 实验 4 里给 `train_nerf` 传 `num_freqs=0` 和 `num_freqs=8`，再在实验 5 的 3 个视角上各试一次。\n"
+         "- 实验 7 里把高斯个数改成 16 和 256（`train_splats(cams, imgs, n=16)`）。\n"
+         "- 把每个实验的 PSNR 和深度误差填进 `实验记录.md`，写明训练视角个数和位姿是否带误差。")
+
+
+def main():
+    nb = notebook(
+        "第 30 章互动实验：迷你 NeRF 和迷你高斯泼溅",
+        "用你在作业里写的五个零件，在一个代码生成的小场景上把体渲染、位置编码、NeRF 和高斯泼溅各做一遍。全部数据由代码生成，不需要下载任何数据和权重；作业还没写完时，对应的单元只打印提示。",
+        CHAPTER, ASSIGNMENT, CELLS, OUTRO,
+    )
+    path = ROOT / CHAPTER / OUTPUT
+    path.parent.mkdir(parents=True, exist_ok=True)
+    for i, cell in enumerate(nb.cells):
+        cell["id"] = f"c{i:03d}"
+    nbf.write(nb, path)
+    print("写入", f"{CHAPTER}/{OUTPUT}")
+
+
+if __name__ == "__main__":
+    main()

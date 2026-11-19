@@ -1,0 +1,4 @@
+# 维护者才需要：生成课程网页（scripts/build_site.py）。学员不用装。
+markdown>=3.6
+pymdown-extensions>=10.8
+pygments>=2.17

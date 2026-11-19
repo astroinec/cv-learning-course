@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>体渲染：一条光线上的透射率、权重和颜色</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; overflow: hidden; }
+  .kpi span { font-size: 12px; color: var(--muted); display: block; }
+  .kpi b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .kpi small { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sw { display: inline-block; width: 30px; height: 20px; border-radius: 4px; border: 1px solid #b9bec7; vertical-align: middle; margin-right: 4px; }
+  .two { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>体渲染：一条光线上的透射率、权重和颜色（第 30 章）</h1>
+  <div class="sub">一条光线从 0 走到 4，先穿过一层橙色的介质，再穿过一层蓝色的介质（从 2.4 到 3.2），最后是白色的背景。在光线上取若干个采样点，按作业里 volume_weights 和 composite_rays 的公式算出每个采样点的权重、合成的颜色和期望深度，并和“把每一层精确积分”的结果比。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>前层的密度<b id="s1V"></b><input type="range" id="s1" min="0" max="40" step="0.5" value="1.5"></label>
+    <label>前层的厚度<b id="th1V"></b><input type="range" id="th1" min="0.05" max="0.8" step="0.05" value="0.6"></label>
+    <label>前层的起点<b id="p1V"></b><input type="range" id="p1" min="0.2" max="1.6" step="0.01" value="1"></label>
+    <label>后层的密度<b id="s2V"></b><input type="range" id="s2" min="0" max="40" step="0.5" value="8"></label>
+    <label>采样点数<b id="nV"></b><input type="range" id="n" min="4" max="128" step="1" value="32"></label>
+    <label>采样方式<div class="seg" id="mode"><button data-v="mid" class="on">等间隔中点</button><button data-v="rand">分层随机</button><button data-v="again">重新抽样</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>颜色：采样｜精确</span><b><i class="sw" id="swS"></i><i class="sw" id="swE"></i></b><small id="kErr"></small></div>
+    <div class="kpi"><span>前层的权重</span><b id="kF"></b><small id="kFE"></small></div>
+    <div class="kpi"><span>后层的权重</span><b id="kB"></b><small id="kBE"></small></div>
+    <div class="kpi"><span>权重之和</span><b id="kAcc"></b><small id="kAccE"></small></div>
+    <div class="kpi"><span>期望深度</span><b id="kD"></b><small id="kDE"></small></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>沿光线：灰色块是密度（高度按密度画，超过 12 的画到顶）<i style="background:var(--blue)"></i>精确的透射率<i style="background:var(--green)"></i>期望深度（实线是采样的，虚线是精确的）。蓝色圆点是每个采样点处、按采样算出的透射率</figcaption><canvas id="c1" height="250"></canvas></figure>
+    <figure class="panel"><figcaption>每个采样点的权重，颜色是它所在那一层的颜色，空心的是落在两层之外、权重为 0 的采样点</figcaption><canvas id="c2" height="250"></canvas></figure>
+  </div>
+  <figure class="panel"><figcaption>等间隔中点采样时，颜色误差（三个通道里最大的绝对差）随采样点数的变化，纵轴是对数，点画在最下面一行表示误差小于 0.0001。红色圆圈是当前的采样点数</figcaption><canvas id="c3" height="150"></canvas></figure>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li id="t1"></li>
+      <li id="t2"></li>
+      <li id="t3"></li>
+      <li id="t4"></li>
+      <li id="t5"></li>
+    </ol>
+  </div>
+</div>
+<script>
+// == 计算部分开始 ==
+const LEN = 4, BACK0 = 2.4, BACK1 = 3.2, C1 = [0.95, 0.6, 0.1], C2 = [0.15, 0.35, 0.85], BGC = [1, 1, 1], EPS = 1e-10;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function layerAt(t, o) { return (t >= o.p1 && t < o.p1 + o.th1) ? 1 : (t >= BACK0 && t < BACK1) ? 2 : 0; }   // 采样点落在哪一层：1 前层，2 后层，0 空
+function samplePoints(o) {
+  // 等间隔中点，或者每段里随机取一点（分层随机）。返回采样点的位置和每一段的长度（最后一段一直到光线末端）
+  const d = LEN / o.n, r = rng(o.seed), t = [];
+  for (let i = 0; i < o.n; i++) t.push((i + (o.mode === "rand" ? r() : 0.5)) * d);
+  const dl = t.map((v, i) => (i + 1 < o.n ? t[i + 1] : LEN) - v);
+  return { t, dl };
+}
+function render(o) {
+  // 和作业相同：不透明度 = 1 - exp(-密度 x 长度)，透射率 = 前面各段 (1 - 不透明度) 的乘积，权重 = 透射率 x 不透明度
+  const { t, dl } = samplePoints(o), w = [], T = [], lay = [], rgb = [0, 0, 0], part = [0, 0, 0];
+  let trans = 1, acc = 0, num = 0;
+  for (let i = 0; i < o.n; i++) {
+    const k = layerAt(t[i], o), sigma = k === 1 ? o.s1 : k === 2 ? o.s2 : 0, alpha = 1 - Math.exp(-sigma * dl[i]), wi = trans * alpha;
+    T.push(trans); w.push(wi); lay.push(k); acc += wi; num += wi * t[i]; part[k] += wi;
+    const c = k === 1 ? C1 : C2; for (let j = 0; j < 3; j++) rgb[j] += wi * c[j];
+    trans *= 1 - alpha;
+  }
+  for (let j = 0; j < 3; j++) rgb[j] += (1 - acc) * BGC[j];
+  return { t, dl, w, T, lay, rgb, acc, depth: num / Math.max(acc, EPS), raw: num, front: part[1], back: part[2] };
+}
+function slab(T0, a, b, sigma) {
+  // 一层密度均匀的介质的精确解：这一层的权重、“权重 x 距离”的积分、穿出去之后的透射率
+  if (sigma <= 0 || b <= a) return { w: 0, m: 0, T: T0 };
+  const e = Math.exp(-sigma * (b - a));
+  return { w: T0 * (1 - e), m: T0 * ((a + 1 / sigma) - (b + 1 / sigma) * e), T: T0 * e };
+}
+function exact(o) {
+  const f = slab(1, o.p1, o.p1 + o.th1, o.s1), b = slab(f.T, BACK0, BACK1, o.s2), acc = f.w + b.w, rgb = [0, 0, 0];
+  for (let j = 0; j < 3; j++) rgb[j] = f.w * C1[j] + b.w * C2[j] + b.T * BGC[j];
+  return { front: f.w, back: b.w, rest: b.T, acc, rgb, depth: (f.m + b.m) / Math.max(acc, EPS), raw: f.m + b.m, tFront: f.T };
+}
+function exactT(t, o) {
+  let tau = 0;
+  tau += o.s1 * Math.max(0, Math.min(t, o.p1 + o.th1) - o.p1);
+  tau += o.s2 * Math.max(0, Math.min(t, BACK1) - BACK0);
+  return Math.exp(-tau);
+}
+function colorErr(a, b) { return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])); }
+function errCurve(o) { const ex = exact(o), out = []; for (let n = 4; n <= 128; n++) out.push([n, colorErr(render({ ...o, n, mode: "mid" }).rgb, ex.rgb)]); return out; }
+// == 计算部分结束 ==
+
+const DEFAULT = { s1: 1.5, th1: 0.6, p1: 1, s2: 8, n: 32, mode: "mid", seed: 1 };
+const PRESETS = {
+  a: { ...DEFAULT },
+  b: { ...DEFAULT, s1: 12 },
+  c: { ...DEFAULT, s1: 40, th1: 0.05, n: 32 },
+  c2: { ...DEFAULT, s1: 40, th1: 0.05, n: 64 },
+  c3: { ...DEFAULT, s1: 40, th1: 0.05, n: 32, mode: "rand" },
+  d: { ...DEFAULT, s1: 1.5, s2: 40, n: 128 },
+  e: { ...DEFAULT, s1: 0.5, s2: 0.5, n: 128 },
+};
+const TEXT = {
+  t1: '默认设置：前层稀（密度 1.5，厚 0.6），后层浓（密度 8，厚 0.8）。蓝色的透射率曲线只在两层介质里面下降，中间的空隙里是平的。按精确解，前层挡掉 0.593 的光，这就是它的权重；后层几乎把剩下的全挡住，但只能分到剩下的 0.406。合成出来的颜色是橙和蓝混在一起。32 个采样点给出的两个权重是 0.608 和 0.391，和精确值差 0.015。<button data-preset="a">载入</button>',
+  t2: '把前层的密度加到 12。前层的权重到了 0.999，后层只剩 0.001，合成的颜色就是前层的橙色。后面的东西被挡住，不需要任何专门的遮挡判断，透射率乘下来自然就是这样：密度足够大时，体渲染的结果和“取最近的表面”相同。<button data-preset="b">载入</button>',
+  t3: '把前层变成很薄很浓的一层（厚 0.05，密度 40，精确的权重是 0.865），取 32 个等间隔的采样点，间隔 0.125：没有一个采样点落在这一层里，它的权重是 0，颜色只剩后层的蓝色，误差 0.69。<button data-preset="c">载入</button> 加到 64 个：有一个采样点落进去了，权重 0.918，反而比精确值大。下面的误差曲线上下乱跳，从 4 到 128 有 28 个采样点数完全漏掉这一层。<button data-preset="c2">载入 64</button> 换成分层随机、回到 32 个，载入之后再点两次“重新抽样”：前两次没抽中，第三次抽中了，权重 0.998。每次抽中的机会是 0.05 / 0.125，也就是四成；抽中时权重偏大，抽不中时是 0。随机采样让薄层不会一直被漏掉，但采样间隔比结构还粗的时候，多次平均的颜色也不等于精确值。<button data-preset="c3">载入分层随机</button>',
+  t4: '前层半透明（密度 1.5），后层不透明（密度 40），128 个采样点。期望深度是 1.74（精确值 1.73），落在前层（1.0 到 1.6）和后层（从 2.4 开始）之间的空隙里，那里什么都没有。期望深度是按权重平均出来的位置，一条光线上有两个表面各占一部分权重时，它不代表其中任何一个。物体边缘的像素和半透明的材料都是这种情况。<button data-preset="d">载入</button>',
+  t5: '两层都很稀（密度都是 0.5），权重之和只有 0.50，一半的光到了背景。除以权重之和的期望深度是 2.00，在两层之间；不除的话是 1.00（“期望深度”那一格下面的小字），正好掉到前层的前沿上，那只是因为背景那一半权重按距离 0 算了进去。作业的 composite_rays 要求除以权重之和，原因就在这里。<button data-preset="e">载入</button>',
+};
+let opt = { ...DEFAULT };
+const $ = id => document.getElementById(id);
+const css = c => "rgb(" + c.map(v => Math.round(255 * Math.max(0, Math.min(1, v)))).join(",") + ")";
+const f2 = v => v.toFixed(2), f3 = v => v.toFixed(3);
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+
+function draw() {
+  const r = render(opt), ex = exact(opt);
+  $("s1V").textContent = opt.s1.toFixed(1); $("th1V").textContent = f2(opt.th1); $("p1V").textContent = f2(opt.p1); $("s2V").textContent = opt.s2.toFixed(1); $("nV").textContent = opt.n;
+  $("swS").style.background = css(r.rgb); $("swE").style.background = css(ex.rgb);
+  $("kErr").textContent = "误差 " + colorErr(r.rgb, ex.rgb).toFixed(colorErr(r.rgb, ex.rgb) < 0.01 ? 4 : 2);
+  $("kF").textContent = f3(r.front); $("kFE").textContent = "精确 " + f3(ex.front);
+  $("kB").textContent = f3(r.back); $("kBE").textContent = "精确 " + f3(ex.back);
+  $("kAcc").textContent = f3(r.acc); $("kAccE").textContent = "精确 " + f3(ex.acc) + "｜背景 " + f3(1 - r.acc);
+  $("kD").textContent = r.acc > 1e-6 ? f2(r.depth) : "-"; $("kDE").textContent = "精确 " + (ex.acc > 1e-6 ? f2(ex.depth) : "-") + "｜不除 " + f2(r.raw);
+
+  let [ctx, w, h] = setup($("c1"));
+  const pl = 34, pr = 10, pt = 10, pb = 22, X = t => pl + (w - pl - pr) * t / LEN, Y = v => pt + (h - pt - pb) * (1 - v);
+  ctx.font = "11px sans-serif"; ctx.fillStyle = "#646a73"; ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1;
+  for (const v of [0, 0.5, 1]) { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(w - pr, Y(v)); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(v.toFixed(1), pl - 5, Y(v) + 4); }
+  ctx.textAlign = "center"; for (let t = 0; t <= LEN; t++) ctx.fillText(t, X(t), h - 6);
+  for (const [a, b, s, c] of [[opt.p1, opt.p1 + opt.th1, opt.s1, C1], [BACK0, BACK1, opt.s2, C2]]) {
+    const hh = Math.min(1, s / 12);
+    ctx.fillStyle = "#d5d8dd"; ctx.fillRect(X(a), Y(hh), Math.max(1.5, X(b) - X(a)), Y(0) - Y(hh));
+    ctx.fillStyle = css(c); ctx.fillRect(X(a), Y(0) + 2, Math.max(1.5, X(b) - X(a)), 4);
+  }
+  ctx.strokeStyle = "#2f6fed"; ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 400; i++) { const t = LEN * i / 400, x = X(t), y = Y(exactT(t, opt)); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+  ctx.stroke();
+  ctx.fillStyle = "#2f6fed"; r.t.forEach((t, i) => { ctx.beginPath(); ctx.arc(X(t), Y(r.T[i]), opt.n > 64 ? 1.6 : 2.6, 0, 2 * Math.PI); ctx.fill(); });
+  if (r.acc > 1e-6) { ctx.strokeStyle = "#1a9c4b"; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(X(r.depth), Y(0)); ctx.lineTo(X(r.depth), Y(1)); ctx.stroke(); }
+  if (ex.acc > 1e-6) { ctx.setLineDash([4, 3]); ctx.strokeStyle = "#1a9c4b"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(X(ex.depth), Y(0)); ctx.lineTo(X(ex.depth), Y(1)); ctx.stroke(); ctx.setLineDash([]); }
+
+  [ctx, w, h] = setup($("c2"));
+  const top = Math.max(0.2, Math.max(...r.w) * 1.15), Y2 = v => pt + (h - pt - pb) * (1 - v / top), X2 = t => pl + (w - pl - pr) * t / LEN;
+  ctx.font = "11px sans-serif"; ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73";
+  for (let i = 0; i <= 4; i++) { const v = top * i / 4; ctx.beginPath(); ctx.moveTo(pl, Y2(v)); ctx.lineTo(w - pr, Y2(v)); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(v.toFixed(2), pl - 5, Y2(v) + 4); }
+  ctx.textAlign = "center"; for (let t = 0; t <= LEN; t++) ctx.fillText(t, X2(t), h - 6);
+  const bw = Math.max(1.5, 0.7 * (w - pl - pr) / opt.n);
+  r.t.forEach((t, i) => {
+    if (r.lay[i] === 0) { ctx.strokeStyle = "#b9bec7"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X2(t), Y2(0) - 2.5, Math.min(2.5, bw / 2 + 0.6), 0, 2 * Math.PI); ctx.stroke(); return; }
+    ctx.fillStyle = css(r.lay[i] === 1 ? C1 : C2); ctx.fillRect(X2(t) - bw / 2, Y2(r.w[i]), bw, Math.max(1, Y2(0) - Y2(r.w[i])));
+  });
+
+  [ctx, w, h] = setup($("c3"));
+  const cur = errCurve(opt), lo = -4, hi = 0, X3 = n => pl + (w - pl - pr) * (Math.log2(n) - 2) / 5, Y3 = e => pt + (h - pt - pb) * (1 - (Math.max(lo, Math.log10(Math.max(e, 1e-12))) - lo) / (hi - lo));
+  ctx.font = "11px sans-serif"; ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73";
+  for (const e of [1, 0.1, 0.01, 0.001, 0.0001]) { ctx.beginPath(); ctx.moveTo(pl, Y3(e)); ctx.lineTo(w - pr, Y3(e)); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(e >= 0.01 ? String(e) : e.toExponential(0), pl - 5, Y3(e) + 4); }
+  ctx.textAlign = "center"; for (const n of [4, 8, 16, 32, 64, 128]) ctx.fillText(n, X3(n), h - 6);
+  ctx.strokeStyle = "#646a73"; ctx.lineWidth = 1.3; ctx.beginPath(); cur.forEach(([n, e], i) => { if (i) ctx.lineTo(X3(n), Y3(e)); else ctx.moveTo(X3(n), Y3(e)); }); ctx.stroke();
+  ctx.fillStyle = "#646a73"; cur.forEach(([n, e]) => { ctx.beginPath(); ctx.arc(X3(n), Y3(e), 1.5, 0, 2 * Math.PI); ctx.fill(); });
+  const now = colorErr(render({ ...opt, mode: "mid" }).rgb, ex.rgb);
+  ctx.strokeStyle = "#d6362f"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X3(opt.n), Y3(now), 5, 0, 2 * Math.PI); ctx.stroke();
+}
+
+function sync() {
+  $("s1").value = opt.s1; $("th1").value = opt.th1; $("p1").value = opt.p1; $("s2").value = opt.s2; $("n").value = opt.n;
+  $("mode").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === opt.mode));
+}
+for (const [id, key] of [["s1", "s1"], ["th1", "th1"], ["p1", "p1"], ["s2", "s2"], ["n", "n"]]) $(id).addEventListener("input", e => { opt[key] = +e.target.value; draw(); });
+$("mode").addEventListener("click", e => { const v = e.target.dataset.v; if (!v) return; if (v === "again") { opt.mode = "rand"; opt.seed += 1; } else opt.mode = v; sync(); draw(); });
+for (const id of Object.keys(TEXT)) $(id).innerHTML = TEXT[id];
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { opt = { ...PRESETS[b.dataset.preset] }; sync(); draw(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", draw);
+sync(); draw();
+</script>
+</body>
+</html>

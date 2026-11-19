@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>采样与引导：二维的几团点</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  input[type=range]:disabled { opacity: 0.4; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .two { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>采样与引导：二维的几团点（第 29 章）</h1>
+  <div class="sub">数据是平面上的 6 团点，团心在半径 2 的圆上，团的标准差 0.6；按 0、1、2、0、1、2 分成 3 类，每类是相对的两团。噪声表是第 20 章的线性表（1000 步）。这个分布的最优去噪器有解析式，这里用它代替训练好的网络，所以看到的全是采样方法本身的效果。600 个点从同一批噪声出发，一步的更新和作业里的 ddim_step、cfg_combine 相同。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>采样器<div class="seg" id="sampler"><button data-v="ddim" class="on">DDIM</button><button data-v="post">DDPM 后验方差</button><button data-v="large">DDPM 方差取 beta</button></div></label>
+    <label>采样步数<div class="seg" id="steps"><button data-v="5">5</button><button data-v="10">10</button><button data-v="20">20</button><button data-v="50" class="on">50</button><button data-v="200">200</button></div></label>
+    <label>条件<div class="seg" id="cls"><button data-v="-1" class="on">不给</button><button data-v="0">类别 0</button><button data-v="1">类别 1</button><button data-v="2">类别 2</button></div></label>
+    <label>引导强度 w<b id="wV"></b><input type="range" id="w" min="0" max="8" step="1" value="2"></label>
+    <label>看采样的第几步<b id="posV"></b><input type="range" id="pos" min="0" max="50" step="1" value="50"></label>
+    <label>从噪声走到数据<div class="seg" id="run"><button data-v="play">播放</button><button data-v="end">跳到最后</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>调用去噪器的次数</span><b id="kCalls"></b></div>
+    <div class="kpi"><span id="kDistL">到目标分布的距离</span><b id="kDist"></b></div>
+    <div class="kpi"><span>团内标准差 / 真实</span><b id="kStd"></b></div>
+    <div class="kpi"><span>条件符合率</span><b id="kAdh"></b></div>
+    <div class="kpi"><span>离群比例（真实约 1%）</span><b id="kOut"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>灰点是真实数据，蓝点是正在采样的 600 个点，橙线是其中 10 个点走过的路。给了条件时，红色十字是要求的那一类的两个团心</figcaption><canvas id="c1" height="330"></canvas></figure>
+    <figure class="panel"><figcaption id="cap2"></figcaption><canvas id="c2" height="330"></canvas></figure>
+  </div>
+
+  <div class="panel try">
+    <b>按顺序试</b>（上面五个数都是对最后一步的样本算的；右图里的空心圈是当前的设置）
+    <ol>
+      <li>不给条件，DDIM，50 步。点“播放”，看 600 个点从一团噪声走到 6 个团。前一半步数里这团点几乎不动，后一半才向外散开，6 个团是最后十来步才分出来的。走完之后团内标准差和真实数据几乎一样，到目标分布的距离和两批真实样本之间的距离是一个水平。<button data-preset='{"sampler":"ddim","steps":50,"cls":-1,"w":2}'>载入</button></li>
+      <li>只把步数改成 5。每个点只调用 5 次去噪器，团还在原来的位置，但明显缩小了：团内标准差只有真实的八成多，距离是 50 步时的三倍多。再切到“DDPM 后验方差”，团还要再小一点；切到“DDPM 方差取 beta”，团反而比真实的宽两成。右图是三种采样器的团内标准差随步数的变化：步数少的时候三条线朝两个方向散开，50 步以上才都收到 1 附近。<button data-preset='{"sampler":"ddim","steps":5,"cls":-1,"w":2}'>载入</button></li>
+      <li>要求类别 0，w 取 1，DDIM，50 步。w 取 1 就是普通的条件生成：点落到类别 0 的两个团上，条件符合率九成左右。达不到 100% 不是采样的问题，相邻的团本来就有重叠，真实的类别 0 样本拿同一个分类器判也只有九成左右。<button data-preset='{"sampler":"ddim","steps":50,"cls":0,"w":2}'>载入</button></li>
+      <li>把 w 拖到 3。条件符合率到了 100%，代价是团缩成原来的六成左右，而且被压成沿半径方向的细条，整体往圆的外侧挪。右图里蓝线（符合率）早就到顶了，橙线（团内标准差）还在一路往下掉：引导强度买到的是“更像这一类”，付出的是多样性。<button data-preset='{"sampler":"ddim","steps":50,"cls":0,"w":5}'>载入</button></li>
+      <li>把 w 拖到 8，再拖到 12。点被推到了数据几乎不出现的地方，离群比例从 1% 上下升到一成多、再到将近一半。右图的红线在 w 从 1 到 3 之间贴着 0，往右抬头。再把 w 拖回 0：这时条件完全不起作用，符合率就是随机猜的三分之一左右，红线也高，那是因为点落在了别的类上。<button data-preset='{"sampler":"ddim","steps":50,"cls":0,"w":7}'>载入</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// == 计算部分开始 ==
+const T = 1000, R = 2.0, SIG = 0.6, NPTS = 600, NTRAJ = 10;
+const W_LIST = [0, 0.5, 1, 1.5, 2, 3, 5, 8, 12], STEP_LIST = [5, 10, 20, 50, 200], SAMPLERS = ["ddim", "post", "large"];
+// 第 20 章的线性噪声表：beta 从 0.0001 到 0.02 等间隔，abar 是 (1 - beta) 的累乘，下标从 0 开始
+const ABAR = (() => { const a = new Float64Array(T); let p = 1; for (let t = 0; t < T; t++) { p *= 1 - (1e-4 + (0.02 - 1e-4) * t / (T - 1)); a[t] = p; } return a; })();
+const MU = Array.from({ length: 6 }, (_, k) => [R * Math.cos(k * Math.PI / 3), R * Math.sin(k * Math.PI / 3)]);
+const CLS = [0, 1, 2, 0, 1, 2];
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r()); }
+function timesteps(S) { return Array.from({ length: S }, (_, i) => Math.round((T - 1) * (1 - i / (S - 1)))); }
+
+// 解析去噪器：x_t 在噪声水平 a 下，对噪声的最优预测。out[0..1] 是不给条件的，out[2..3] 是给定类别 cls 的
+const _lw = new Float64Array(6), _px = new Float64Array(6), _py = new Float64Array(6), _out = new Float64Array(4);
+function denoise(x, y, a, cls) {
+  const v = a * SIG * SIG + 1 - a, sa = Math.sqrt(a), sn = Math.sqrt(1 - a), g = sa * SIG * SIG / v;
+  let mAll = -Infinity, mCls = -Infinity;
+  for (let k = 0; k < 6; k++) {
+    const dx = x - sa * MU[k][0], dy = y - sa * MU[k][1];
+    _lw[k] = -(dx * dx + dy * dy) / (2 * v); _px[k] = MU[k][0] + g * dx; _py[k] = MU[k][1] + g * dy;
+    if (_lw[k] > mAll) mAll = _lw[k];
+    if (CLS[k] === cls && _lw[k] > mCls) mCls = _lw[k];
+  }
+  let sA = 0, xA = 0, yA = 0, sC = 0, xC = 0, yC = 0;
+  for (let k = 0; k < 6; k++) {
+    const e = Math.exp(_lw[k] - mAll); sA += e; xA += e * _px[k]; yA += e * _py[k];
+    if (CLS[k] === cls) { const c = Math.exp(_lw[k] - mCls); sC += c; xC += c * _px[k]; yC += c * _py[k]; }
+  }
+  _out[0] = (x - sa * xA / sA) / sn; _out[1] = (y - sa * yA / sA) / sn;
+  if (cls >= 0) { _out[2] = (x - sa * xC / sC) / sn; _out[3] = (y - sa * yC / sC) / sn; }
+  return _out;
+}
+// o: {sampler, steps, cls（-1 表示不给条件）, w}。返回最后的样本；keep 为真时连每一步的位置一起返回
+function sample(o, n, keep) {
+  const r0 = rng(11), r1 = rng(23), x = new Float64Array(n), y = new Float64Array(n);
+  for (let i = 0; i < n; i++) { x[i] = gauss(r0); y[i] = gauss(r0); }
+  const ts = timesteps(o.steps), traj = keep ? [[x.slice(), y.slice()]] : null;
+  for (let s = 0; s < ts.length; s++) {
+    const at = ABAR[ts[s]], ap = s + 1 < ts.length ? ABAR[ts[s + 1]] : 1;
+    const sa = Math.sqrt(at), sn = Math.sqrt(1 - at), sp = Math.sqrt(ap);
+    const post = o.sampler === "ddim" ? 0 : (1 - ap) / (1 - at) * (1 - at / ap);     // DDPM 的后验方差
+    const dir = Math.sqrt(Math.max(1 - ap - post, 0));
+    const sig = ap >= 1 || o.sampler === "ddim" ? 0 : Math.sqrt(o.sampler === "post" ? post : 1 - at / ap);
+    for (let i = 0; i < n; i++) {
+      const d = denoise(x[i], y[i], at, o.cls);
+      let ex = d[0], ey = d[1];
+      if (o.cls >= 0) { ex = d[0] + o.w * (d[2] - d[0]); ey = d[1] + o.w * (d[3] - d[1]); }   // 无分类器引导
+      const x0 = (x[i] - sn * ex) / sa, y0 = (y[i] - sn * ey) / sa;
+      x[i] = sp * x0 + dir * ex; y[i] = sp * y0 + dir * ey;
+      if (sig > 0) { x[i] += sig * gauss(r1); y[i] += sig * gauss(r1); }
+    }
+    if (keep) traj.push([x.slice(), y.slice()]);
+  }
+  return { x, y, traj };
+}
+function realSample(n, cls, seed) {
+  const r = rng(seed), x = new Float64Array(n), y = new Float64Array(n);
+  for (let i = 0; i < n; i++) { let k = Math.floor(r() * 6); if (cls >= 0) k = cls + 3 * (k % 2); x[i] = MU[k][0] + SIG * gauss(r); y[i] = MU[k][1] + SIG * gauss(r); }
+  return { x, y };
+}
+function logp(x, y, cls) {             // 目标分布下的对数密度，差一个常数
+  let m = -Infinity; const v = [];
+  for (let k = 0; k < 6; k++) if (cls < 0 || CLS[k] === cls) { const dx = x - MU[k][0], dy = y - MU[k][1], l = -(dx * dx + dy * dy) / (2 * SIG * SIG); v.push(l); if (l > m) m = l; }
+  let s = 0; for (const l of v) s += Math.exp(l - m); return m + Math.log(s);
+}
+function bayes(x, y) { let best = 0, bv = -Infinity; for (let c = 0; c < 3; c++) { const l = logp(x, y, c); if (l > bv) { bv = l; best = c; } } return best; }
+function blobStd(x, y, cls) {          // 把每个点分给最近的团心（给了类别就只在那两团里找），各团的标准差取平均
+  const acc = Array.from({ length: 6 }, () => [0, 0, 0, 0, 0]);
+  for (let i = 0; i < x.length; i++) {
+    let best = -1, bd = Infinity;
+    for (let k = 0; k < 6; k++) if (cls < 0 || CLS[k] === cls) { const d = (x[i] - MU[k][0]) ** 2 + (y[i] - MU[k][1]) ** 2; if (d < bd) { bd = d; best = k; } }
+    const a = acc[best]; a[0]++; a[1] += x[i]; a[2] += y[i]; a[3] += x[i] * x[i]; a[4] += y[i] * y[i];
+  }
+  let s = 0, m = 0;
+  for (const a of acc) if (a[0] >= 5) { const vx = (a[3] - a[1] * a[1] / a[0]) / (a[0] - 1), vy = (a[4] - a[2] * a[2] / a[0]) / (a[0] - 1); s += (Math.sqrt(Math.max(vx, 0)) + Math.sqrt(Math.max(vy, 0))) / 2; m++; }
+  return m ? s / m : NaN;
+}
+function slicedW(ax, ay, bx, by) {     // 切片 Wasserstein 距离：往 16 个方向投影，各自排序后逐个相减
+  const n = ax.length, pa = new Float64Array(n), pb = new Float64Array(n); let tot = 0;
+  for (let j = 0; j < 16; j++) {
+    const c = Math.cos(Math.PI * j / 16), s = Math.sin(Math.PI * j / 16);
+    for (let i = 0; i < n; i++) { pa[i] = ax[i] * c + ay[i] * s; pb[i] = bx[i] * c + by[i] * s; }
+    pa.sort(); pb.sort();
+    for (let i = 0; i < n; i++) tot += Math.abs(pa[i] - pb[i]);
+  }
+  return tot / (16 * n);
+}
+const _ref = {};
+function reference(cls) {              // 真实样本按同样办法统计的参照值
+  if (!_ref[cls]) {
+    const a = realSample(NPTS, cls, 101), b = realSample(NPTS, cls, 202);
+    const lp = Array.from(b.x, (v, i) => logp(v, b.y[i], cls)).sort((p, q) => p - q);
+    _ref[cls] = { pts: a, std: blobStd(a.x, a.y, cls), thr: lp[Math.floor(0.01 * NPTS)], floor: slicedW(a.x, a.y, b.x, b.y) };
+  }
+  return _ref[cls];
+}
+function metrics(x, y, cls, withDist) {
+  const ref = reference(cls), n = x.length; let adh = 0, out = 0;
+  for (let i = 0; i < n; i++) { if (cls >= 0 && bayes(x[i], y[i]) === cls) adh++; if (!(logp(x[i], y[i], cls) >= ref.thr)) out++; }
+  return { std: blobStd(x, y, cls) / ref.std, adh: cls >= 0 ? adh / n : NaN, out: out / n, dist: withDist ? slicedW(x, y, ref.pts.x, ref.pts.y) : NaN, floor: ref.floor };
+}
+function sweepSteps(n) {               // 不给条件：三种采样器在各个步数下的团内标准差比
+  const res = {};
+  for (const s of SAMPLERS) res[s] = STEP_LIST.map(st => { const r = sample({ sampler: s, steps: st, cls: -1, w: 0 }, n, false); return metrics(r.x, r.y, -1, false).std; });
+  return res;
+}
+function sweepW(o, n) {                // 给了条件：当前采样器和步数下，三个量随引导强度的变化
+  return W_LIST.map(w => { const r = sample({ sampler: o.sampler, steps: o.steps, cls: o.cls, w }, n, false); return metrics(r.x, r.y, o.cls, false); });
+}
+// == 计算部分结束 ==
+
+const opt = { sampler: "ddim", steps: 50, cls: -1, w: 1 };
+let cur = null, pos = 50, timer = null, cache = {};
+const $ = id => document.getElementById(id);
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+
+function recompute() {
+  cur = sample(opt, NPTS, true);
+  cur.m = metrics(cur.x, cur.y, opt.cls, true);
+  const key = opt.cls < 0 ? "steps" : [opt.sampler, opt.steps, opt.cls].join("|");
+  if (!cache[key]) cache[key] = opt.cls < 0 ? sweepSteps(480) : sweepW(opt, opt.steps >= 200 ? 240 : 480);
+  cur.sweep = cache[key];
+}
+function drawScatter() {
+  const [ctx, w, h] = setup($("c1")), L = 5.2, sc = Math.min(w, h) / (2 * L), X = v => w / 2 + v * sc, Y = v => h / 2 - v * sc;
+  const bg = reference(-1).pts;
+  ctx.fillStyle = "#d5d8dd"; for (let i = 0; i < NPTS; i++) { ctx.beginPath(); ctx.arc(X(bg.x[i]), Y(bg.y[i]), 1.6, 0, 2 * Math.PI); ctx.fill(); }
+  ctx.strokeStyle = "rgba(232,113,10,0.75)"; ctx.lineWidth = 1.2;
+  for (let j = 0; j < NTRAJ; j++) { ctx.beginPath(); for (let s = 0; s <= pos; s++) { const px = X(cur.traj[s][0][j]), py = Y(cur.traj[s][1][j]); if (s) ctx.lineTo(px, py); else ctx.moveTo(px, py); } ctx.stroke(); }
+  const fx = cur.traj[pos][0], fy = cur.traj[pos][1];
+  ctx.fillStyle = "rgba(47,111,237,0.75)"; for (let i = 0; i < NPTS; i++) { ctx.beginPath(); ctx.arc(X(fx[i]), Y(fy[i]), 1.9, 0, 2 * Math.PI); ctx.fill(); }
+  if (opt.cls >= 0) { ctx.strokeStyle = "#d6362f"; ctx.lineWidth = 2; for (let k = 0; k < 6; k++) if (CLS[k] === opt.cls) { const px = X(MU[k][0]), py = Y(MU[k][1]); ctx.beginPath(); ctx.moveTo(px - 7, py); ctx.lineTo(px + 7, py); ctx.moveTo(px, py - 7); ctx.lineTo(px, py + 7); ctx.stroke(); } }
+}
+function drawChart() {
+  const [ctx, w, h] = setup($("c2")), pl = 38, pr = 12, pt = 10, pb = 26;
+  const cond = opt.cls >= 0, labels = cond ? W_LIST : STEP_LIST, n = labels.length, lo = cond ? 0 : 0.6, hi = cond ? 2.1 : 1.4;
+  const X = i => pl + (w - pl - pr) * i / (n - 1), Y = v => pt + (h - pt - pb) * (1 - (Math.min(Math.max(v, lo), hi) - lo) / (hi - lo));
+  ctx.font = "11px sans-serif"; ctx.fillStyle = "#646a73"; ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1;
+  for (const v of (cond ? [0, 0.5, 1, 1.5, 2] : [0.6, 0.8, 1, 1.2, 1.4])) { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(w - pr, Y(v)); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(v.toFixed(1), pl - 5, Y(v) + 4); }
+  ctx.textAlign = "center"; labels.forEach((v, i) => ctx.fillText(v, X(i), h - 8));
+  ctx.strokeStyle = "#b9bec7"; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(pl, Y(1)); ctx.lineTo(w - pr, Y(1)); ctx.stroke(); ctx.setLineDash([]);
+  const line = (vals, color) => { ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.8; ctx.beginPath(); vals.forEach((v, i) => { if (i) ctx.lineTo(X(i), Y(v)); else ctx.moveTo(X(i), Y(v)); }); ctx.stroke(); vals.forEach((v, i) => { ctx.beginPath(); ctx.arc(X(i), Y(v), 2.8, 0, 2 * Math.PI); ctx.fill(); }); };
+  const ring = (i, v) => { ctx.strokeStyle = "#1f2329"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(X(i), Y(v), 6, 0, 2 * Math.PI); ctx.stroke(); };
+  if (cond) {
+    line(cur.sweep.map(m => m.adh), "#2f6fed"); line(cur.sweep.map(m => m.std), "#e8710a"); line(cur.sweep.map(m => m.out), "#d6362f");
+    const i = W_LIST.indexOf(opt.w); ring(i, cur.sweep[i].adh); ring(i, cur.sweep[i].std); ring(i, cur.sweep[i].out);
+    $("cap2").innerHTML = "当前采样器和步数下，三个量随引导强度 w 的变化<i style='background:var(--blue)'></i>条件符合率<i style='background:var(--orange)'></i>团内标准差 / 真实<i style='background:var(--red)'></i>离群比例";
+  } else {
+    line(cur.sweep.ddim, "#2f6fed"); line(cur.sweep.post, "#e8710a"); line(cur.sweep.large, "#1a9c4b");
+    ring(STEP_LIST.indexOf(opt.steps), cur.sweep[opt.sampler][STEP_LIST.indexOf(opt.steps)]);
+    $("cap2").innerHTML = "不给条件时，团内标准差 / 真实 随采样步数的变化<i style='background:var(--blue)'></i>DDIM<i style='background:var(--orange)'></i>DDPM 后验方差<i style='background:var(--green)'></i>DDPM 方差取 beta";
+  }
+}
+function render(full) {
+  if (full) { recompute(); pos = Math.min(pos, opt.steps); }
+  const cond = opt.cls >= 0, m = cur.m;
+  $("w").disabled = !cond; $("wV").textContent = cond ? opt.w : "不给条件时不起作用";
+  $("pos").max = opt.steps; $("pos").value = pos; $("posV").textContent = pos + " / " + opt.steps;
+  $("kCalls").textContent = opt.steps * (cond && opt.w !== 0 && opt.w !== 1 ? 2 : 1);
+  $("kDist").textContent = m.dist.toFixed(2);
+  $("kDistL").textContent = "到目标分布的距离（两批真实样本之间 " + m.floor.toFixed(2) + "）";
+  $("kStd").textContent = m.std.toFixed(2);
+  $("kAdh").textContent = cond ? (100 * m.adh).toFixed(0) + "%" : "-";
+  $("kOut").textContent = (100 * m.out).toFixed(0) + "%";
+  drawScatter(); if (full) drawChart();
+}
+function stop() { if (timer) { clearInterval(timer); timer = null; } }
+function play() { stop(); pos = 0; render(false); const stride = Math.max(1, Math.round(opt.steps / 50)); timer = setInterval(() => { pos = Math.min(opt.steps, pos + stride); render(false); if (pos >= opt.steps) stop(); }, 60); }
+function sync() {
+  for (const id of ["sampler", "steps", "cls"]) $(id).querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === String(opt[id])));
+  $("w").value = W_LIST.indexOf(opt.w);
+}
+function change(fn) { stop(); fn(); pos = opt.steps; sync(); render(true); }
+$("sampler").addEventListener("click", e => { const v = e.target.dataset.v; if (v) change(() => { opt.sampler = v; }); });
+$("steps").addEventListener("click", e => { const v = e.target.dataset.v; if (v) change(() => { opt.steps = +v; }); });
+$("cls").addEventListener("click", e => { const v = e.target.dataset.v; if (v !== undefined) change(() => { opt.cls = +v; }); });
+$("w").addEventListener("input", e => change(() => { opt.w = W_LIST[+e.target.value]; }));
+$("pos").addEventListener("input", e => { stop(); pos = +e.target.value; render(false); });
+$("run").addEventListener("click", e => { const v = e.target.dataset.v; if (v === "play") play(); else if (v === "end") { stop(); pos = opt.steps; render(false); } });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { const q = JSON.parse(b.dataset.preset); change(() => { opt.sampler = q.sampler; opt.steps = q.steps; opt.cls = q.cls; opt.w = W_LIST[q.w]; }); play(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", () => { drawScatter(); drawChart(); });
+sync(); render(true);
+</script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自蒸馏与坍缩：单位圆上的小模型</title>
+<style>
+  :root { --ink:#1f2329; --muted:#646a73; --line:#e3e5e8; --bg:#f6f7f9; --card:#fff; --blue:#2f6fed; --orange:#e8710a; --green:#1a9c4b; --red:#d6362f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 22px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); }
+  label b { color: var(--ink); font-weight: 600; float: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--blue); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .seg button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 4px; border: 0; background: #fff; color: var(--ink); cursor: pointer; border-right: 1px solid var(--line); white-space: nowrap; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--blue); color: #fff; }
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .kpi b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .two { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; }
+  figure { margin: 0; min-width: 0; }
+  figcaption { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  figcaption i { font-style: normal; display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin: 0 4px 0 10px; border-radius: 2px; }
+  canvas { width: 100%; display: block; }
+  .try { font-size: 13px; }
+  .try ol { margin: 4px 0 0; padding-left: 20px; }
+  .try button { font: inherit; font-size: 12px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--blue); cursor: pointer; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>自蒸馏与坍缩：单位圆上的小模型（第 26 章）</h1>
+  <div class="sub">24 个样本是单位圆上的点，分成 4 团。输出有 6 维：每一维是一个原型，打分等于“一个和输入无关的偏置”加上“样本和原型夹角的余弦乘 0.2”。学生和教师各有一套原型和偏置，教师是学生的滑动平均。损失、中心化和温度的用法和作业里的 dino_loss 相同，学生温度固定 0.1。所有计算在浏览器里完成，不执行 Python。</div>
+
+  <div class="panel controls">
+    <label>教师温度<b id="tauV"></b><input type="range" id="tau" min="-1.699" max="-0.523" step="0.001" value="-1.398"></label>
+    <label>中心化<div class="seg" id="center"><button data-v="1" class="on">开</button><button data-v="0">关</button></div></label>
+    <label>教师动量<div class="seg" id="mom"><button data-v="0">0</button><button data-v="0.9">0.9</button><button data-v="0.99" class="on">0.99</button><button data-v="0.999">0.999</button></div></label>
+    <label>训练（每次最多 1500 步）<div class="seg" id="run"><button data-v="step">走 10 步</button><button data-v="play">连续训练</button><button data-v="stop">停</button><button data-v="reset">重来</button></div></label>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><span>单个样本的熵</span><b id="kH"></b></div>
+    <div class="kpi"><span>平均分布的熵（上限 1.79）</span><b id="kHbar"></b></div>
+    <div class="kpi"><span>两个熵的差</span><b id="kGap"></b></div>
+    <div class="kpi"><span>最大的一维（均分 17%）</span><b id="kTop"></b></div>
+    <div class="kpi"><span>步数｜损失</span><b id="kStep"></b></div>
+  </div>
+
+  <div class="two">
+    <figure class="panel"><figcaption>圆上的点是样本，颜色是教师把它分给了哪个原型（最大的一维不到 0.5 时画成灰色）。圆外的三角是学生的原型，空心圆是教师的原型</figcaption><canvas id="c1" height="300"></canvas></figure>
+    <figure class="panel"><figcaption>教师给每个样本的目标分布（每行一个样本，每列一个原型，越深越接近 1）。最下面一行是 24 个样本的平均分布</figcaption><canvas id="c2" height="300"></canvas></figure>
+  </div>
+  <figure class="panel"><figcaption>训练过程<i style="background:var(--blue)"></i>单个样本的熵<i style="background:var(--orange)"></i>平均分布的熵<i style="background:#b9bec7"></i>ln 6</figcaption><canvas id="c3" height="150"></canvas></figure>
+
+  <div class="panel try">
+    <b>按顺序试</b>
+    <ol>
+      <li>默认设置：中心化开，教师温度 0.04，动量 0.99。刚开始中心还是 0，24 个样本全挤在偏置最大的那个原型上，两个熵都是 0。训练二三十步，中心跟上来，平均分布的熵升到 1.7 以上，单个样本的熵停在 0.5 左右，两个熵的差最后在 1.2 以上，6 个原型在平均分布里都有份。这就是没有坍缩的样子：每个样本的输出尖，合起来又铺得开。<button data-preset='{"tau":0.04,"center":1,"mom":0.99}'>载入</button></li>
+      <li>只把中心化关掉。这一次样本从头到尾都挤在那一个原型上，两个熵一直是 0，损失几十步就降到 0 附近。损失最低的时候，输出里没有任何关于输入的信息。<button data-preset='{"tau":0.04,"center":0,"mom":0.99}'>载入</button></li>
+      <li>中心化开着，把教师温度调到 0.2，比学生的 0.1 还高，也就是去掉锐化。平均分布的熵二十步就到了 ln 6 = 1.79，单个样本的熵慢一些，训练到七八百步也贴上去，两个熵的差缩到 0：每个样本的输出都摊成均匀分布，热图变成一片同样的浅色，圆上的点全部变灰。<button data-preset='{"tau":0.2,"center":1,"mom":0.99}'>载入</button></li>
+      <li>回到默认，只把动量改成 0，教师每一步都直接等于学生。中心化开着，前两百步样本却几乎一直挤在一个原型上；之后平均分布的熵在 0 和 1.4 之间大起大落，到不了默认设置的 1.74。再换成 0.9 试一次，看分配在 3 到 5 个原型之间来回变，平均分布的熵在 1.0 和 1.7 之间跳。<button data-preset='{"tau":0.04,"center":1,"mom":0}'>载入</button><button data-preset='{"tau":0.04,"center":1,"mom":0.9}'>载入 0.9</button></li>
+      <li>怎样分清“温度高所以看起来平”和“真的坍缩了”。先载入默认设置，等 1500 步训练停下，只拖教师温度的滑块、不再训练：拖到 0.2 时单个样本的熵显示 1.58，拖回 0.04 又回到 0.46，两个熵的差始终大于 0。<button data-preset='{"tau":0.04,"center":1,"mom":0.99}'>载入</button> 再载入教师温度 0.2 的训练，等它停下后把滑块拖回 0.04：两个熵仍然都是 1.79，差是 0。前一种只是换了个温度去读同一组打分，后一种是打分已经不随样本变了。<button data-preset='{"tau":0.2,"center":1,"mom":0.99}'>载入 0.2</button></li>
+    </ol>
+  </div>
+</div>
+<script>
+// == 计算部分开始 ==
+const K = 6, PER = 6, CENTERS = [20, 110, 200, 290], TS = 0.1, SCALE = 0.2, BSTD = 0.3, LR = 0.5, AUG = 0.08, CMOM = 0.9, MAXSTEP = 1500;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { return Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r()); }
+function initState(seed) {
+  // 样本角度 th；学生的原型角度 phi 和偏置 b；教师的 tphi、tb 一开始和学生相同；中心 c 从 0 开始
+  const r = rng(seed), th = [], phi = [], b = [];
+  for (const c of CENTERS) for (let j = 0; j < PER; j++) th.push((c + 8 * gauss(r)) * Math.PI / 180);
+  for (let k = 0; k < K; k++) { phi.push((k + 0.2 + 0.6 * r()) * 2 * Math.PI / K); b.push(BSTD * gauss(r)); }
+  return { th, phi: phi.slice(), b: b.slice(), tphi: phi.slice(), tb: b.slice(), c: new Float64Array(K), step: 0, limit: MAXSTEP, loss: NaN, r: rng(seed + 200), hist: [] };
+}
+function softmaxRow(z, tau, c) {
+  let m = -Infinity; const p = new Float64Array(z.length);
+  for (let k = 0; k < z.length; k++) { p[k] = (z[k] - (c ? c[k] : 0)) / tau; if (p[k] > m) m = p[k]; }
+  let s = 0; for (let k = 0; k < z.length; k++) { p[k] = Math.exp(p[k] - m); s += p[k]; }
+  for (let k = 0; k < z.length; k++) p[k] /= s; return p;
+}
+function logits(theta, phi, b) { return phi.map((f, k) => b[k] + SCALE * Math.cos(theta - f)); }
+function entropy(p) { let h = 0; for (const v of p) if (v > 1e-300) h -= v * Math.log(v); return h; }
+function trainStep(st, o) {
+  // o: {tau 教师温度, center 是否中心化, mom 教师动量}。每个样本两个视图（角度各加一点噪声），两个方向的交叉熵取平均
+  const n = st.th.length, g = new Float64Array(K), gb = new Float64Array(K), meanT = new Float64Array(K); let loss = 0;
+  for (let i = 0; i < n; i++) {
+    const v = [st.th[i] + AUG * gauss(st.r), st.th[i] + AUG * gauss(st.r)];
+    for (let a = 0; a < 2; a++) {
+      const zs = logits(v[a], st.phi, st.b), zt = logits(v[1 - a], st.tphi, st.tb);
+      const p = softmaxRow(zs, TS, null), q = softmaxRow(zt, o.tau, o.center ? st.c : null);
+      for (let k = 0; k < K; k++) {
+        loss -= q[k] * Math.log(Math.max(p[k], 1e-300)) / (2 * n);
+        const d = (p[k] - q[k]) / TS / (2 * n);            // 损失对学生打分的导数
+        g[k] += d * SCALE * Math.sin(v[a] - st.phi[k]); gb[k] += d;
+        meanT[k] += zt[k] / (2 * n);
+      }
+    }
+  }
+  for (let k = 0; k < K; k++) { st.phi[k] -= LR * g[k]; st.b[k] -= LR * 0.2 * gb[k]; }
+  for (let k = 0; k < K; k++) {                             // 教师 = 动量 x 教师 + (1 - 动量) x 学生
+    const x = o.mom * Math.cos(st.tphi[k]) + (1 - o.mom) * Math.cos(st.phi[k]), y = o.mom * Math.sin(st.tphi[k]) + (1 - o.mom) * Math.sin(st.phi[k]);
+    st.tphi[k] = Math.atan2(y, x); st.tb[k] = o.mom * st.tb[k] + (1 - o.mom) * st.b[k];
+  }
+  if (o.center) for (let k = 0; k < K; k++) st.c[k] = CMOM * st.c[k] + (1 - CMOM) * meanT[k];
+  st.step++; st.loss = loss;
+}
+function measure(st, o) {
+  // 不加噪声，看教师给每个样本的目标分布
+  const n = st.th.length, Q = [], mean = new Float64Array(K); let H = 0;
+  for (let i = 0; i < n; i++) { const q = softmaxRow(logits(st.th[i], st.tphi, st.tb), o.tau, o.center ? st.c : null); Q.push(q); H += entropy(q) / n; for (let k = 0; k < K; k++) mean[k] += q[k] / n; }
+  const assign = Q.map(q => q.indexOf(Math.max(...q)));
+  return { Q, mean, H, Hbar: entropy(mean), used: Array.from(mean).filter(v => v > 0.05).length, assign, top: Math.max(...mean) };
+}
+// == 计算部分结束 ==
+
+const COLORS = ["#2f6fed", "#e8710a", "#1a9c4b", "#7a4cd6", "#d6362f", "#0b9aa8"];
+const SEED = 4;
+const opt = { tau: 0.04, center: true, mom: 0.99 };
+let st = initState(SEED), timer = null;
+const $ = id => document.getElementById(id);
+
+function setup(canvas) { const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = +canvas.getAttribute("height"); canvas.width = w * dpr; canvas.height = h * dpr; canvas.style.height = h + "px"; const ctx = canvas.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h); return [ctx, w, h]; }
+function record() { const m = measure(st, opt); st.hist.push([st.step, m.H, m.Hbar]); return m; }
+
+function render(m) {
+  m = m || measure(st, opt);
+  $("tauV").textContent = opt.tau.toFixed(opt.tau < 0.1 ? 3 : 2);
+  $("kH").textContent = m.H.toFixed(2);
+  $("kHbar").textContent = m.Hbar.toFixed(2);
+  $("kGap").textContent = Math.max(0, m.Hbar - m.H).toFixed(2);
+  $("kTop").textContent = (100 * m.top).toFixed(0) + "%";
+  $("kStep").textContent = st.step + "｜" + (isNaN(st.loss) ? "-" : st.loss.toFixed(3));
+
+  let [ctx, w, h] = setup($("c1"));
+  const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 34;
+  ctx.strokeStyle = "#c9cdd4"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke();
+  st.th.forEach((t, i) => { ctx.fillStyle = m.Q[i][m.assign[i]] > 0.5 ? COLORS[m.assign[i]] : "#b9bec7"; ctx.beginPath(); ctx.arc(cx + r * Math.cos(t), cy - r * Math.sin(t), 5.5, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke(); });
+  for (let k = 0; k < K; k++) {
+    const tx = cx + (r + 14) * Math.cos(st.tphi[k]), ty = cy - (r + 14) * Math.sin(st.tphi[k]);
+    ctx.strokeStyle = COLORS[k]; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tx, ty, 6, 0, 2 * Math.PI); ctx.stroke();
+    const a = st.phi[k], sx = cx + (r + 24) * Math.cos(a), sy = cy - (r + 24) * Math.sin(a);
+    ctx.fillStyle = COLORS[k]; ctx.beginPath();
+    for (let j = 0; j < 3; j++) { const ang = -a + Math.PI + j * 2 * Math.PI / 3, px = sx + 7 * Math.cos(ang), py = sy + 7 * Math.sin(ang); if (j) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("4 团样本，6 个原型", cx, cy + 4);
+
+  [ctx, w, h] = setup($("c2"));
+  const n = st.th.length, L = 46, top = 16, gap = 10, barH = 22, rowH = (h - top - gap - barH - 6) / n, colW = (w - L - 8) / K;
+  ctx.font = "11px sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#646a73";
+  for (let k = 0; k < K; k++) { ctx.fillStyle = COLORS[k]; ctx.fillRect(L + k * colW + colW / 2 - 8, 3, 16, 6); }
+  for (let i = 0; i < n; i++) {
+    for (let k = 0; k < K; k++) { const v = m.Q[i][k]; ctx.fillStyle = "rgba(47,111,237," + (0.04 + 0.96 * v).toFixed(3) + ")"; ctx.fillRect(L + k * colW + 1, top + i * rowH, colW - 2, rowH - 1); }
+    if (i % PER === 0) { ctx.fillStyle = "#646a73"; ctx.textAlign = "left"; ctx.fillText("第 " + (i / PER + 1) + " 团", 2, top + (i + PER / 2) * rowH + 4); }
+  }
+  for (let g = 1; g < CENTERS.length; g++) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, top + g * PER * rowH - 0.5); ctx.lineTo(w - 8, top + g * PER * rowH - 0.5); ctx.stroke(); }
+  const by = top + n * rowH + gap;
+  ctx.fillStyle = "#646a73"; ctx.textAlign = "left"; ctx.fillText("平均", 2, by + barH / 2 + 4);
+  for (let k = 0; k < K; k++) {
+    ctx.fillStyle = "rgba(232,113,10," + (0.06 + 0.94 * m.mean[k]).toFixed(3) + ")"; ctx.fillRect(L + k * colW + 1, by, colW - 2, barH);
+    ctx.fillStyle = "#1f2329"; ctx.textAlign = "center"; ctx.fillText((100 * m.mean[k]).toFixed(0) + "%", L + k * colW + colW / 2, by + barH / 2 + 4);
+  }
+
+  [ctx, w, h] = setup($("c3"));
+  const pl = 34, pr = 10, pt = 8, pb = 20, X = s => pl + (w - pl - pr) * s / st.limit, Y = v => pt + (h - pt - pb) * (1 - v / 1.9);
+  ctx.strokeStyle = "#e3e5e8"; ctx.lineWidth = 1; ctx.fillStyle = "#646a73"; ctx.font = "11px sans-serif";
+  for (const v of [0, 0.5, 1, 1.5]) { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(w - pr, Y(v)); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(v.toFixed(1), pl - 5, Y(v) + 4); }
+  ctx.textAlign = "center"; for (let s = 0; s <= st.limit; s += st.limit > 3000 ? 1500 : 500) ctx.fillText(s, X(s), h - 5);
+  ctx.strokeStyle = "#b9bec7"; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(pl, Y(Math.log(K))); ctx.lineTo(w - pr, Y(Math.log(K))); ctx.stroke(); ctx.setLineDash([]);
+  for (const [col, color] of [[1, "#2f6fed"], [2, "#e8710a"]]) {
+    ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.beginPath();
+    st.hist.forEach((row, j) => { const x = X(row[0]), y = Y(row[col]); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+    ctx.stroke();
+  }
+}
+
+function stop() { if (timer) { cancelAnimationFrame(timer); timer = null; } }
+function advance(nSteps) { let m = null; for (let j = 0; j < nSteps && st.step < st.limit; j++) { trainStep(st, opt); if (st.step % 5 === 0) m = record(); } return m; }
+function play() { stop(); if (st.step >= st.limit) st.limit += MAXSTEP; const tick = () => { const m = advance(5); render(m); timer = st.step < st.limit ? requestAnimationFrame(tick) : null; }; timer = requestAnimationFrame(tick); }
+function reset() { stop(); st = initState(SEED); render(record()); }
+function sync() {
+  $("tau").value = Math.log10(opt.tau);
+  $("center").querySelectorAll("button").forEach(b => b.classList.toggle("on", (b.dataset.v === "1") === opt.center));
+  $("mom").querySelectorAll("button").forEach(b => b.classList.toggle("on", +b.dataset.v === opt.mom));
+}
+$("tau").addEventListener("input", e => { opt.tau = Math.pow(10, +e.target.value); render(); });
+$("center").addEventListener("click", e => { if (e.target.dataset.v === undefined) return; opt.center = e.target.dataset.v === "1"; sync(); render(); });
+$("mom").addEventListener("click", e => { if (e.target.dataset.v === undefined) return; opt.mom = +e.target.dataset.v; sync(); render(); });
+$("run").addEventListener("click", e => { const v = e.target.dataset.v; if (v === "step") { stop(); if (st.step >= st.limit) st.limit += MAXSTEP; render(advance(10)); } else if (v === "play") play(); else if (v === "stop") stop(); else if (v === "reset") reset(); });
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => { const q = JSON.parse(b.dataset.preset); opt.tau = q.tau; opt.center = !!q.center; opt.mom = q.mom; sync(); reset(); play(); window.scrollTo({ top: 0, behavior: "smooth" }); }));
+window.addEventListener("resize", () => render());
+sync(); render(record());
+</script>
+</body>
+</html>

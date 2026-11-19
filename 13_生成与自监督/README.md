@@ -16,9 +16,9 @@
 |---|---|
 | `figures/` | 教程配图和 `实测数字.json`（教程里所有数字的来源） |
 | `../demos/对比损失与温度.html` | 交互演示：调温度看每个负样本的梯度权重，浏览器直接打开 |
-| `实验_去噪AE与表示相似度.ipynb` | 去噪 AE 与增强表示的最小实验 |
+| `实验_去噪AE与表示相似度.ipynb` | 带瓶颈的去噪 AE、增强表示相似度，以及和教程图 1 对照的瓶颈宽度实验 |
 | `作业_重参数与对比损失.py` | VAE 重参数和 NT-Xent 契约 |
-| `tests/check_progress.py` | 检查 shape、有限值、对称性与梯度 |
+| `tests/check_progress.py` | 检查重参数化的数值、梯度和采样，NT-Xent 的手算数值、温度、对称性和归一化 |
 | `data/README.md` | MNIST、CIFAR-10、LAION 元数据等来源提示 |
 
 Notebook 不实现作业中的 VAE/NT-Xent 完整答案，只建立重建与表示比较直觉。

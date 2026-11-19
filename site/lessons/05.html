@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -1060,7 +1060,7 @@ R = \lambda_2^2\left[r - k\,(1+r)^2\right]
 <li><strong>忽略随机性</strong>：RANSAC 结果可能轻微变化，评估应看统计和几何约束。</li>
 <li><strong>在周期图案上直接用特征点对齐</strong>：误匹配恰好错整数个周期，RANSAC 也救不回来（第 5.8 节）。</li>
 </ol>
-<p>下面这张表补充做本章作业和匹配实验时最常见的实现错误。前三行的写法都能通过本章的验收脚本，要靠表里的办法自己查。</p>
+<p>下面这张表补充做本章作业和匹配实验时最常见的实现错误。前八行的写法都过不了本章的验收，表里写了会在哪一项报出来、怎样自己查。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1071,29 +1071,44 @@ R = \lambda_2^2\left[r - k\,(1+r)^2\right]
 </thead>
 <tbody>
 <tr>
-<td>验收通过了，但斜的直边上也有正响应</td>
-<td>行列式漏了 <span class="arithmatex">\(I_xI_y\)</span> 那一项，只算了 <span class="arithmatex">\(S_{xx}S_{yy}\)</span>。验收脚本只测轴向的方块，轴向的边上交叉项本来就是 0</td>
+<td>斜的直边上也有正响应，验收的“直边”一项不通过</td>
+<td>行列式漏了 <span class="arithmatex">\(I_xI_y\)</span> 那一项，只算了 <span class="arithmatex">\(S_{xx}S_{yy}\)</span>。只看轴向的方块发现不了，轴向的边上交叉项本来就是 0</td>
 <td>测一条 45 度的直边，正确实现在边的中段响应不大于 0。实测漏掉交叉项时，边中段的最大响应是方块顶点响应的 0.204 倍，为正</td>
 </tr>
 <tr>
-<td>边上的响应几乎为 0，而不是明显的负数</td>
-<td>迹没有平方，写成了 <span class="arithmatex">\(\det - k\,\mathrm{tr}\)</span></td>
+<td>边上的响应几乎为 0，而不是明显的负数，验收的“亮度缩放”一项不通过</td>
+<td>迹没有平方，写成了 <span class="arithmatex">\(\det - k\,\mathrm{tr}\)</span>。这样两项的次数不同，灰度减半时边上的响应不再按四次方缩小</td>
 <td>看方块一条边中段的响应：正确实现约为顶点响应的 -0.18 倍，没平方时只有 <span class="arithmatex">\(-2.6\times10^{-7}\)</span> 倍</td>
 </tr>
 <tr>
 <td>方块四个角里只有左上角有响应</td>
-<td>Sobel 的输出深度用了 <code>-1</code>（和输入相同的 uint8），负的梯度被截成 0。验收只要求全局最大值在某一个角附近</td>
+<td>Sobel 的输出深度用了 <code>-1</code>（和输入相同的 uint8），负的梯度被截成 0。验收的“方块顶点”一项会报四个顶点的响应不相等</td>
 <td>打印四个角的响应，应该一样大；再把图像灰度减半，最大响应应变成 0.0625 倍，截断时实测是 0.839 倍</td>
 </tr>
 <tr>
-<td>改了 <code>k</code> 或 <code>window_size</code>，输出完全不变</td>
+<td>改了 <code>k</code> 或 <code>window_size</code>，输出完全不变，验收的“参数 k”“参数 window_size”两项不通过</td>
 <td>函数里写死了 0.04 和 3，没用参数</td>
 <td>用两个不同的 <code>k</code> 调用，比较输出是否不同</td>
 </tr>
 <tr>
-<td>方块的四个角响应都不是正的，验收报“清晰方块角点应有正响应”</td>
+<td>方块的四个角响应都不是正的，验收的“方块顶点”一项不通过</td>
 <td>没做窗口求和，直接用单个像素的 <span class="arithmatex">\(I_x^2\)</span>、<span class="arithmatex">\(I_y^2\)</span>、<span class="arithmatex">\(I_xI_y\)</span>。单个像素上行列式恒为 0</td>
 <td>打印某个角点处的 <span class="arithmatex">\(\det\)</span>，应明显大于 0</td>
+</tr>
+<tr>
+<td>灰度减半之后最大响应没有变成 0.0625 倍，验收的“亮度缩放”一项不通过</td>
+<td>把输入或者响应除以了最大值做归一化，响应不再随亮度变化</td>
+<td>同一张图乘 0.5 再算一次，比较两次的最大响应</td>
+</tr>
+<tr>
+<td>直边上的响应是 0，不是负数，验收的“直边”一项不通过</td>
+<td>把负的响应截成了 0；或者返回的是较小的特征值（Shi-Tomasi 分数），不是 Harris 响应</td>
+<td>看方块一条边中段的响应，应明显为负</td>
+</tr>
+<tr>
+<td>常数图上最外一圈像素有响应，验收的“输出契约与平坦区”一项不通过</td>
+<td>求梯度时图像边界补了零，边界上凭空多出一圈梯度</td>
+<td>用一张常数图测试，全图的响应都应为 0</td>
 </tr>
 <tr>
 <td>和 <code>cornerHarris</code> 的结果差 256 倍或者差几十亿倍</td>
@@ -1227,6 +1242,7 @@ R = \lambda_2^2\left[r - k\,(1+r)^2\right]
 <h3 id="练习-5-1手写-harris">练习 5-1：手写 Harris</h3>
 <p>对应本章的自动验收作业 <code>5-1_Harris响应.py</code>。不要直接调用 <code>cornerHarris</code> 完成主体。按“灰度与浮点化 → Sobel 求 <code>Ix、Iy</code> → 计算 <code>Ix²、Iy²、IxIy</code> → 窗口求和 → <code>det-trace</code> 响应 → 阈值 → 非极大值抑制”实现。把自己的响应图与 OpenCV 结果并排看，重点解释窗口大小、<code>k</code> 和阈值变化带来的差异。比较时注意第 5.2 节说的 256 倍和 255 的四次方倍。</p>
 <p>作业函数只要求返回响应图，阈值和非极大值抑制留给你在 Notebook 和实验记录里做。</p>
+<p>验收分六项：输出契约与平坦区、方块顶点、直边、亮度缩放、参数 k、参数 window_size。它们检查的是响应公式本身的性质，不和某一份实现逐像素比较，所以方框窗还是高斯窗、窗口归一化与否、梯度算子带不带缩放系数都不影响结果。函数的文档字符串里写明了几条约定（梯度用对称的算子、边界不补零、不按图像内容做归一化），动手前先读一遍。全部通过后回到 Notebook，三个实验都要用到你的 <code>harris_response</code>。</p>
 <h3 id="练习-5-2sift-匹配">练习 5-2：SIFT 匹配</h3>
 <p>依次可视化原始最近邻、比值测试后匹配、RANSAC 内点。记录三个数量：关键点数、通过比值测试的匹配数、RANSAC 内点数。尝试旋转、缩放、调暗其中一张图，验证 SIFT 的三种鲁棒性来源，而不是只记结论。调暗时记得同时看关键点数，第 5.4 节的实测说明掉的主要是检测。</p>
 <p>这一章也直接连接上一章的图像拼接练习（题目在 <code>视觉算法学习计划.md</code> 的“题 4-2”）：特征点负责提出对应关系，RANSAC 与单应矩阵负责判断这些关系能否被统一几何模型解释。</p>
@@ -1234,8 +1250,8 @@ R = \lambda_2^2\left[r - k\,(1+r)^2\right]
 <h2 id="511-破坏实验">5.11 破坏实验</h2>
 <p>每个实验先写下预测，再运行，把结果和原因记到 <code>实验记录.md</code>。前三个是标准档必做。</p>
 <ol>
-<li>在你的 Harris 实现里把 <code>- sxy * sxy</code> 删掉，跑一次验收。还能通过吗？再在一条 45 度的直边上看响应，解释为什么验收没抓到。</li>
-<li>把同一张图分别以原图和整体乘 0.5 送进你的 Harris，最大响应之比是多少？用固定阈值和“最大值的 1%”各检一次角点，点数怎么变？</li>
+<li>在你的 Harris 实现里把行列式的交叉项删掉，跑一次验收。先预测哪几项会不通过，再在一条 45 度的直边上看响应（Notebook 的实验 3 里有现成的直边图）。解释为什么只用轴向的方块测不出这个错，<code>window_size=1</code> 的那项检查又为什么也会报错。</li>
+<li>Notebook 的实验 2：把同一张图分别以原图和整体乘 0.5 送进你的 Harris，最大响应之比是多少？用固定阈值和“最大值的 1%”各检一次角点，点数怎么变？</li>
 <li>用 SIFT 匹配一对图，比值阈值从 0.5 扫到 0.95，画出正确率和保住的正确匹配比例两条曲线（用已知变换生成第二张图判断对错）。在你的图上，0.75 是不是一个好的工作点？</li>
 <li>把 ORB 的匹配距离从 <code>NORM_HAMMING</code> 换成 <code>NORM_L2</code>，正确匹配少了多少？程序有没有报错？</li>
 <li>在一张周期图案（例如方格纸、键盘照片）上做特征对齐，看失败时的误差是不是整数个周期。再试试只在小范围内匹配。</li>

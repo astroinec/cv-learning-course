@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -828,7 +828,7 @@ Y = \left(1 + \frac{A D_0}{\alpha}\right)^{-\alpha}
 <ol>
 <li><strong>随机、中心集中、边缘环、环形这四种，径向密度的形状各不相同，分得开</strong>。这是径向特征擅长的事。</li>
 <li><strong>中心集中和划痕分不开，环形和局部聚集也分不开</strong>。这条经过中心附近的划痕，径向密度从内到外是 7.43、3.95、2.14，和中心集中的 8.11、4.93、1.91 几乎一样，边缘比例都是 0。环形和局部聚集的情况相同。径向特征把一整圈的缺陷加在一起，角度方向的信息全丢了。扇区占比能把它们分开：划痕 0.378 对中心集中 0.108，局部聚集 0.971 对环形 0.107。</li>
-<li><strong>随机分布的最外环密度是 0.90，边缘比例是 0.156 而不是 0.19</strong>。这不是工艺现象。Notebook 里随机缺陷只撒到半径 147 mm（去边以内），统计半径却用了 150 mm，最外面 3 mm 没有缺陷。按面积算，缺陷铺满 150 mm 时均匀分布的边缘比例应该是 0.19，只铺到 147 mm 时是 0.157。撒点范围和统计范围不一致，就会凭空造出一个“边缘偏少”的假象。</li>
+<li><strong>随机分布的最外环密度是 0.90，边缘比例是 0.156 而不是 0.19</strong>。这不是工艺现象。Notebook 里随机缺陷只撒到半径 147 mm（去边以内），统计半径却用了 150 mm，最外面 3 mm 没有缺陷。按面积算，缺陷铺满 150 mm 时均匀分布的边缘比例应该是 0.19，只铺到 147 mm 时是 0.157。撒点范围和统计范围不一致，就会凭空造出一个“边缘偏少”的假象。Notebook 保留了这两个不同的半径，并在对应的单元前写了说明；第 12 节的破坏实验 1 让你把它们统一后再比。</li>
 </ol>
 <p>第 2 条还有一层：划痕的径向密度取决于它的位置。图 5 的划痕离圆心最近约 17 mm，所以看起来像中心集中。换一条离圆心远的划痕，径向密度会变成中间高两头低，看起来像环形。第 9 节的演示可以直接试。</p>
 <div class="quiz" data-answer="B"><div class="quiz-tag">小测</div><div class="quiz-q"><strong>只用径向密度和边缘比例这两个特征，下面哪一对模式最难分开？</strong></div><div class="quiz-opts"><button type="button" data-k="A"><b>A</b><span>中心集中和边缘环</span></button><button type="button" data-k="B"><b>B</b><span>中心集中和一条经过中心附近的划痕</span></button><button type="button" data-k="C"><b>C</b><span>随机分布和环形</span></button></div><div class="quiz-exp" hidden><p><strong>B</strong>。实测两者的径向密度分别是 8.11、4.93、1.91 和 7.43、3.95、2.14，边缘比例都是 0。A 的两种模式一个只有内圈有、一个只有外圈有；C 的随机分布各环接近 1，环形只有中间两环有。要分开 B，需要带角度信息的特征，例如最密扇区的占比（0.108 对 0.378）。</p></div></div>
@@ -1015,7 +1015,22 @@ Y = \left(1 + \frac{A D_0}{\alpha}\right)^{-\alpha}
 <tr>
 <td>角点正好落在圆上的 die 被漏掉</td>
 <td>把“距离不超过半径”写成了严格小于</td>
-<td>验收的两组参数里没有这种 die，查不出来。用 300 mm、不去边、角点对准（offset 为 0）测，应为 648 个，写成严格小于会得到 640 个</td>
+<td>用 300 mm、不去边、角点对准（offset 为 0）测，应为 648 个，写成严格小于会得到 640 个。验收里有这一组参数</td>
+</tr>
+<tr>
+<td>offset 取得比一个 die 还大时，完整 die 变少了</td>
+<td>搜索 col、row 的范围只按半径算，没有把 offset 算进去</td>
+<td>把 offset 平移整数个 die，完整 die 的个数和中心都不应该变，只有编号跟着变</td>
+</tr>
+<tr>
+<td>宽和高不相等的 die，中心坐标对不上</td>
+<td>算中心时把 die 的宽和高用反了</td>
+<td>中心应是左下角加半个宽、半个高，用宽高不同的 die 测</td>
+</tr>
+<tr>
+<td>晶圆太小、一个完整 die 都放不下时，后面的代码报形状错误</td>
+<td>空结果没有整理成 0 行 4 列</td>
+<td>用比 die 还小的晶圆测，应返回 0 行 4 列的数组</td>
 </tr>
 <tr>
 <td>坐标为负的缺陷归错了 die，(-0.001, -0.001) 被归到 (0, 0)</td>
@@ -1041,6 +1056,21 @@ Y = \left(1 + \frac{A D_0}{\alpha}\right)^{-\alpha}
 <td>边缘比例偏小</td>
 <td>分母里算进了半径以外的点</td>
 <td>加一个半径以外的点，结果不应该变</td>
+</tr>
+<tr>
+<td>正好落在外圈内边界上的点没有被算进外圈</td>
+<td>把“距离不小于半径减外圈宽”写成了严格大于</td>
+<td>放一个到圆心的距离正好等于半径减外圈宽的点，它应算在外圈里。验收里有这样的点</td>
+</tr>
+<tr>
+<td>所有点都在半径以外时，边缘比例是 nan</td>
+<td>只判断了输入是不是空的，没有判断半径内有没有点</td>
+<td>只放半径以外的点，应返回 0</td>
+</tr>
+<tr>
+<td>调用一次之后，传进去的坐标数组变了</td>
+<td>在原数组上直接减了 offset 或取了绝对值</td>
+<td>调用前把输入复制一份，调用后比较</td>
 </tr>
 <tr>
 <td>随机缺陷的最外环密度偏低一成，边缘比例是 0.157 而不是 0.19</td>

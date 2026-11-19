@@ -48,13 +48,13 @@
 <li data-ch="24"><a href="../lessons/24.html"><span class="dot P1"></span><span class="side-n">24</span>综合项目：晶圆检测流水线</a></li>
 </ul>
 <div class="side-part">第三部分 前沿方法</div><ul>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</span></li>
-<li class="planned"><span><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</span></li>
-<li class="planned"><span><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</span></li>
-<li class="planned"><span><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</span></li>
+<li data-ch="25"><a href="../lessons/25.html"><span class="dot P2"></span><span class="side-n">25</span>Transformer 与 ViT</a></li>
+<li data-ch="26"><a href="../lessons/26.html"><span class="dot P1"></span><span class="side-n">26</span>自监督基础模型：MAE 与 DINOv2</a></li>
+<li data-ch="27"><a href="../lessons/27.html"><span class="dot P2"></span><span class="side-n">27</span>可提示分割：SAM</a></li>
+<li data-ch="28"><a href="../lessons/28.html"><span class="dot P2"></span><span class="side-n">28</span>视觉语言模型与开放词汇检测</a></li>
+<li data-ch="29"><a href="../lessons/29.html"><span class="dot P2"></span><span class="side-n">29</span>扩散模型实战：SD、ControlNet、LoRA</a></li>
+<li data-ch="30"><a href="../lessons/30.html"><span class="dot P3"></span><span class="side-n">30</span>神经渲染：NeRF 与 3D Gaussian Splatting</a></li>
+<li data-ch="31"><a href="../lessons/31.html"><span class="dot P1"></span><span class="side-n">31</span>部署与加速：ONNX、TensorRT、量化</a></li>
 </ul>
   </nav>
   <main class="content">
@@ -1296,7 +1296,7 @@ A\bullet B=(A\oplus B)\ominus B
 </ol>
 <p>其中第 3 条和第 4 条在本章有具体数字：<code>iterations=2</code> 的 3×3 开运算等于一次 5×5 开运算（3.4 节），Otsu 在前景占 2%、对比度是噪声 6 倍时把 36.3% 的背景判成了前景（3.1 节）。</p>
 <h3 id="常见错误现象原因怎么查">常见错误：现象、原因、怎么查</h3>
-<p>前七行是做本章作业时最容易犯的实现错误。验收脚本只用 3×3 的全 1 核测，而且没有测贴边的腐蚀，所以第 2、3、4、5 行的错误它查不出来（第 1 行和第 6 行能查出来），要自己加测试。</p>
+<p>前九行是做本章作业时最容易犯的实现错误。验收脚本有七项：输出契约与 3×3 方块、十字核、1×5 和 5×1 的核、不对称核的方向、贴边的腐蚀、核的取值类型与不修改输入、随机图与 OpenCV 对照。前八行的错误都会被其中某一项报 FAIL，说明里给出的就是表里“怎么查”一栏的小例子。早先的版本只用 3×3 的全 1 核测，也没有测贴边的腐蚀，第 2 到 5 行的错误查不出来，现在已经补上。第 9 行是两个函数都写对之后的用法问题，验收不查，在 Notebook 的实验 B 里做。</p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1332,9 +1332,19 @@ A\bullet B=(A\oplus B)\ominus B
 <td>左上角 10×10 的方块做 3×3 腐蚀，应剩 64 个像素，不是 81 个</td>
 </tr>
 <tr>
-<td>验收报“输出契约”失败</td>
+<td>验收的“输出契约与 3×3 方块”一项失败</td>
 <td>返回了 <code>bool</code> 或者 0/1，没有转回 0/255 的 <code>uint8</code></td>
 <td>打印 <code>dtype</code> 和 <code>np.unique</code></td>
+</tr>
+<tr>
+<td>3×3 的核没问题，换成 1×5 的核就报形状错误</td>
+<td>两个方向的半径都按核的行数算</td>
+<td>一个点用形状 <code>(1, 5)</code> 的核膨胀，应得到同一行上的 5 个像素</td>
+</tr>
+<tr>
+<td>用 <code>cv2.getStructuringElement</code> 生成的核没问题，自己造的 0/255 的核没有效果</td>
+<td>只把等于 1 的位置当成结构元</td>
+<td>把十字核乘 255 再测，结果应和原来一样；契约是“非零位置”</td>
 </tr>
 <tr>
 <td>用自己的函数拼出的闭运算把贴边的目标吃掉了</td>
@@ -1376,7 +1386,7 @@ A\bullet B=(A\oplus B)\ominus B
 <hr />
 <h2 id="39-与配套练习怎么连接">3.9 与配套练习怎么连接</h2>
 <ul>
-<li><strong><code>3-1_手写二值形态学.py</code></strong>：从 0/1 小矩阵开始，明确锚点、边界填充值和一次迭代定义。先实现矩形全 1 核，再考虑任意结构元素；用 OpenCV 只做对照测试，不直接替代核心实现。对照时记得显式指定边界（3.3 节）。验收通过之后，再用 3.8 节表里前五行的小例子自测一遍。</li>
+<li><strong><code>3-1_手写二值形态学.py</code></strong>：从 0/1 小矩阵开始，明确锚点、边界填充值和一次迭代定义。先实现矩形全 1 核，再考虑任意结构元素；用 OpenCV 只做对照测试，不直接替代核心实现。对照时记得显式指定边界（3.3 节）。验收里的手算例子就是 3.8 节表里前八行的那些小例子，某一项 FAIL 时对照表里的“原因”一栏。验收通过之后，做 Notebook 的实验 A 和实验 B。</li>
 <li><strong>3.6 节的车牌例子</strong>没有对应的作业文件。想自己练的话按这几条要求来：先对三种响应来源至少比较两种，再选择阈值策略；形态学核需要写出“为何横向、为何这个尺度”。筛选候选时不要只凭单一面积阈值，且不要把某一张图调通当作完成。</li>
 </ul>
 <p>练习的重点不是复刻 API，而是建立两个可解释的判断：<strong>当前前景是谁？这个结构元素在表达什么几何先验？</strong></p>
@@ -1410,7 +1420,7 @@ A\bullet B=(A\oplus B)\ominus B
 <ol>
 <li>操作选开运算，宽和高都是 3。原图标题里显示 27 个区域，先预测开运算之后剩几个，再运行。然后把高保持 3、宽慢慢加大，预测左边带孔的矩形哪一部分最先消失、宽度到多少时消失。</li>
 <li>操作选闭运算，高保持 3。右边两个矩形之间的缝是 5 px，先按 3.4 节的规则预测把它们粘在一起的最小宽度，再验证。然后把宽固定为 3、只调高度，预测能不能粘上，并解释原因。</li>
-<li>作业通过之后，用自己的两个函数直接拼一个闭运算，在一张 20×20 的整幅前景图上运行。预测会丢多少个像素、丢在哪里，再按 3.3 节的办法修好。</li>
+<li>作业通过之后，用自己的两个函数直接拼一个闭运算，在一张 20×20 的整幅前景图上运行。预测会丢多少个像素、丢在哪里，再按 3.3 节的办法修好。Notebook 的实验 B 有直接拼的那一半，修好的那一半要自己写。</li>
 <li>按 3.1 节的条件生成两张图（背景均值 100、标准差 10，前景亮 60，前景分别占 5% 和 1%），打印 Otsu 阈值和判出来的前景占比。然后把对比度提高到 100，预测 1% 的那张会不会恢复正常。</li>
 <li>画一条 45° 的细线，中间断开 3 个像素。先用方形闭运算，边长从 3 加到 15，再换成和细线同向的 5 px 线形核（<code>np.eye(5)</code> 或者把它上下翻转，看你的线朝哪边斜）。然后把线的方向转 90°、核不变，预测还能不能连上。</li>
 <li>生成一张密度 3% 的纯噪点图，分别做“先 3×3 开再 5×5 闭”和“先 5×5 闭再 3×3 开”，数剩下的连通域。再把闭运算的核加大到 7×7，预测后一种顺序剩下的连通域是变多还是变少。结果可以和 <code>实测数字.json</code> 里“开和闭的先后顺序”一项对照。</li>

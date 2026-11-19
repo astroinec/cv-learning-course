@@ -1,0 +1,12 @@
+# 第三部分（25 到 31 章）“在自己的机器上用真模型”一节用到的包。用到哪章装哪章，不建议一次全装。
+# 这些包和相关代码都没有在写课程的机器上运行过，版本搭配以各库官方安装说明为准。
+# 第 27 章的 segment-anything、第 30 章的 nerfstudio 和 gsplat、第 31 章的 TensorRT 不在这里，
+# 安装方式见 docs/环境安装.md 第 5 节和各章讲义。
+timm                 # 第 25 章，可选
+transformers         # 第 26、28、29 章
+open_clip_torch      # 第 28 章
+diffusers            # 第 29 章
+accelerate           # 第 29 章
+onnx                 # 第 31 章
+onnxscript           # 第 31 章
+onnxruntime-gpu      # 第 31 章；没有 NVIDIA 显卡时换成 onnxruntime

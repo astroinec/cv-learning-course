@@ -14,7 +14,9 @@
 - 只允许 NumPy（可以 import 你自己前面章节的作业文件，见 load_chapter）
 - 单次运行 30 张 96x96 的图应在 30 秒内完成
 
-验收：python3 tests/check_progress.py，会用两个随机种子生成数据并独立计算指标。
+验收：python tests/check_progress.py（macOS 和 Linux 上是 python3）。它用 8 个固定种子各生成一份数据，按真值独立计算指标。
+一个种子达标指检出率不低于 85%、每 die 误报不超过 0.3、单次运行不超过 30 秒；
+8 个种子里至少 6 个达标，并且 8 个种子合计的检出率和每 die 误报也满足这两条线，才算通过。
 """
 
 from __future__ import annotations
@@ -38,7 +40,8 @@ def load_chapter(folder: str, filename: str):
 
 
 def run_pipeline(golden: np.ndarray, test: np.ndarray) -> list[list[tuple[float, float]]]:
-    """返回长度为 N 的列表，第 i 项是第 i 张待检 die 上检出的缺陷中心 [(y, x), ...]，
-    坐标在该 die 自身的图像坐标系下。没有缺陷的 die 返回空列表。
+    """返回长度为 N 的列表（N 是待检 die 的张数，即 test.shape[0]），第 i 项是第 i 张待检 die 上检出的缺陷中心 [(y, x), ...]，
+    坐标在该 die 自身的图像坐标系下，行在前、列在后。每个中心是两个有限的数，不能是 nan 或 inf。
+    没有缺陷的 die 返回空列表，不能是 None。
     """
     raise NotImplementedError("TODO: 实现 die-to-die 检测流水线")

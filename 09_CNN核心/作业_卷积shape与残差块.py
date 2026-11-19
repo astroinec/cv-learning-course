@@ -11,6 +11,8 @@ def conv_output_size(size: int, kernel: int, stride: int = 1, padding: int = 0, 
 
     输入均为正整数或非负 padding；输出为 Python int。
     公式需包含 dilation，并使用向下取整。
+    输出长度最小是 1。补边之后的输入放不下一个带膨胀的卷积核时，按公式算出来的长度不是正数，
+    这时抛出 ValueError，不要返回 0、负数或 1。
     """
     # TODO: 实现通用卷积输出尺寸公式，并拒绝非正输出。
     raise NotImplementedError("TODO: 实现 conv_output_size")
@@ -21,6 +23,10 @@ class BasicResidualBlock(nn.Module):
 
     输入：x shape (N, channels, H, W)，float tensor。
     输出：与 x 完全相同 shape；梯度必须能传回输入。
+    结构：残差分支依次是 conv1、bn1、ReLU、conv2、bn2，bn2 之后先不过 ReLU；
+        分支的输出和输入 x 相加，相加之后再过一次 ReLU，所以输出没有负数。
+        __init__ 里的四个层各用一次，不新增带参数的层。
+    不得原地修改输入 x。
     """
 
     def __init__(self, channels: int) -> None:
