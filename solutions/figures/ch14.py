@@ -17,6 +17,12 @@ letterbox 的元数据和检测框回映射调用本章作业的参考实现。
 
 from __future__ import annotations
 
+
+def _strip_trace(msg):
+    """去掉警告里 PyTorch 自带的 "(Triggered internally at /Users/runner/...)"，那是编译机器的路径，和课程无关。"""
+    import re
+    return re.sub(r"\s*\(Triggered internally at .*?\)", "", msg).strip()
+
 import copy
 import io
 import json
@@ -1345,7 +1351,7 @@ def table_export():
     with warnings.catch_warnings(record=True) as rec:
         warnings.simplefilter("always")
         traced = torch.jit.trace(base, xte[:1])
-    out["trace 时的弃用提示"] = sorted({str(r.message) for r in rec if issubclass(r.category, FutureWarning)})
+    out["trace 时的弃用提示"] = sorted({_strip_trace(str(r.message)) for r in rec if issubclass(r.category, FutureWarning)})
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, "small.pt")
         traced.save(path)
@@ -1460,7 +1466,7 @@ def fig_compress():
     with warnings.catch_warnings(record=True) as rec:
         warnings.simplefilter("always")
         torch.ao.quantization.quantize_dynamic(nn.Sequential(nn.Linear(4, 4)), {nn.Linear}, dtype=torch.qint8)
-    hints = sorted({str(r.message).strip().splitlines()[0] for r in rec if "quantiz" in str(r.message).lower() or "torchao" in str(r.message).lower()})
+    hints = sorted({_strip_trace(str(r.message).strip().splitlines()[0]) for r in rec if "quantiz" in str(r.message).lower() or "torchao" in str(r.message).lower()})
     models = {
         "float32（原模型）": net,
         "半精度存储（FP16）": copy.deepcopy(net).half().float(),
