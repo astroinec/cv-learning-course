@@ -42,13 +42,13 @@
     {"n": "22", "part": 2, "dir": "22_成像与设备仿真", "tutorial": "教程_成像与设备仿真.md", "title": "成像与设备仿真", "priority": "P1", "hours": [3, 12, 18], "needs": ["02"], "scene": "判断设备的检出上限，给算法做仿真测试数据", "upgraded": true},
     {"n": "23", "part": 2, "dir": "23_半导体检测领域知识", "tutorial": "教程_半导体检测领域知识.md", "title": "半导体检测领域知识", "priority": "P0", "hours": [3, 8, 12], "needs": [], "scene": "听懂会议里的术语，判断一个算法改进的业务价值", "upgraded": true},
     {"n": "24", "part": 2, "dir": "24_综合项目_晶圆检测流水线", "tutorial": "教程_综合项目.md", "readme": "README.md", "title": "综合项目：晶圆检测流水线", "priority": "P1", "hours": [4, 15, 24], "needs": ["16", "18", "23"], "scene": "把对齐、归一化、金模板、阈值串成一条完整流水线，可以作为作品讲", "upgraded": true},
-    {"n": "25", "part": 3, "title": "Transformer 与 ViT", "priority": "P2", "hours": null, "needs": ["09"], "scene": "读懂 2020 年以后大多数视觉模型的前提", "planned": true},
-    {"n": "26", "part": 3, "title": "自监督基础模型：MAE 与 DINOv2", "priority": "P1", "hours": null, "needs": ["25"], "scene": "标注很少时直接拿通用特征做分类、检索和异常检测", "planned": true},
-    {"n": "27", "part": 3, "title": "可提示分割：SAM", "priority": "P2", "hours": null, "needs": ["12", "25"], "scene": "半自动标注缺陷掩码、交互式分割", "planned": true},
-    {"n": "28", "part": 3, "title": "视觉语言模型与开放词汇检测", "priority": "P2", "hours": null, "needs": ["25"], "scene": "零样本分类，用文字描述找目标，辅助缺陷复查", "planned": true},
-    {"n": "29", "part": 3, "title": "扩散模型实战：SD、ControlNet、LoRA", "priority": "P2", "hours": null, "needs": ["20"], "scene": "可控的缺陷图像合成，对应岗位要求里的图像生成", "planned": true},
-    {"n": "30", "part": 3, "title": "神经渲染：NeRF 与 3D Gaussian Splatting", "priority": "P3", "hours": null, "needs": ["21"], "scene": "从多视图重建三维、合成新视角，对应渲染和仿真方向", "planned": true},
-    {"n": "31", "part": 3, "title": "部署与加速：ONNX、TensorRT、量化", "priority": "P1", "hours": null, "needs": ["14"], "scene": "把模型的推理时间压进产线节拍", "planned": true, "proposed": true}
+    {"n": "25", "part": 3, "dir": "25_Transformer与ViT", "tutorial": "教程_Transformer与ViT.md", "title": "Transformer 与 ViT", "priority": "P2", "hours": [3, 10, 16], "needs": ["09"], "scene": "读懂 2020 年以后大多数视觉模型的前提", "upgraded": true},
+    {"n": "26", "part": 3, "dir": "26_自监督基础模型", "tutorial": "教程_自监督基础模型.md", "title": "自监督基础模型：MAE 与 DINOv2", "priority": "P1", "hours": [3, 10, 16], "needs": ["25"], "scene": "标注很少时直接拿通用特征做分类、检索和异常检测", "upgraded": true},
+    {"n": "27", "part": 3, "dir": "27_可提示分割SAM", "tutorial": "教程_可提示分割.md", "title": "可提示分割：SAM", "priority": "P2", "hours": [2, 8, 14], "needs": ["12", "25"], "scene": "半自动标注缺陷掩码、交互式分割", "upgraded": true},
+    {"n": "28", "part": 3, "dir": "28_视觉语言模型", "tutorial": "教程_视觉语言模型.md", "title": "视觉语言模型与开放词汇检测", "priority": "P2", "hours": [3, 10, 16], "needs": ["25"], "scene": "零样本分类，用文字描述找目标，辅助缺陷复查", "upgraded": true},
+    {"n": "29", "part": 3, "dir": "29_扩散模型实战", "tutorial": "教程_扩散模型实战.md", "title": "扩散模型实战：SD、ControlNet、LoRA", "priority": "P2", "hours": [3, 12, 20], "needs": ["20"], "scene": "可控的缺陷图像合成，对应岗位要求里的图像生成", "upgraded": true},
+    {"n": "30", "part": 3, "dir": "30_神经渲染", "tutorial": "教程_神经渲染.md", "title": "神经渲染：NeRF 与 3D Gaussian Splatting", "priority": "P3", "hours": [3, 10, 16], "needs": ["21"], "scene": "从多视图重建三维、合成新视角，对应渲染和仿真方向", "upgraded": true},
+    {"n": "31", "part": 3, "dir": "31_部署与加速", "tutorial": "教程_部署与加速.md", "title": "部署与加速：ONNX、TensorRT、量化", "priority": "P1", "hours": [3, 10, 16], "needs": ["14"], "scene": "把模型的推理时间压进产线节拍", "upgraded": true}
   ],
   "routes": [
     {"id": "p0", "name": "两周速通", "when": "入职前时间很紧，全职投入两周左右", "items": [["01", "fast"], ["02", "fast"], ["03", "fast"], ["15", "std"], ["16", "std"], ["17", "std"], ["18", "std"], ["23", "std"]]},

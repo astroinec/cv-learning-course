@@ -3,6 +3,7 @@
 用法（在仓库根目录运行）：
     python scripts/check_chapter.py 17
     python scripts/check_chapter.py 17 --solutions ../cv-solutions-wt/solutions
+    python scripts/check_chapter.py 25 --solutions ../cv-solutions-wt/solutions --allow-changes   # 新写的章，或者正在改作业和测试
 
 检查内容：
 1. 讲义能否转成网页（小测格式、提示框、链接和配图文件是否存在）。
@@ -193,7 +194,8 @@ def main() -> int:
     ERRORS.extend(B.WARNINGS)
     check_math(body)
     check_structure(text, body, ch)
-    check_untouched(ch)
+    if "--allow-changes" not in sys.argv:
+        check_untouched(ch)
     run_tests(ch, solutions)
     for msg in NOTES:
         print("提醒：", msg)

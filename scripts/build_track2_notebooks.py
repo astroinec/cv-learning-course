@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-plt.rcParams["font.sans-serif"] = ["PingFang SC", "Heiti SC", "Noto Sans CJK SC", "SimHei", "DejaVu Sans"]
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "PingFang SC", "Heiti SC", "Noto Sans CJK SC", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
 
 CHAPTER_NAME = "{chapter}"
