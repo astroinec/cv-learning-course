@@ -25,7 +25,7 @@ def run(test: Path, impl_dir: Path | None) -> tuple[int, str]:
 
 
 def main() -> int:
-    chapters = sorted(d for d in ROOT.iterdir() if d.is_dir() and d.name[:2].isdigit() and 1 <= int(d.name[:2]) <= 24)
+    chapters = sorted(d for d in ROOT.iterdir() if d.is_dir() and d.name[:2].isdigit() and 1 <= int(d.name[:2]) <= 31)
     ok = True
     for ch in chapters:
         test = ch / "tests" / "check_progress.py"
